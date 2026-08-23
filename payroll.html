@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employee Salary &amp; Advance Manager</title>
+<style>:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#f6f7f9;color:#1a1d21;padding:16px;font-size:14px;}h1{font-size:18px;margin-bottom:2px;}.sub{color:#6b7280;font-size:12px;margin-bottom:12px;}.tabs{display:flex;gap:6px;margin-bottom:14px;}.tabs button{border:1px solid #d1d5db;background:#fff;padding:7px 16px;border-radius:8px;font-weight:600;color:#6b7280;}.tabs button.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;flex:1;min-width:128px;}.card .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;}.card .value{font-size:17px;font-weight:700;margin-top:2px;}.c-blue{color:#1d4ed8;}.c-amber{color:#b45309;}.c-green{color:#047857;}.c-red{color:#b91c1c;}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}input,select,button{font:inherit;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;}input:focus,select:focus{outline:2px solid #93c5fd;border-color:#60a5fa;}button{cursor:pointer;}button.primary{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600;}button.primary:disabled{opacity:.5;cursor:default;}#status{font-size:12px;color:#6b7280;margin-bottom:8px;min-height:16px;}#status.err{color:#b91c1c;}#status.ok{color:#047857;}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;}th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #f1f2f4;white-space:nowrap;}th:first-child,td:first-child{text-align:left;}th{background:#f9fafb;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#6b7280;cursor:pointer;user-select:none;}tr.emp:hover{background:#f0f6ff;cursor:pointer;}tr.total-row td{font-weight:700;background:#f9fafb;}.neg{color:#b91c1c;}.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;}.badge.sal{background:#dbeafe;color:#1d4ed8;}.badge.adv{background:#fef3c7;color:#b45309;}fieldset{border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:12px;margin-bottom:14px;}legend{font-weight:600;padding:0 6px;font-size:13px;}.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}.form-row label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:#6b7280;font-weight:600;}.muted{color:#9ca3af;font-size:11px;margin-top:6px;}.view-btn{font-size:11px;padding:3px 10px;border-radius:6px;background:#eef2ff;border-color:#c7d2fe;color:#3730a3;font-weight:600;}.due-in{width:96px;padding:4px 6px;text-align:right;font-size:13px;}.split{font-size:10px;color:#6b7280;font-weight:400;margin-top:1px;}.due-in.set{background:#eff6ff;border-color:#93c5fd;font-weight:600;}#overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;}#overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;}#panel{background:#fff;border-radius:14px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);}#panelHead{padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}#panelHead h2{font-size:16px;flex:1;}#panelStats{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #f1f2f4;}.pstat{background:#f9fafb;border:1px solid #eef0f3;border-radius:8px;padding:6px 12px;font-size:12px;}.pstat b{display:block;font-size:14px;}#panelTools{display:flex;gap:8px;padding:10px 18px;flex-wrap:wrap;align-items:center;}#panelBody{overflow:auto;padding:0 18px 18px;}#panelBody td,#panelBody th{font-size:12.5px;padding:6px 8px;}#panelBody td.wrap{white-space:normal;text-align:left;}.seg{display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;}.seg button{border:0;border-radius:0;padding:5px 12px;font-size:12px;background:#fff;}.seg button.on{background:#1d4ed8;color:#fff;}#closeBtn{background:#f3f4f6;}</style>
+<script src="data.js"></script>
+</head>
+<body>
+<h1>Employee Salary &amp; Advance Manager</h1>
+<div class="sub">The Balaji Industries &middot; OFFLINE SNAPSHOT (Zoho Books data as of 23 Aug 2026)</div>
+<div class="tabs">
+<button id="tabPay" class="on">Monthly Payroll</button>
+<button id="tabOv">All-time Overview</button>
+<button id="tabPart">Partners</button>
+</div>
+<!-- ============ MONTHLY PAYROLL ============ -->
+<div id="payView">
+<div class="toolbar">
+<label style="font-size:12px;color:#6b7280;font-weight:600">Month <input type="month" id="mSel"></label>
+<label style="font-size:12px;color:#6b7280;font-weight:600" title="Payroll cycle runs from this day of the month to the day before it in the next month">Cycle starts on day
+<input type="number" id="cutDay" min="1" max="28" step="1" style="width:60px">
+</label>
+<button id="copyPrev" title="Copy salary-due amounts from previous month">Copy dues from previous month</button>
+<label style="font-size:12px;color:#6b7280"><input type="checkbox" id="showAll" style="width:auto"> Show all employees</label>
+<input id="pq" placeholder="Search employee…" style="min-width:160px">
+</div>
+<div class="muted" id="cycleLabel" style="margin:-4px 0 8px"></div>
+<div class="cards">
+<div class="card"><div class="label">Total Salary Due</div><div class="value c-blue" id="kDue">–</div></div>
+<div class="card"><div class="label">Actual Salary Paid</div><div class="value c-green" id="kPaid">–</div><div class="split" id="kPaidSplit"></div></div>
+<div class="card"><div class="label">Advance Deducted</div><div class="value c-red" id="kDed">–</div></div>
+<div class="card"><div class="label">Advance Given (month)</div><div class="value c-amber" id="kAdv">–</div><div class="split" id="kAdvSplit"></div></div>
+<div class="card"><div class="label">Advance Outstanding (after deductions)</div><div class="value c-amber" id="kAdvAll">–</div></div>
+</div>
+<table>
+<thead><tr>
+<th>Employee</th>
+<th>Salary Due (editable)</th>
+<th>Paid (Zoho)</th>
+<th>Actual Salary (editable)</th>
+<th>Adv. Deducted (editable)</th>
+<th>Advance (month)</th>
+<th>Advance Outstanding</th>
+<th></th>
+</tr></thead>
+<tbody id="pBody"></tbody>
+</table>
+<div class="muted">
+Salary Due = full salary for the month (you set it). Actual Salary = what was really paid (type it, or leave blank to use the Zoho figure).
+Adv. Deducted auto-fills as Due − Actual; edit it if the deduction differs — the rest shows as "unpaid".
+A payroll month runs from the "cycle starts on day" you set (e.g. 14 Mar – 13 Apr), not the calendar month.
+Advance Outstanding = advance taken (from Zoho) minus all deductions made in this tool across months.
+Nothing negative is written to Zoho Books — deductions are managed entirely inside this tool and saved on this computer.
+</div>
+</div>
+<!-- ============ PARTNERS ============ -->
+<div id="partView" style="display:none">
+<div class="cards">
+<div class="card"><div class="label">Ganesh — Zoho a/c balance</div><div class="value c-blue" id="gBal">–</div></div>
+<div class="card"><div class="label">Sagar — Zoho a/c balance</div><div class="value c-blue" id="sBal">–</div></div>
+<div class="card"><div class="label">Difference (Ganesh − Sagar)</div><div class="value" id="gsDiff">–</div><div class="split" id="gsHint"></div></div>
+</div>
+<fieldset>
+<legend>Add partner entry (tracked in this tool)</legend>
+<div class="form-row">
+<label>Partner
+<select id="ptPartner"><option>Ganesh</option><option>Sagar</option></select>
+</label>
+<label>Type
+<select id="ptType"><option value="investment">Investment (money put in)</option><option value="withdrawal">Withdrawal (money taken out)</option></select>
+</label>
+<label>Amount (INR)<input id="ptAmt" type="number" min="1" step="0.01" style="width:120px"></label>
+<label>Date<input id="ptDate" type="date"></label>
+<label>Note<input id="ptNote" placeholder="optional" style="min-width:160px"></label>
+<button class="primary" id="ptAdd">Add</button>
+</div>
+<div class="muted">These entries are saved in this tool only (not written to Zoho Books). Use them to track the 50-50 balance between partners.</div>
+</fieldset>
+<div class="cards" id="ptSummary"></div>
+<table>
+<thead><tr><th>Date</th><th>Partner</th><th>Type</th><th>Note</th><th>Amount</th><th></th></tr></thead>
+<tbody id="ptBody"></tbody>
+</table>
+<h1 style="font-size:15px;margin:18px 0 6px">Business expenses paid from partner accounts (from Zoho Books)</h1>
+<div class="muted" style="margin-bottom:8px">Money each partner personally spent for the business (counts as their investment). Loaded live from expenses whose "paid through" is Ganesh or Sagar.</div>
+<div class="cards">
+<div class="card"><div class="label">Ganesh — spent for business</div><div class="value c-green" id="gSpent">–</div></div>
+<div class="card"><div class="label">Sagar — spent for business</div><div class="value c-green" id="sSpent">–</div></div>
+</div>
+<table>
+<thead><tr><th>Date</th><th>Partner</th><th>Expense head</th><th>Description</th><th>Amount</th></tr></thead>
+<tbody id="ptZBody"></tbody>
+</table>
+</div>
+<!-- ============ OVERVIEW ============ -->
+<div id="ovView" style="display:none">
+<div class="cards">
+<div class="card"><div class="label">Total Salary</div><div class="value c-blue" id="cSal">–</div><div class="split" id="cSalSplit"></div></div>
+<div class="card"><div class="label">Total Advance (net)</div><div class="value c-amber" id="cAdv">–</div><div class="split" id="cAdvSplit"></div></div>
+<div class="card"><div class="label">Combined</div><div class="value c-green" id="cTot">–</div></div>
+<div class="card"><div class="label">Employees</div><div class="value" id="cEmp">–</div></div>
+</div>
+<div class="toolbar">
+<input id="q" placeholder="Search employee…" style="min-width:180px">
+<label style="font-size:12px;color:#6b7280">From <input type="date" id="dFrom"></label>
+<label style="font-size:12px;color:#6b7280">To <input type="date" id="dTo"></label>
+<button id="clearF">Clear filters</button>
+</div>
+<table>
+<thead><tr>
+<th data-k="name">Employee</th><th data-k="sal">Salary</th><th data-k="adv">Advance</th>
+<th data-k="tot">Total</th><th data-k="n"># Entries</th><th></th>
+</tr></thead>
+<tbody id="tbody"></tbody>
+</table>
+<div class="muted">Click a row for full transaction history. Negative advance = repayment/adjustment.</div>
+</div>
+<!-- ============ RECORD PAYMENT (both tabs) ============ -->
+<fieldset style="margin-top:14px">
+<legend>Record new payment — disabled in this shared copy</legend>
+<div class="form-row">
+<label>Type
+<select id="fType"><option value="salary">Salary</option><option value="advance">Advance</option></select>
+</label>
+<label>Employee
+<input id="fName" list="empNames" placeholder="Employee name" style="min-width:170px">
+<datalist id="empNames"></datalist>
+</label>
+<label>Amount (INR)<input id="fAmt" type="number" min="1" step="0.01" style="width:110px"></label>
+<label>Date<input id="fDate" type="date"></label>
+<label>For month<input id="fMonth" type="month"></label>
+<label>Paid through
+<select id="fPaid">
+<option value="2826739000000054268">The Balaji Industries (Axis Bank)</option>
+<option value="2826739000000000459">Petty Cash</option>
+</select>
+</label>
+<button class="primary" id="fSave">Save</button>
+</div>
+<div class="muted">This shared copy cannot write to Zoho Books. Record actual payments in Zoho Books; the Due / Actual / Deducted boxes and Partner ledger work here and save in your browser.</div>
+</fieldset>
+<div id="status">Loading…</div>
+<!-- Employee detail overlay -->
+<div id="overlay">
+<div id="panel">
+<div id="panelHead">
+<h2 id="pName">Employee</h2>
+<div class="seg" id="pSeg">
+<button data-t="all" class="on">All</button>
+<button data-t="salary">Salary</button>
+<button data-t="advance">Advance</button>
+</div>
+<button id="pCsv" class="view-btn">Download CSV</button>
+<button id="closeBtn">✕ Close</button>
+</div>
+<div id="panelStats"></div>
+<div id="panelTools">
+<label style="font-size:12px;color:#6b7280">Sort
+<select id="pSort">
+<option value="new">Newest first</option>
+<option value="old">Oldest first</option>
+<option value="big">Largest amount</option>
+</select>
+</label>
+<span class="muted" id="pCount"></span>
+</div>
+<div id="panelBody"></div>
+</div>
+</div>
+<script>
+window.EMB_ROWS = []; window.EMB_PART = []; window.EMB_BAL = {g:0, s:0};</script>
+<div id="pwGate" style="position:fixed;inset:0;background:#0f172a;z-index:9999;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif">
+<div style="background:#fff;border-radius:14px;padding:32px;max-width:360px;width:90%;text-align:center">
+<h2 style="margin:0 0 6px;font-size:18px;color:#1a1d21">The Balaji Industries</h2>
+<div style="color:#6b7280;font-size:13px;margin-bottom:18px">Private payroll app. Enter your personal password.</div>
+<input id="pwIn" type="password" placeholder="Password" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;box-sizing:border-box">
+<button id="pwBtn" style="width:100%;margin-top:10px;padding:10px;background:#1d4ed8;color:#fff;border:0;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">Open</button>
+<div id="pwErr" style="color:#b91c1c;font-size:12px;margin-top:8px;min-height:14px"></div>
+</div>
+</div>
+<script>async function pwUnlock() {
+const pw = document.getElementById("pwIn").value, err = document.getElementById("pwErr");
+err.textContent = "Checking...";
+const b = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+try {
+const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+let key = null, who = null;
+for (const u of window.ENC.users) {
+try {
+const kek = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b(u.s), iterations:200000, hash:"SHA-256"}, km, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+const raw = await crypto.subtle.decrypt({name:"AES-GCM", iv:b(u.i)}, kek, b(u.k));
+key = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+who = u.u; break;
+} catch (e) {}
+}
+if (!key) { err.textContent = "Wrong password. Try again."; return; }
+const gz = await crypto.subtle.decrypt({name:"AES-GCM", iv:b(window.ENC.iv)}, key, b(window.ENC.ct));
+const txt = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+const data = JSON.parse(txt);
+window.EMB_ROWS = data.rows; window.EMB_PART = data.part; window.EMB_BAL = data.bal;
+document.getElementById("pwGate").remove();
+loadAll();
+document.getElementById("status").textContent += "  \u2014 signed in as " + who;
+} catch (e) { err.textContent = "Could not open: " + e.message; }
+}
+document.getElementById("pwBtn").addEventListener("click", pwUnlock);
+document.getElementById("pwIn").addEventListener("keydown", e => { if (e.key === "Enter") pwUnlock(); });</script>
+<script>const ORG = "60045370667";
+const SRV = "mcp__ba17faab-6bce-4d35-8d19-8f79d1e56cd3__";
+const ACCT = {
+salary:  { name: "Salaries and Employee Wages", id: "2826739000000000543" },
+advance: { name: "Employee Advance",            id: "2826739000000000570" }
+};
+const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+const MONTH_FULL = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+let rows = [];
+let sortKey = "tot", sortDir = -1;
+let pEmp = null, pType = "all";
+const fmt = n => "₹" + Number(n).toLocaleString("en-IN", {maximumFractionDigits: 0});
+function mode(r) {
+const p = (r.paidThrough || "").toLowerCase();
+if (p.includes("petty") || p.includes("cash")) return "cash";
+if (p.includes("balaji")) return "online";           // The Balaji Industries (Axis Bank)
+return "other";                                       // Ganesh / Sagar / etc.
+}
+const splitTxt = s => `💵 ${fmt(s.cash || 0)} · 🏦 ${fmt(s.online || 0)}` + (s.other ? ` · 👤 ${fmt(s.other)}` : "");
+const fmt2 = n => "₹" + Number(n).toLocaleString("en-IN", {maximumFractionDigits: 2});
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+function parse(r) {
+if (r.isError) throw new Error(r.content && r.content[0] ? r.content[0].text : "Tool error");
+return r.structuredContent ?? JSON.parse(r.content[0].text);
+}
+function getCutDay() {
+const v = parseInt(localStorage.getItem("payroll_cut_day") || "14", 10);
+return (v >= 1 && v <= 28) ? v : 14;
+}
+function cycleOf(dateStr) {           // date -> "YYYY-MM" of the cycle it falls in
+const [y, m, d] = dateStr.split("-").map(Number);
+if (d >= getCutDay()) return `${y}-${String(m).padStart(2,"0")}`;
+const p = new Date(y, m - 2, 1);    // previous month
+return `${p.getFullYear()}-${String(p.getMonth()+1).padStart(2,"0")}`;
+}
+function cycleRange(mKey) {           // "YYYY-MM" -> readable "14 Mar 2026 – 13 Apr 2026"
+const [y, m] = mKey.split("-").map(Number);
+const c = getCutDay();
+const s = new Date(y, m - 1, c), e = new Date(y, m, c - 1);
+const f = dt => dt.toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"});
+return f(s) + " – " + f(e);
+}
+function payMonth(r) {
+const d = (r.desc || "").toLowerCase();
+let m = d.match(/\[for (\d{4})-(\d{2})\]/);            // our own tag: [for 2026-03]
+if (m) return m[1] + "-" + m[2];
+m = d.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,\s.]*\s*(\d{4})/); // "Feb, 2026 month salary"
+if (m) {
+const mi = MONTHS.indexOf(m[1]);
+if (mi >= 0) return m[2] + "-" + String(mi + 1).padStart(2, "0");
+}
+return cycleOf(r.date);
+}
+function recomputeMonths() { for (const r of rows) r.month = payMonth(r); }
+function loadAll() {
+rows = (window.EMB_ROWS || []).map(e => {
+const rec = { type: e.t, date: e.d, amount: e.a, desc: e.ds || "", paidThrough: e.p || "", receipt: !!e.r };
+rec.name = ((e.n || "").trim() || rec.desc.replace(/\s*\[for \d{4}-\d{2}\]\s*/i, "").trim() || "(no name)");
+rec.month = payMonth(rec);
+return rec;
+});
+$("status").textContent = "Offline snapshot: " + rows.length + " entries (Zoho Books data as of 23 Aug 2026).";
+buildNameList(); render(); renderPayroll();
+}
+function allNames() {
+return [...new Set(rows.map(r => r.name))].filter(n => n !== "(no name)").sort();
+}
+function buildNameList() {
+$("empNames").innerHTML = allNames().map(n => `<option value="${esc(n)}">`).join("");
+}
+function dueKey(m) { return "payroll_due_" + m; }
+function actKey(m) { return "payroll_actual_" + m; }
+function dedKey(m) { return "payroll_ded_" + m; }
+function getStore(key) { try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch { return {}; } }
+function getDues(m) { return getStore(dueKey(m)); }
+function getActuals(m) { return getStore(actKey(m)); }
+function getDeds(m) { return getStore(dedKey(m)); }
+function setStore(key, name, val) {
+const d = getStore(key);
+if (val === "" || isNaN(val)) delete d[name]; else d[name] = Number(val);
+localStorage.setItem(key, JSON.stringify(d));
+}
+function setDue(m, name, val) { setStore(dueKey(m), name, val); }
+function setActual(m, name, val) { setStore(actKey(m), name, val); }
+function setDed(m, name, val) { setStore(dedKey(m), name, val); }
+function storedMonths() {
+const out = new Set();
+for (let i = 0; i < localStorage.length; i++) {
+const m = localStorage.key(i).match(/^payroll_(?:due|actual|ded)_(\d{4}-\d{2})$/);
+if (m) out.add(m[1]);
+}
+return [...out];
+}
+function zohoPaidMap() {
+const map = {};
+for (const r of rows) if (r.type === "salary") {
+(map[r.name] = map[r.name] || {})[r.month] = (map[r.name][r.month] || 0) + r.amount;
+}
+return map;
+}
+function dedFor(name, m, paidMap) {
+const stored = getDeds(m)[name];
+if (stored !== undefined) return stored;
+const due = getDues(m)[name];
+if (due === undefined) return 0;
+const act = getActuals(m)[name];
+const paid = act !== undefined ? act : ((paidMap[name] || {})[m] || 0);
+return Math.max(0, due - paid);
+}
+function totalDedLocal(name, paidMap) {
+let s = 0;
+for (const m of storedMonths()) s += dedFor(name, m, paidMap);
+return s;
+}
+function prevMonth(m) {
+const [y, mo] = m.split("-").map(Number);
+const dt = new Date(y, mo - 2, 1);
+return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0");
+}
+function renderPayroll() {
+const m = $("mSel").value;
+if (!m) return;
+$("cycleLabel").textContent = `Payroll cycle for ${m}: ${cycleRange(m)} — entries dated in this window count here (a note naming a month, e.g. "Feb 2026 salary", always wins).`;
+const dues = getDues(m);
+const acts = getActuals(m);
+const q = $("pq").value.trim().toLowerCase();
+const agg = {};
+const advAll = {};
+for (const r of rows) {
+if (r.type === "advance") advAll[r.name] = (advAll[r.name] || 0) + r.amount;
+if (r.month !== m) continue;
+const a = agg[r.name] || (agg[r.name] = { paid: 0, adv: 0, dedRec: 0, ps: {}, as: {} });
+const md = mode(r);
+if (r.type === "salary") { a.paid += r.amount; a.ps[md] = (a.ps[md] || 0) + r.amount; }
+else { a.adv += r.amount; a.as[md] = (a.as[md] || 0) + r.amount; if (r.amount < 0) a.dedRec += -r.amount; }
+}
+let names = $("showAll").checked
+? [...new Set([...allNames(), ...Object.keys(dues), ...Object.keys(acts)])]
+: [...new Set([...Object.keys(agg), ...Object.keys(dues), ...Object.keys(acts)])];
+if (q) names = names.filter(n => n.toLowerCase().includes(q));
+names.sort((a, b) => {
+const ta = (dues[a] || 0) + ((agg[a] || {}).paid || 0), tb = (dues[b] || 0) + ((agg[b] || {}).paid || 0);
+return tb - ta || a.localeCompare(b);
+});
+const deds = getDeds(m);
+const paidMap = zohoPaidMap();
+let tDue = 0, tAct = 0, tDed = 0, tAdv = 0, tAdvAll = 0, tZoho = 0, html = "";
+const tPS = {}, tAS = {};
+for (const n of names) {
+const a = agg[n] || { paid: 0, adv: 0, ps: {}, as: {} };
+for (const k in a.ps) tPS[k] = (tPS[k] || 0) + a.ps[k];
+for (const k in a.as) tAS[k] = (tAS[k] || 0) + a.as[k];
+const due = dues[n];
+const act = acts[n];
+const hasDue = due !== undefined;
+const hasAct = act !== undefined;
+const effPaid = hasAct ? act : a.paid;                 // actual salary: manual entry, else Zoho
+const dedStored = deds[n];
+const dedAuto = hasDue ? Math.max(0, due - effPaid) : 0;
+const ded = dedStored !== undefined ? dedStored : dedAuto;
+const unpaid = hasDue ? due - effPaid - ded : 0;        // shortfall not covered by deduction
+const outstanding = (advAll[n] || 0) - totalDedLocal(n, paidMap);
+tDue += due || 0; tZoho += a.paid; tAct += effPaid; tDed += ded;
+tAdv += a.adv; tAdvAll += outstanding;
+html += `<tr class="emp" data-n="${esc(n)}">
+<td>${esc(n)}</td>
+<td><input class="due-in ${hasDue ? "set" : ""}" data-k="due" data-n="${esc(n)}" type="number" min="0" step="1" value="${hasDue ? due : ""}" placeholder="set due"></td>
+<td class="c-green">${fmt(a.paid)}${a.paid ? `<div class="split">${splitTxt(a.ps)}</div>` : ""}</td>
+<td><input class="due-in ${hasAct ? "set" : ""}" data-k="act" data-n="${esc(n)}" type="number" min="0" step="1" value="${hasAct ? act : ""}" placeholder="${a.paid ? fmt(a.paid).replace("₹","") : "enter"}"></td>
+<td><input class="due-in ${dedStored !== undefined ? "set" : ""}" data-k="ded" data-n="${esc(n)}" type="number" step="1" value="${ded || ""}" placeholder="0">${unpaid > 0 ? `<div class="split c-red">unpaid ${fmt(unpaid)}</div>` : ""}</td>
+<td class="c-amber">${fmt(a.adv)}${a.adv ? `<div class="split">${splitTxt(a.as)}</div>` : ""}</td>
+<td class="${outstanding < 0 ? "neg" : "c-amber"}">${fmt(outstanding)}${totalDedLocal(n, paidMap) ? `<div class="split">Zoho ${fmt(advAll[n] || 0)} − ded ${fmt(totalDedLocal(n, paidMap))}</div>` : ""}</td>
+<td><button class="view-btn" data-n="${esc(n)}">View</button></td></tr>`;
+}
+html += `<tr class="total-row"><td>TOTAL (${names.length})</td><td>${fmt(tDue)}</td>
+<td>${fmt(tZoho)}<div class="split">${splitTxt(tPS)}</div></td>
+<td>${fmt(tAct)}</td><td>${fmt(tDed)}</td>
+<td>${fmt(tAdv)}<div class="split">${splitTxt(tAS)}</div></td>
+<td>${fmt(tAdvAll)}</td><td></td></tr>`;
+$("pBody").innerHTML = html;
+$("kDue").textContent = fmt(tDue); $("kPaid").textContent = fmt(tAct);
+$("kPaidSplit").innerHTML = splitTxt(tPS);
+$("kAdvSplit").innerHTML = splitTxt(tAS);
+$("kDed").textContent = fmt(tDed); $("kAdv").textContent = fmt(tAdv); $("kAdvAll").textContent = fmt(tAdvAll);
+$("pBody").querySelectorAll("input.due-in").forEach(inp => {
+inp.addEventListener("click", e => e.stopPropagation());
+inp.addEventListener("change", () => {
+const mm = $("mSel").value, n = inp.dataset.n;
+if (inp.dataset.k === "due") setDue(mm, n, inp.value);
+else if (inp.dataset.k === "act") setActual(mm, n, inp.value);
+else setDed(mm, n, inp.value);
+renderPayroll();
+});
+});
+$("pBody").querySelectorAll("button.view-btn").forEach(b =>
+b.addEventListener("click", e => { e.stopPropagation(); openDetail(b.dataset.n); }));
+$("pBody").querySelectorAll("tr.emp").forEach(tr =>
+tr.addEventListener("click", e => { if (e.target.tagName !== "INPUT" && e.target.tagName !== "BUTTON") openDetail(tr.dataset.n); }));
+}
+$("mSel").value = cycleOf(new Date().toISOString().slice(0, 10));
+$("cutDay").value = getCutDay();
+$("cutDay").addEventListener("change", () => {
+let v = parseInt($("cutDay").value, 10);
+if (!(v >= 1 && v <= 28)) { v = 14; $("cutDay").value = 14; }
+localStorage.setItem("payroll_cut_day", String(v));
+recomputeMonths(); renderPayroll();
+$("status").className = "ok";
+$("status").textContent = `Payroll cycle now runs from day ${v} to day ${v === 1 ? 31 : v - 1} of the next month.`;
+});
+$("mSel").addEventListener("change", renderPayroll);
+$("pq").addEventListener("input", renderPayroll);
+$("showAll").addEventListener("change", renderPayroll);
+$("copyPrev").addEventListener("click", () => {
+const m = $("mSel").value, pm = prevMonth(m);
+const prev = getDues(pm), cur = getDues(m);
+let n = 0;
+for (const k in prev) if (cur[k] === undefined) { cur[k] = prev[k]; n++; }
+localStorage.setItem(dueKey(m), JSON.stringify(cur));
+renderPayroll();
+$("status").className = "ok";
+$("status").textContent = `Copied ${n} salary-due amounts from ${pm}.`;
+});
+function filtered() {
+const q = $("q").value.trim().toLowerCase();
+const f = $("dFrom").value, t = $("dTo").value;
+return rows.filter(r =>
+(!q || r.name.toLowerCase().includes(q)) &&
+(!f || r.date >= f) && (!t || r.date <= t));
+}
+function render() {
+const agg = {};
+const tSS = {}, tAS2 = {};
+for (const r of filtered()) {
+const a = agg[r.name] || (agg[r.name] = { name: r.name, sal: 0, adv: 0, n: 0, ss: {}, as: {} });
+const md = mode(r);
+if (r.type === "salary") { a.sal += r.amount; a.ss[md] = (a.ss[md] || 0) + r.amount; tSS[md] = (tSS[md] || 0) + r.amount; }
+else { a.adv += r.amount; a.as[md] = (a.as[md] || 0) + r.amount; tAS2[md] = (tAS2[md] || 0) + r.amount; }
+a.n++;
+}
+let list = Object.values(agg);
+for (const a of list) a.tot = a.sal + a.adv;
+list.sort((x, y) => (sortKey === "name" ? x.name.localeCompare(y.name) : x[sortKey] - y[sortKey]) * sortDir);
+let tS = 0, tA = 0, html = "";
+for (const a of list) {
+tS += a.sal; tA += a.adv;
+html += `<tr class="emp" data-n="${esc(a.name)}">
+<td>${esc(a.name)}</td>
+<td>${fmt(a.sal)}${a.sal ? `<div class="split">${splitTxt(a.ss)}</div>` : ""}</td>
+<td class="${a.adv < 0 ? "neg" : ""}">${fmt(a.adv)}${a.adv ? `<div class="split">${splitTxt(a.as)}</div>` : ""}</td>
+<td><b>${fmt(a.tot)}</b></td><td>${a.n}</td>
+<td><button class="view-btn" data-n="${esc(a.name)}">View</button></td></tr>`;
+}
+html += `<tr class="total-row"><td>TOTAL (${list.length} employees)</td>
+<td>${fmt(tS)}<div class="split">${splitTxt(tSS)}</div></td>
+<td>${fmt(tA)}<div class="split">${splitTxt(tAS2)}</div></td>
+<td>${fmt(tS + tA)}</td><td></td><td></td></tr>`;
+$("tbody").innerHTML = html;
+$("cSal").textContent = fmt(tS); $("cAdv").textContent = fmt(tA);
+$("cSalSplit").innerHTML = splitTxt(tSS); $("cAdvSplit").innerHTML = splitTxt(tAS2);
+$("cTot").textContent = fmt(tS + tA); $("cEmp").textContent = list.length;
+$("tbody").querySelectorAll("button.view-btn").forEach(b =>
+b.addEventListener("click", e => { e.stopPropagation(); openDetail(b.dataset.n); }));
+$("tbody").querySelectorAll("tr.emp").forEach(tr =>
+tr.addEventListener("click", e => { if (e.target.tagName !== "BUTTON") openDetail(tr.dataset.n); }));
+}
+function empItems() {
+let items = rows.filter(r => r.name === pEmp);
+if (pType !== "all") items = items.filter(r => r.type === pType);
+const s = $("pSort").value;
+items.sort((a, b) => s === "old" ? a.date.localeCompare(b.date)
+: s === "big" ? b.amount - a.amount
+: b.date.localeCompare(a.date));
+return items;
+}
+function openDetail(name) { pEmp = name; $("pName").textContent = name; renderDetail(); $("overlay").classList.add("open"); }
+function renderDetail() {
+const all = rows.filter(r => r.name === pEmp);
+const sal = all.filter(r => r.type === "salary").reduce((s, r) => s + r.amount, 0);
+const adv = all.filter(r => r.type === "advance").reduce((s, r) => s + r.amount, 0);
+const dates = all.map(r => r.date).sort();
+const ms = {};
+for (const r of all) { const md = mode(r); ms[md] = (ms[md] || 0) + r.amount; }
+$("panelStats").innerHTML = `
+<div class="pstat">Salary <b class="c-blue">${fmt2(sal)}</b></div>
+<div class="pstat">Advance (net) <b class="c-amber">${fmt2(adv)}</b></div>
+<div class="pstat">Total <b class="c-green">${fmt2(sal + adv)}</b></div>
+<div class="pstat">💵 Cash <b>${fmt2(ms.cash || 0)}</b></div>
+<div class="pstat">🏦 Online <b>${fmt2(ms.online || 0)}</b></div>
+${ms.other ? `<div class="pstat">👤 Partner a/c <b>${fmt2(ms.other)}</b></div>` : ""}
+<div class="pstat">Entries <b>${all.length}</b></div>
+<div class="pstat">First <b>${dates[0] || "—"}</b></div>
+<div class="pstat">Last <b>${dates[dates.length - 1] || "—"}</b></div>`;
+const items = empItems();
+$("pCount").textContent = `${items.length} transaction${items.length === 1 ? "" : "s"} shown`;
+let run = 0;
+const chron = items.slice().sort((a, b) => a.date.localeCompare(b.date));
+const runMap = new Map();
+for (const it of chron) { run += it.amount; runMap.set(it, run); }
+let html = `<table><thead><tr>
+<th>Date</th><th>Month</th><th>Type</th><th>Note</th><th>Paid through</th><th>Receipt</th><th>Amount</th><th>Running total</th>
+</tr></thead><tbody>`;
+for (const it of items) {
+html += `<tr>
+<td style="text-align:left">${it.date}</td>
+<td style="text-align:left">${it.month}</td>
+<td style="text-align:left"><span class="badge ${it.type === "salary" ? "sal" : "adv"}">${it.type}</span></td>
+<td class="wrap">${esc(it.desc || "—")}</td>
+<td style="text-align:left">${esc(it.paidThrough || "—")}</td>
+<td style="text-align:center">${it.receipt ? "📎" : ""}</td>
+<td class="${it.amount < 0 ? "neg" : ""}"><b>${fmt2(it.amount)}</b></td>
+<td>${fmt2(runMap.get(it))}</td></tr>`;
+}
+html += `</tbody></table>`;
+$("panelBody").innerHTML = html;
+}
+$("closeBtn").addEventListener("click", () => { $("overlay").classList.remove("open"); pEmp = null; });
+$("overlay").addEventListener("click", e => { if (e.target === $("overlay")) { $("overlay").classList.remove("open"); pEmp = null; } });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { $("overlay").classList.remove("open"); pEmp = null; } });
+$("pSort").addEventListener("change", renderDetail);
+$("pSeg").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+pType = b.dataset.t;
+$("pSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+renderDetail();
+}));
+$("pCsv").addEventListener("click", () => {
+const items = empItems();
+const lines = ["Date,Month,Type,Note,Paid Through,Amount"];
+for (const it of items)
+lines.push([it.date, it.month, it.type, '"' + (it.desc || "").replace(/"/g, '""') + '"', '"' + it.paidThrough + '"', it.amount].join(","));
+const a = document.createElement("a");
+a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(lines.join("\n"));
+a.download = pEmp.replace(/[^\w]+/g, "_") + "_salary_advance.csv";
+a.click();
+});
+const PART = {
+Ganesh: { id: "2826739000000032366" },
+Sagar:  { id: "2826739000000032360" }
+};
+let partLoaded = false;
+function getLedger() { try { return JSON.parse(localStorage.getItem("partner_ledger") || "[]"); } catch { return []; } }
+function saveLedger(l) { localStorage.setItem("partner_ledger", JSON.stringify(l)); }
+function renderLedger() {
+const led = getLedger().sort((a, b) => b.date.localeCompare(a.date));
+const t = { Ganesh: { inv: 0, wd: 0 }, Sagar: { inv: 0, wd: 0 } };
+let html = "";
+led.forEach((e, i) => {
+if (t[e.partner]) t[e.partner][e.type === "investment" ? "inv" : "wd"] += e.amount;
+html += `<tr>
+<td style="text-align:left">${e.date}</td>
+<td style="text-align:left">${esc(e.partner)}</td>
+<td style="text-align:left"><span class="badge ${e.type === "investment" ? "sal" : "adv"}">${e.type}</span></td>
+<td style="text-align:left;white-space:normal">${esc(e.note || "—")}</td>
+<td><b>${fmt(e.amount)}</b></td>
+<td><button class="view-btn" data-i="${i}" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b">Delete</button></td></tr>`;
+});
+if (!led.length) html = `<tr><td colspan="6" style="text-align:center;color:#9ca3af">No entries yet — add investments and withdrawals above</td></tr>`;
+$("ptBody").innerHTML = html;
+$("ptBody").querySelectorAll("button[data-i]").forEach(b => b.addEventListener("click", () => {
+const led2 = getLedger().sort((a, b) => b.date.localeCompare(a.date));
+if (!confirm(`Delete this entry? ${led2[b.dataset.i].partner} ${led2[b.dataset.i].type} ${fmt(led2[b.dataset.i].amount)}`)) return;
+led2.splice(b.dataset.i, 1); saveLedger(led2); renderLedger();
+}));
+const gNet = t.Ganesh.wd - t.Ganesh.inv, sNet = t.Sagar.wd - t.Sagar.inv;
+const d = gNet - sNet;
+$("ptSummary").innerHTML = `
+<div class="card"><div class="label">Ganesh — invested / withdrawn</div><div class="value" style="font-size:14px"><span class="c-green">${fmt(t.Ganesh.inv)}</span> / <span class="c-red">${fmt(t.Ganesh.wd)}</span></div><div class="split">net taken: ${fmt(gNet)}</div></div>
+<div class="card"><div class="label">Sagar — invested / withdrawn</div><div class="value" style="font-size:14px"><span class="c-green">${fmt(t.Sagar.inv)}</span> / <span class="c-red">${fmt(t.Sagar.wd)}</span></div><div class="split">net taken: ${fmt(sNet)}</div></div>
+<div class="card"><div class="label">50-50 check (tool ledger)</div><div class="value ${d === 0 ? "c-green" : "c-red"}" style="font-size:14px">${d === 0 ? "✓ Equal" : (d > 0 ? "Ganesh ahead by " + fmt(d) : "Sagar ahead by " + fmt(-d))}</div>
+<div class="split">${d === 0 ? "both partners are even" : (d > 0 ? "to equalize: Sagar withdraws " + fmt(d) + " more, or Ganesh invests " + fmt(d) : "to equalize: Ganesh withdraws " + fmt(-d) + " more, or Sagar invests " + fmt(-d))}</div></div>`;
+}
+function loadPartners() {
+const gb = window.EMB_BAL.g, sb = window.EMB_BAL.s;
+$("gBal").textContent = fmt(gb); $("sBal").textContent = fmt(sb);
+const d = gb - sb;
+$("gsDiff").textContent = (d >= 0 ? "+" : "\u2212") + fmt(Math.abs(d));
+$("gsDiff").className = "value " + (Math.abs(d) < 1 ? "c-green" : "c-red");
+$("gsHint").textContent = (Math.abs(d) < 1 ? "accounts are equal" : (d > 0 ? "Ganesh's account is higher" : "Sagar's account is higher") + " \u2014 for 50-50, both should match") + " (as of 23 Aug 2026)";
+const spent = { Ganesh: 0, Sagar: 0 };
+const zrows = (window.EMB_PART || []).slice();
+for (const z of zrows) spent[z.p] = (spent[z.p] || 0) + z.amt;
+$("gSpent").textContent = fmt(spent.Ganesh); $("sSpent").textContent = fmt(spent.Sagar);
+zrows.sort((a, b) => b.date.localeCompare(a.date));
+$("ptZBody").innerHTML = zrows.length ? zrows.map(z => `<tr><td style="text-align:left">${z.date}</td><td style="text-align:left">${esc(z.p)}</td><td style="text-align:left">${esc(z.head)}</td><td style="text-align:left;white-space:normal">${esc(z.desc)}</td><td><b>${fmt(z.amt)}</b></td></tr>`).join("") : `<tr><td colspan="5" style="text-align:center;color:#9ca3af">No expenses paid through partner accounts</td></tr>`;
+partLoaded = true;
+}
+$("ptDate").value = new Date().toISOString().slice(0, 10);
+$("ptAdd").addEventListener("click", () => {
+const amt = parseFloat($("ptAmt").value);
+if (!amt || amt <= 0) return alert("Enter a valid amount");
+if (!$("ptDate").value) return alert("Pick a date");
+const led = getLedger();
+led.push({ partner: $("ptPartner").value, type: $("ptType").value, amount: amt, date: $("ptDate").value, note: $("ptNote").value.trim() });
+saveLedger(led);
+$("ptAmt").value = ""; $("ptNote").value = "";
+renderLedger();
+});
+function showTab(which) {
+const tabs = { pay: ["tabPay", "payView"], ov: ["tabOv", "ovView"], part: ["tabPart", "partView"] };
+for (const k in tabs) {
+$(tabs[k][0]).classList.toggle("on", k === which);
+$(tabs[k][1]).style.display = k === which ? "" : "none";
+}
+}
+$("tabPay").addEventListener("click", () => showTab("pay"));
+$("tabOv").addEventListener("click", () => showTab("ov"));
+$("tabPart").addEventListener("click", () => { showTab("part"); renderLedger(); if (!partLoaded) loadPartners(); });
+document.querySelectorAll("#ovView thead th[data-k]").forEach(th => th.addEventListener("click", () => {
+const k = th.dataset.k;
+if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = k === "name" ? 1 : -1; }
+render();
+}));
+["q", "dFrom", "dTo"].forEach(id => $(id).addEventListener("input", render));
+$("clearF").addEventListener("click", () => { $("q").value = $("dFrom").value = $("dTo").value = ""; render(); });
+$("fDate").value = new Date().toISOString().slice(0, 10);
+$("fMonth").value = new Date().toISOString().slice(0, 7);
+$("fSave").addEventListener("click", () => {
+alert("This is a shared read-only copy \u2014 it cannot write to Zoho Books.\nRecord actual payments in Zoho Books. The Due / Actual / Deducted boxes and the Partner ledger DO work and are saved in this browser.");
+});
+loadAll();</script>
+</body>
+</html>
