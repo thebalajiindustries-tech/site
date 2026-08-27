@@ -6,99 +6,149 @@
 <title>The Balaji Industries &mdash; Casting Fettling &amp; Finishing | Vambori, Maharashtra</title>
 <meta name="description" content="The Balaji Industries, Vambori (Ahmednagar), Maharashtra. Job-work fettling, grinding, ultra-polish grinding, acid pickling and grit blasting of castings for pump and valve manufacturers.">
 <style>
-:root{--ink:#12171f;--muted:#5b6675;--line:#e3e7ec;--bg:#fff;--soft:#f5f7fa;--brand:#0f4c81;--brand2:#c8781a;color-scheme:light}
+:root{--ink:#101720;--muted:#5d6874;--faint:#8a95a1;--line:#e4e8ed;--bg:#fff;--soft:#f6f8fa;--brand:#0f4c81;--deep:#0a3157;--accent:#c0392b;color-scheme:light}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6;font-size:16px}
-.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.65;font-size:16px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
 a{color:var(--brand);text-decoration:none}
 a:hover{text-decoration:underline}
+h1,h2,h3{letter-spacing:-.02em}
 
-header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line)}
-.bar{display:flex;align-items:center;gap:18px;height:66px}
-.logo{display:flex;align-items:center;gap:11px;font-weight:800;font-size:17px;letter-spacing:-.2px;color:var(--ink)}
-.logo:hover{text-decoration:none}
-.mark{width:34px;height:34px;border-radius:8px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:15px;font-weight:800}
-nav{margin-left:auto;display:flex;gap:24px}
+header{position:sticky;top:0;z-index:30;background:#fff;border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:20px;height:72px}
+.brand{display:flex;align-items:center;gap:12px;color:var(--ink)}
+.brand:hover{text-decoration:none}
+.brand svg{height:40px;width:auto;display:block}
+.brand .nm{font-weight:800;font-size:16.5px;line-height:1.15}
+.brand .tg{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}
+nav{margin-left:auto;display:flex;gap:26px}
 nav a{color:var(--muted);font-size:14.5px;font-weight:600}
 nav a:hover{color:var(--brand);text-decoration:none}
-@media(max-width:720px){nav{display:none}}
+@media(max-width:800px){nav{display:none}.bar{height:64px}}
 
-.hero{background:linear-gradient(160deg,#0f4c81 0%,#0b3358 100%);color:#fff;padding:76px 0 84px}
-.eyebrow{font-size:12.5px;letter-spacing:.13em;text-transform:uppercase;color:#9dc4e8;font-weight:700;margin-bottom:14px}
-.hero h1{font-size:41px;line-height:1.18;letter-spacing:-.7px;font-weight:800;max-width:16em}
-.hero p{margin-top:18px;font-size:17.5px;color:#d3e3f2;max-width:36em}
-.cta{margin-top:30px;display:flex;gap:12px;flex-wrap:wrap}
-.btn{display:inline-block;padding:12px 24px;border-radius:8px;font-weight:700;font-size:15px}
-.btn-p{background:#fff;color:var(--brand)}
-.btn-p:hover{background:#eaf2fa;text-decoration:none}
-.btn-s{border:1px solid rgba(255,255,255,.45);color:#fff}
+.hero{position:relative;overflow:hidden;background:var(--deep);color:#fff;padding:90px 0 96px}
+.hero::before{content:"";position:absolute;inset:0;opacity:.28;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.16) 0 1px,transparent 1px 13px)}
+.hero::after{content:"";position:absolute;right:-160px;top:-140px;width:620px;height:620px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(84,150,214,.42),transparent 62%)}
+.hero .wrap{position:relative;z-index:1}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#a9cdee;font-weight:700;margin-bottom:20px}
+.eyebrow i{width:22px;height:1px;background:#5e94c6;display:inline-block}
+.hero h1{font-size:46px;line-height:1.12;font-weight:800;max-width:15em}
+.hero p{margin-top:20px;font-size:18px;color:#cfe1f1;max-width:34em}
+.cta{margin-top:34px;display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-block;padding:13px 26px;border-radius:8px;font-weight:700;font-size:15px}
+.btn-p{background:#fff;color:var(--deep)}
+.btn-p:hover{background:#e9f1f8;text-decoration:none}
+.btn-s{border:1px solid rgba(255,255,255,.4);color:#fff}
 .btn-s:hover{background:rgba(255,255,255,.1);text-decoration:none}
-@media(max-width:720px){.hero{padding:52px 0 58px}.hero h1{font-size:29px}.hero p{font-size:16px}}
+@media(max-width:800px){.hero{padding:58px 0 62px}.hero h1{font-size:31px}.hero p{font-size:16px}}
 
-.stats{border-bottom:1px solid var(--line);background:var(--soft)}
+.stats{background:var(--soft);border-bottom:1px solid var(--line)}
 .stats .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
-.stat{background:var(--soft);padding:26px 18px;text-align:center}
-.stat b{display:block;font-size:26px;font-weight:800;color:var(--brand);letter-spacing:-.5px}
-.stat span{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.stat{background:var(--soft);padding:28px 18px;text-align:center}
+.stat b{display:block;font-size:27px;font-weight:800;color:var(--brand);letter-spacing:-.03em}
+.stat span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
 @media(max-width:720px){.stats .wrap{grid-template-columns:repeat(2,1fr)}}
 
-section{padding:70px 0}
-.sec-head{max-width:44em;margin-bottom:40px}
-h2{font-size:29px;letter-spacing:-.5px;font-weight:800}
-.sec-head p{margin-top:12px;color:var(--muted);font-size:16.5px}
-@media(max-width:720px){section{padding:48px 0}h2{font-size:23px}}
+section{padding:82px 0}
+.sec-head{max-width:42em;margin-bottom:44px}
+.kicker{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:800;margin-bottom:10px}
+h2{font-size:31px;font-weight:800}
+.sec-head p{margin-top:14px;color:var(--muted);font-size:17px}
+@media(max-width:800px){section{padding:54px 0}h2{font-size:24px}}
 
-.split{display:grid;grid-template-columns:1.15fr 1fr;gap:52px;align-items:start}
-@media(max-width:860px){.split{grid-template-columns:1fr;gap:34px}}
-.split p+p{margin-top:14px}
-.split p{color:#3c4653}
-.facts{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:8px 22px}
-.facts dl{display:grid;grid-template-columns:auto 1fr;gap:0}
-.facts dt{padding:14px 0;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line);padding-right:26px;white-space:nowrap}
-.facts dd{padding:14px 0;font-size:15px;border-bottom:1px solid var(--line);text-align:right;font-weight:600}
+.split{display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:start}
+@media(max-width:900px){.split{grid-template-columns:1fr;gap:36px}}
+.split p+p{margin-top:15px}
+.split p{color:#3d4854}
+.facts{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:6px 24px}
+.facts dl{display:grid;grid-template-columns:auto 1fr}
+.facts dt{padding:15px 26px 15px 0;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:800;border-bottom:1px solid var(--line);white-space:nowrap}
+.facts dd{padding:15px 0;font-size:15px;border-bottom:1px solid var(--line);text-align:right;font-weight:700}
 .facts dt:last-of-type,.facts dd:last-of-type{border-bottom:0}
 
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:c}
-@media(max-width:860px){.grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.grid{grid-template-columns:1fr}}
-.card{border:1px solid var(--line);border-radius:12px;padding:24px;transition:.15s}
-.card:hover{border-color:#c3d3e3;box-shadow:0 6px 22px rgba(15,76,129,.07)}
-.card .ic{width:38px;height:38px;border-radius:9px;background:#eaf2fa;color:var(--brand);display:grid;place-items:center;font-size:0;margin-bottom:14px}.card .ic::after{counter-increment:c;content:counter(c,decimal-leading-zero);font-size:14px;font-weight:800;letter-spacing:.5px}
-.card h3{font-size:16.5px;font-weight:700;margin-bottom:7px}
+.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+@media(max-width:1000px){.flow{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:620px){.flow{grid-template-columns:repeat(2,1fr)}}
+.step{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 14px 18px;text-align:center;transition:.18s}
+.step:hover{border-color:#bcd0e2;transform:translateY(-2px)}
+.step svg{width:100%;height:auto;display:block;margin-bottom:10px}
+.step .n{font-size:10.5px;letter-spacing:.12em;font-weight:800;color:var(--accent)}
+.step .t{font-size:14px;font-weight:700;margin-top:3px}
+.step .d{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.5}
+
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:14px;padding:26px;background:#fff;transition:.18s}
+.card:hover{border-color:#bcd0e2;box-shadow:0 8px 26px rgba(15,76,129,.08)}
+.card .ic{width:42px;height:42px;border-radius:11px;background:#eaf2fa;color:var(--brand);display:grid;place-items:center;margin-bottom:16px}
+.card .ic svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.card h3{font-size:17px;font-weight:700;margin-bottom:8px}
 .card p{color:var(--muted);font-size:14.5px}
 
 .alt{background:var(--soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 
-.clients{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
-.client{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 30px;font-weight:800;font-size:19px;letter-spacing:.5px;color:var(--brand)}
-.client small{display:block;font-size:11.5px;font-weight:600;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.clients{display:flex;gap:20px;flex-wrap:wrap;align-items:stretch}
+.client{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px 34px;display:flex;flex-direction:column;justify-content:center}
+.client b{font-weight:800;font-size:21px;letter-spacing:.02em;color:var(--brand)}
+.client small{font-size:11px;font-weight:700;letter-spacing:.09em;color:var(--faint);text-transform:uppercase;margin-top:4px}
 
-ul.checks{list-style:none;margin-top:6px}
-ul.checks li{padding:9px 0 9px 28px;position:relative;color:#3c4653;border-bottom:1px solid var(--line)}
+ul.checks{list-style:none;margin-top:8px}
+ul.checks li{padding:11px 0 11px 26px;position:relative;color:#3d4854;border-bottom:1px solid var(--line);font-size:15px}
 ul.checks li:last-child{border-bottom:0}
-ul.checks li::before{content:"";position:absolute;left:2px;top:17px;width:8px;height:8px;border-radius:2px;background:var(--brand2)}
+ul.checks li::before{content:"";position:absolute;left:0;top:19px;width:9px;height:9px;border-radius:2px;background:var(--accent);opacity:.85}
 
-.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:34px}
-@media(max-width:760px){.contact-grid{grid-template-columns:1fr}}
-.cbox{border:1px solid var(--line);border-radius:12px;padding:26px}
-.cbox h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:12px}
-.cbox address{font-style:normal;font-size:16px;line-height:1.75}
-.gst{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
-.gst b{color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.4px}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:800px){.contact-grid{grid-template-columns:1fr}}
+.cbox{border:1px solid var(--line);border-radius:14px;padding:28px;background:#fff}
+.cbox h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);font-weight:800;margin-bottom:14px}
+.cbox address{font-style:normal;font-size:16px;line-height:1.8}
+.rule{margin-top:18px;padding-top:18px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+.rule b{color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.5px}
 
-footer{border-top:1px solid var(--line);padding:30px 0;font-size:13.5px;color:var(--muted)}
-.frow{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+footer{background:var(--deep);color:#b9cee2;padding:38px 0}
+.frow{display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:13.5px}
 .frow .sp{margin-left:auto}
+footer svg{height:34px;width:auto;display:block}
+.fbrand{display:flex;align-items:center;gap:11px}
+.fbrand span{color:#fff;font-weight:800;font-size:15px}
 </style>
 </head>
 <body>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<linearGradient id="lgA" x1="0" y1="0" x2="1" y2="0">
+<stop offset="0" stop-color="#4f4f51"/><stop offset="15%" stop-color="#88888b"/><stop offset="33%" stop-color="#cccccf"/><stop offset="50%" stop-color="#939396"/><stop offset="70%" stop-color="#c8c8cb"/><stop offset="100%" stop-color="#5e5e61"/>
+</linearGradient>
+<linearGradient id="lgB" x1="0" y1="0" x2="1" y2="0">
+<stop offset="0" stop-color="#8d1a13"/><stop offset="35%" stop-color="#da3a2b"/><stop offset="62%" stop-color="#c22a1e"/><stop offset="100%" stop-color="#8a1710"/>
+</linearGradient>
+<linearGradient id="lgC" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#a2a2a5"/><stop offset="100%" stop-color="#5c5c5f"/>
+</linearGradient>
+<g id="mark">
+<path fill="url(#lgA)" d="M2,60 L110,60 C112,150 122,232 140,286 C158,232 168,150 170,60 L278,60 C276,150 268,235 254,290 C250,301 244,304 240,297 C214,330 180,344 140,344 C100,344 66,330 40,297 C36,304 30,301 26,290 C12,235 4,150 2,60 Z"/>
+<path fill="url(#lgB)" d="M140,4 C145,90 152,205 154,265 C154,278 148,284 140,284 C132,284 126,278 126,265 C128,205 135,90 140,4 Z"/>
+<circle cx="140" cy="390" r="19" fill="url(#lgC)"/>
+</g>
+<pattern id="grit" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#8c9aa8"/><circle cx="5.5" cy="5" r=".8" fill="#8c9aa8"/></pattern>
+</defs>
+</svg>
+
 <header>
 <div class="wrap bar">
-<a class="logo" href="#top"><span class="mark">B</span> The Balaji Industries</a>
+<a class="brand" href="#top">
+<svg viewBox="0 0 280 420" aria-label="The Balaji Industries logo"><use href="#mark"/></svg>
+<span>
+<span class="nm">The Balaji Industries</span><br>
+<span class="tg">Fettling &amp; finishing</span>
+</span>
+</a>
 <nav>
 <a href="#about">About</a>
+<a href="#process">Process</a>
 <a href="#services">Services</a>
 <a href="#capabilities">Capabilities</a>
 <a href="#clients">Clients</a>
@@ -109,12 +159,12 @@ footer{border-top:1px solid var(--line);padding:30px 0;font-size:13.5px;color:va
 
 <div id="top" class="hero">
 <div class="wrap">
-<div class="eyebrow">Vambori &middot; Ahmednagar &middot; Maharashtra</div>
-<h1>Casting fettling and surface finishing for precision engineering</h1>
-<p>The Balaji Industries is a job-work engineering unit finishing castings to drawing &mdash; fettling, grinding, ultra-polish grinding, acid pickling and grit blasting &mdash; for pump and valve manufacturers across Maharashtra.</p>
+<div class="eyebrow"><i></i> Vambori &middot; Ahmednagar &middot; Maharashtra</div>
+<h1>Castings finished to drawing, batch after batch</h1>
+<p>A job-work engineering unit doing fettling, grinding, ultra-polish grinding, acid pickling and grit blasting for pump and valve manufacturers across Maharashtra.</p>
 <div class="cta">
-<a class="btn btn-p" href="#contact">Talk to us</a>
-<a class="btn btn-s" href="#services">What we do</a>
+<a class="btn btn-p" href="#contact">Send an enquiry</a>
+<a class="btn btn-s" href="#process">See the process</a>
 </div>
 </div>
 </div>
@@ -122,18 +172,19 @@ footer{border-top:1px solid var(--line);padding:30px 0;font-size:13.5px;color:va
 <div class="stats">
 <div class="wrap">
 <div class="stat"><b>70+</b><span>People on site</span></div>
+<div class="stat"><b>6</b><span>Finishing operations</span></div>
 <div class="stat"><b>SAC 998860</b><span>Registered job work</span></div>
 <div class="stat"><b>GST</b><span>Registered supplier</span></div>
-<div class="stat"><b>MH</b><span>Maharashtra based</span></div>
 </div>
 </div>
 
 <section id="about">
 <div class="wrap split">
 <div>
-<h2>About us</h2>
-<p style="margin-top:14px">The Balaji Industries operates a fettling and finishing facility at Vambori in Ahmednagar district, Maharashtra. We take raw castings supplied by our customers and return them finished to specification &mdash; gates and risers removed, surfaces dressed, dimensions checked.</p>
-<p>The work is carried out on a job-work basis: the castings remain the customer's property throughout, and we are paid per piece for the operations performed. That model keeps our customers' inventory on their own books while giving them a finishing line they don't have to run themselves.</p>
+<div class="kicker">About us</div>
+<h2>A finishing line your castings pass through</h2>
+<p style="margin-top:16px">The Balaji Industries operates a fettling and finishing facility at Vambori in Ahmednagar district, Maharashtra. We take raw castings supplied by our customers and return them finished to specification &mdash; gates and risers removed, surfaces dressed, dimensions checked.</p>
+<p>The work is carried out on a job-work basis: the castings remain the customer's property throughout, and we are paid per piece for the operations performed. That keeps our customers' inventory on their own books while giving them a finishing line they don't have to run themselves.</p>
 <p>We employ a workforce of over seventy on the shop floor, working to each customer's routing sheet, with every batch inspected before dispatch.</p>
 </div>
 <div class="facts">
@@ -142,69 +193,159 @@ footer{border-top:1px solid var(--line);padding:30px 0;font-size:13.5px;color:va
 <dt>Work type</dt><dd>Job work / SAC 998860</dd>
 <dt>Sector</dt><dd>Engineering services</dd>
 <dt>Workforce</dt><dd>70+ employees</dd>
+<dt>Billing</dt><dd>Per piece, per operation</dd>
 </dl>
 </div>
 </div>
 </section>
 
-<section id="services" class="alt">
+<section id="process" class="alt">
 <div class="wrap">
 <div class="sec-head">
-<h2>Services</h2>
-<p>A complete post-casting finishing line under one roof, so a casting leaves us ready for machining or assembly.</p>
+<div class="kicker">Process</div>
+<h2>From raw casting to inspected part</h2>
+<p>Six stages, all under one roof. Diagrams below are schematic &mdash; they show what changes at each stage, not a specific component.</p>
 </div>
-<div class="grid">
-<div class="card">
-<div class="ic">&#9874;</div>
-<h3>Fettling</h3>
-<p>Removal of gates, risers, runners and flash from raw castings, bringing the part down to its intended profile.</p>
+<div class="flow">
+
+<div class="step">
+<svg viewBox="0 0 120 92" aria-hidden="true">
+<circle cx="52" cy="46" r="28" fill="#d3dae2" stroke="#9aa8b6" stroke-width="1.5"/>
+<rect x="78" y="37" width="24" height="18" fill="#d3dae2" stroke="#9aa8b6" stroke-width="1.5"/>
+<circle cx="52" cy="46" r="10" fill="#f6f8fa" stroke="#9aa8b6" stroke-width="1.5"/>
+<path d="M44,18 l4,-12 h9 l4,12" fill="#c0392b" opacity=".8"/>
+<path d="M44,74 l4,12 h9 l4,-12" fill="#c0392b" opacity=".8"/>
+<path d="M24,38 l-8,-4 M24,54 l-8,4" stroke="#9aa8b6" stroke-width="2" stroke-linecap="round"/>
+</svg>
+<div class="n">01</div><div class="t">Raw casting</div><div class="d">Arrives with gates, risers and flash</div>
 </div>
-<div class="card">
-<div class="ic">&#9881;</div>
-<h3>Grinding &amp; deburring</h3>
-<p>Surface dressing, parting-line grinding and edge deburring to the tolerances set out on the customer drawing.</p>
+
+<div class="step">
+<svg viewBox="0 0 120 92" aria-hidden="true">
+<circle cx="52" cy="46" r="28" fill="#d3dae2" stroke="#9aa8b6" stroke-width="1.5"/>
+<rect x="78" y="37" width="24" height="18" fill="#d3dae2" stroke="#9aa8b6" stroke-width="1.5"/>
+<circle cx="52" cy="46" r="10" fill="#f6f8fa" stroke="#9aa8b6" stroke-width="1.5"/>
+<path d="M43,20 h18 M43,72 h18" stroke="#c0392b" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="4 3"/>
+</svg>
+<div class="n">02</div><div class="t">Fettling</div><div class="d">Gates and risers cut away</div>
 </div>
-<div class="card">
-<div class="ic">&#10024;</div>
-<h3>Ultra-polish grinding (UPG)</h3>
-<p>Higher-grade finishing for components where surface quality matters &mdash; hydraulic passages, sealing faces and visible surfaces.</p>
+
+<div class="step">
+<svg viewBox="0 0 120 92" aria-hidden="true">
+<circle cx="52" cy="46" r="28" fill="#c9d2dc" stroke="#8c9aa8" stroke-width="1.5"/>
+<rect x="78" y="37" width="24" height="18" rx="2" fill="#c9d2dc" stroke="#8c9aa8" stroke-width="1.5"/>
+<circle cx="52" cy="46" r="10" fill="#f6f8fa" stroke="#8c9aa8" stroke-width="1.5"/>
+<circle cx="96" cy="20" r="11" fill="none" stroke="#0f4c81" stroke-width="2"/>
+<path d="M88,28 l-9,9 M104,12 l4,-4 M104,28 l5,4 M88,12 l-4,-5" stroke="#0f4c81" stroke-width="2" stroke-linecap="round"/>
+</svg>
+<div class="n">03</div><div class="t">Grinding</div><div class="d">Parting lines and burrs dressed</div>
 </div>
-<div class="card">
-<div class="ic">&#9663;</div>
-<h3>Grit blasting</h3>
-<p>Abrasive blasting to clean sand, scale and oxide from castings and to prepare a uniform surface for coating.</p>
+
+<div class="step">
+<svg viewBox="0 0 120 92" aria-hidden="true">
+<circle cx="52" cy="46" r="28" fill="#c9d2dc" stroke="#8c9aa8" stroke-width="1.5"/>
+<circle cx="52" cy="46" r="28" fill="url(#grit)" opacity=".5"/>
+<rect x="78" y="37" width="24" height="18" rx="2" fill="#c9d2dc" stroke="#8c9aa8" stroke-width="1.5"/>
+<circle cx="52" cy="46" r="10" fill="#f6f8fa" stroke="#8c9aa8" stroke-width="1.5"/>
+<path d="M6,46 l14,-9 v18 Z" fill="#0f4c81"/>
+<path d="M22,46 h6 M22,38 l7,-3 M22,54 l7,3" stroke="#0f4c81" stroke-width="1.8" stroke-linecap="round"/>
+</svg>
+<div class="n">04</div><div class="t">Grit blasting</div><div class="d">Sand, scale and oxide removed</div>
 </div>
-<div class="card">
-<div class="ic">&#9832;</div>
-<h3>Acid pickling</h3>
-<p>Chemical cleaning to strip residual scale and burnt-on sand where blasting alone will not reach.</p>
+
+<div class="step">
+<svg viewBox="0 0 120 92" aria-hidden="true">
+<path d="M14,30 h92 v40 a8,8 0 0,1 -8,8 h-76 a8,8 0 0,1 -8,-8 Z" fill="#e6eef6" stroke="#8c9aa8" stroke-width="1.5"/>
+<circle cx="60" cy="54" r="19" fill="#dbe3ec" stroke="#8c9aa8" stroke-width="1.5"/>
+<circle cx="60" cy="54" r="7" fill="#f6f8fa" stroke="#8c9aa8" stroke-width="1.5"/>
+<path d="M60,6 c7,10 11,15 11,20 a11,11 0 0,1 -22,0 c0,-5 4,-10 11,-20 Z" fill="#c0392b" opacity=".85"/>
+</svg>
+<div class="n">05</div><div class="t">Acid pickling</div><div class="d">Burnt-on sand chemically stripped</div>
 </div>
-<div class="card">
-<div class="ic">&#9989;</div>
-<h3>Inspection &amp; dispatch</h3>
-<p>Piece-wise checking against the routing sheet, with counts reconciled and batches packed for return to the customer.</p>
+
+<div class="step">
+<svg viewBox="0 0 120 92" aria-hidden="true">
+<circle cx="52" cy="46" r="28" fill="#dce4ec" stroke="#8c9aa8" stroke-width="1.5"/>
+<circle cx="52" cy="46" r="10" fill="#fff" stroke="#8c9aa8" stroke-width="1.5"/>
+<path d="M52,10 v-6 M52,82 v6 M16,46 h-6 M88,46 h6" stroke="#0f4c81" stroke-width="1.6" stroke-linecap="round"/>
+<circle cx="96" cy="70" r="15" fill="#0f4c81"/>
+<path d="M89,70 l5,5 l9,-10" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+<div class="n">06</div><div class="t">Inspection</div><div class="d">Checked, counted, packed for return</div>
 </div>
+
 </div>
 </div>
 </section>
 
-<section id="capabilities">
+<section id="services">
+<div class="wrap">
+<div class="sec-head">
+<div class="kicker">Services</div>
+<h2>What we do</h2>
+<p>A complete post-casting finishing line, so a part leaves us ready for machining or assembly.</p>
+</div>
+<div class="grid">
+
+<div class="card">
+<div class="ic"><svg viewBox="0 0 24 24"><path d="M4 20l6-6"/><path d="M14 10l6-6"/><path d="M9 15a4 4 0 106 -6"/><path d="M14 4l6 6"/></svg></div>
+<h3>Fettling</h3>
+<p>Removal of gates, risers, runners and flash from raw castings, bringing the part down to its intended profile.</p>
+</div>
+
+<div class="card">
+<div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 5V2M12 22v-3M5 12H2M22 12h-3M7 7L5 5M17 17l2 2M17 7l2-2M7 17l-2 2"/></svg></div>
+<h3>Grinding &amp; deburring</h3>
+<p>Surface dressing, parting-line grinding and edge deburring to the tolerances set out on the customer drawing.</p>
+</div>
+
+<div class="card">
+<div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z"/><path d="M18 16l.9 2.3L21 19l-2.1.7L18 22l-.9-2.3L15 19l2.1-.7z"/></svg></div>
+<h3>Ultra-polish grinding</h3>
+<p>Higher-grade finishing where surface quality matters &mdash; hydraulic passages, sealing faces and visible surfaces.</p>
+</div>
+
+<div class="card">
+<div class="ic"><svg viewBox="0 0 24 24"><path d="M3 12l6-4v8z"/><path d="M11 12h3M15 8.5l3-1M15 15.5l3 1M20 12h1.5"/><circle cx="19" cy="6" r="1"/><circle cx="21" cy="17" r="1"/></svg></div>
+<h3>Grit blasting</h3>
+<p>Abrasive blasting to clean sand, scale and oxide from castings and prepare a uniform surface for coating.</p>
+</div>
+
+<div class="card">
+<div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3c3.5 5 5.5 7.4 5.5 10a5.5 5.5 0 11-11 0C6.5 10.4 8.5 8 12 3z"/><path d="M9.5 13.5a2.5 2.5 0 002.5 2.5"/></svg></div>
+<h3>Acid pickling</h3>
+<p>Chemical cleaning to strip residual scale and burnt-on sand where blasting alone will not reach.</p>
+</div>
+
+<div class="card">
+<div class="ic"><svg viewBox="0 0 24 24"><path d="M4 4v11a5 5 0 005 5h6a5 5 0 005-5V4"/><path d="M4 8h4M16 8h4M4 12h3M17 12h3"/><path d="M9.5 16.5l1.8 1.8 3.7-4"/></svg></div>
+<h3>Inspection &amp; dispatch</h3>
+<p>Piece-wise checking against the routing sheet, with counts reconciled and batches packed for return.</p>
+</div>
+
+</div>
+</div>
+</section>
+
+<section id="capabilities" class="alt">
 <div class="wrap split">
 <div>
-<h2>How we work</h2>
-<p style="margin-top:14px">Most of our customers send castings in scheduled batches against a rate contract, part number by part number. We work to their drawings and routing sheets rather than our own, which keeps the finished part consistent with everything else in their supply chain.</p>
+<div class="kicker">How we work</div>
+<h2>Built around your routing sheet</h2>
+<p style="margin-top:16px">Most customers send castings in scheduled batches against a rate contract, part number by part number. We work to their drawings and routing sheets rather than our own, which keeps the finished part consistent with everything else in their supply chain.</p>
 <ul class="checks">
 <li>Per-part rate contracts, priced by operation</li>
 <li>Batch scheduling to the customer's despatch plan</li>
-<li>Work carried out on customer-owned material (job work)</li>
-<li>Multiple operations combined in a single pass through our line</li>
+<li>Work carried out on customer-owned material</li>
+<li>Multiple operations in a single pass through the line</li>
 <li>Piece counts reconciled and documented on return</li>
 <li>GST-compliant invoicing under SAC 998860</li>
 </ul>
 </div>
 <div>
-<h2>Materials handled</h2>
-<p style="margin-top:14px">Our line is set up for the cast components used in fluid-handling equipment &mdash; pump casings, impellers, covers, valve bodies and similar parts.</p>
+<div class="kicker">Materials</div>
+<h2>What we handle</h2>
+<p style="margin-top:16px">The line is set up for the cast components used in fluid-handling equipment &mdash; pump casings, impellers, covers, valve bodies and similar parts.</p>
 <ul class="checks">
 <li>Grey cast iron</li>
 <li>Ductile / SG iron</li>
@@ -212,28 +353,30 @@ footer{border-top:1px solid var(--line);padding:30px 0;font-size:13.5px;color:va
 <li>Stainless steel castings</li>
 <li>Bronze and non-ferrous castings</li>
 </ul>
-<p style="margin-top:16px;font-size:14.5px;color:var(--muted)">Working with a material or process not listed here? Send us the drawing and we will tell you honestly whether it suits our line.</p>
+<p style="margin-top:18px;font-size:14.5px;color:var(--muted)">Working with a material or process not listed here? Send the drawing and we'll tell you honestly whether it suits our line.</p>
 </div>
 </div>
 </section>
 
-<section id="clients" class="alt">
+<section id="clients">
 <div class="wrap">
 <div class="sec-head">
+<div class="kicker">Clients</div>
 <h2>Who we work for</h2>
 <p>Our largest customer is a global manufacturer of pumps, valves and fluid-handling systems with operations in Maharashtra.</p>
 </div>
 <div class="clients">
-<div class="client">KSB Ltd.<small>Pumps &amp; valves</small></div>
+<div class="client"><b>KSB Ltd.</b><small>Pumps &amp; valves</small></div>
 </div>
 </div>
 </section>
 
-<section id="contact">
+<section id="contact" class="alt">
 <div class="wrap">
 <div class="sec-head">
-<h2>Contact</h2>
-<p>Send us a drawing, a part number or an enquiry and we will come back to you with a rate.</p>
+<div class="kicker">Contact</div>
+<h2>Send us a drawing</h2>
+<p>Give us a part number, material and monthly quantity and we'll come back to you with a rate.</p>
 </div>
 <div class="contact-grid">
 <div class="cbox">
@@ -245,7 +388,7 @@ Vambori, Tal. Rahuri<br>
 Dist. Ahmednagar, Maharashtra 413704<br>
 India
 </address>
-<div class="gst">GSTIN &nbsp;<b>27CJRPK1269F2ZV</b></div>
+<div class="rule">GSTIN &nbsp;<b>27CJRPK1269F2ZV</b></div>
 </div>
 <div class="cbox">
 <h3>Get in touch</h3>
@@ -253,9 +396,7 @@ India
 Email<br>
 <a href="mailto:superadmin@thebalajiindustries.com"><strong>superadmin@thebalajiindustries.com</strong></a>
 </address>
-<div class="gst" style="border-top:0;padding-top:14px">
-For enquiries, please include the part number, material, monthly quantity and the operations you need. Drawings can be attached to your email.
-</div>
+<div class="rule">Please include the part number, material, monthly quantity and the operations you need. Drawings can be attached to your email.</div>
 </div>
 </div>
 </div>
@@ -263,8 +404,11 @@ For enquiries, please include the part number, material, monthly quantity and th
 
 <footer>
 <div class="wrap frow">
-<div>&copy; <span id="yr">2026</span> The Balaji Industries. Vambori, Maharashtra, India.</div>
-<div class="sp">GSTIN 27CJRPK1269F2ZV</div>
+<div class="fbrand">
+<svg viewBox="0 0 280 420" aria-hidden="true"><use href="#mark"/></svg>
+<span>The Balaji Industries</span>
+</div>
+<div class="sp">&copy; <span id="yr">2026</span> &middot; Vambori, Maharashtra, India &middot; GSTIN 27CJRPK1269F2ZV</div>
 </div>
 </footer>
 
