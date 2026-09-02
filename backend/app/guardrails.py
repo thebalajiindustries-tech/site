@@ -8,7 +8,7 @@ settings = get_settings()
 _FORBIDDEN = re.compile(
     r"\b(insert|update|delete|drop|alter|truncate|create|grant|revoke|copy|"
     r"vacuum|call|do|merge|comment|reindex|cluster|lock|listen|notify|"
-    r"pg_read_file|pg_ls_dir|dblink)\b",
+    r"pg_read_file|pg_ls_dir|dblink|pg_sleep|pg_terminate_backend|pg_cancel_backend)\b",
     re.IGNORECASE,
 )
 

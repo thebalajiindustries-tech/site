@@ -20,6 +20,37 @@ from . import tenancy
 settings = get_settings()
 _ROUNDS = 200_000
 
+# --- brute-force protection: lock an email after too many failed logins ---
+import threading
+import time as _time
+
+_login_fails: dict[str, list] = {}
+_login_lock = threading.Lock()
+_MAX_FAILS = 5
+_FAIL_WINDOW = 900  # seconds (15 min)
+
+
+def check_not_locked(email: str) -> None:
+    email = (email or "").strip().lower()
+    now = _time.time()
+    with _login_lock:
+        recent = [t for t in _login_fails.get(email, []) if now - t < _FAIL_WINDOW]
+        _login_fails[email] = recent
+        if len(recent) >= _MAX_FAILS:
+            raise HTTPException(429, "Too many failed attempts. Please wait a few minutes and try again.")
+
+
+def record_failed_login(email: str) -> None:
+    email = (email or "").strip().lower()
+    with _login_lock:
+        _login_fails.setdefault(email, []).append(_time.time())
+
+
+def clear_failed_login(email: str) -> None:
+    email = (email or "").strip().lower()
+    with _login_lock:
+        _login_fails.pop(email, None)
+
 
 def hash_password(password: str) -> str:
     salt = os.urandom(16)

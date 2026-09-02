@@ -13,6 +13,24 @@ from .config import get_settings
 
 settings = get_settings()
 
+import time as _time
+
+
+def _retry(fn, attempts: int = 3):
+    """Retry only transient AI errors (network/timeout/overloaded/5xx)."""
+    for i in range(attempts):
+        try:
+            return fn()
+        except Exception as e:  # noqa: BLE001
+            name = type(e).__name__
+            txt = str(e).lower()
+            transient = (name in ('APIConnectionError', 'APITimeoutError', 'InternalServerError', 'APIStatusError')
+                         or 'overloaded' in txt or 'timeout' in txt or ' 500' in txt or ' 529' in txt)
+            if transient and i < attempts - 1:
+                _time.sleep(0.6 * (i + 1))
+                continue
+            raise
+
 
 def _complete(prompt: str, max_tokens: int = 700, cache_prefix: str | None = None) -> str:
     """Single-user-message completion. `cache_prefix` (static) is cached across calls."""
@@ -44,11 +62,11 @@ def _complete(prompt: str, max_tokens: int = 700, cache_prefix: str | None = Non
     else:
         content = prompt
 
-    msg = client.messages.create(
+    msg = _retry(lambda: client.messages.create(
         model=settings.MODEL,
         max_tokens=max_tokens,
         messages=[{"role": "user", "content": content}],
-    )
+    ))
     # Newer models can emit a thinking block before the text block.
     parts = [getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text"]
     return "".join(parts).strip()

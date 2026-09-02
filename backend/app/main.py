@@ -40,6 +40,8 @@ app.add_middleware(
 @app.on_event("startup")
 def _startup():
     seed.bootstrap()
+    if settings.AUTH_SECRET in ("dev-only-change-me", ""):
+        log.warning("GANAK_AUTH_SECRET is not strong \u2014 set it in backend/.env before production.")
 
 
 # ---------------- models ----------------
@@ -127,9 +129,13 @@ def register(req: RegisterRequest):
 
 @app.post("/auth/login", response_model=AuthResponse)
 def login(req: LoginRequest):
-    user = tenancy.get_user_by_email((req.email or "").strip().lower())
+    email = (req.email or "").strip().lower()
+    auth.check_not_locked(email)
+    user = tenancy.get_user_by_email(email)
     if not user or not auth.verify_password(req.password or "", user["pw_hash"]):
+        auth.record_failed_login(email)
         raise HTTPException(401, "Wrong email or password.")
+    auth.clear_failed_login(email)
     return _auth_payload(user, tenancy.get_tenant(user["tenant_id"]))
 
 
@@ -163,6 +169,8 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
     q = (req.question or "").strip()
     if not q:
         raise HTTPException(400, "Question is empty.")
+    if len(q) > 1000:
+        raise HTTPException(400, "That question is too long \u2014 please shorten it.")
     tenant = ident["tenant"]
     db_url = tenant["db_url"]
     dialect = db.dialect_of(db_url)
@@ -194,7 +202,12 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
             chart=ChartSpec(**(narration.get("chart") or {"type": "none"})),
         )
     except UnsafeSQLError as e:
-        raise HTTPException(400, f"Rejected unsafe query: {e}")
+        log.info("Blocked non-SELECT/unsafe SQL: %s", e)
+        raise HTTPException(
+            400,
+            "I can only answer questions about your business data. Try asking about "
+            "revenue, expenses, invoices, payments, or who owes you money.",
+        )
     except HTTPException:
         raise
     except Exception as e:  # pragma: no cover
