@@ -1,0 +1,24 @@
+message_id,thread_id,email_date,sender,sender_domain,subject,snippet,direction,category,amount,labels
+1a01a0b79331a8bb,t,2026-08-19T12:42:27Z,dbauto.email41@deutsche.bank.in,deutsche.bank.in,E3S2608191894231 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19febacb9aa5b816,t,2026-08-10T12:36:26Z,dbae.india6@deutsche.bank.in,deutsche.bank.in,E3S2608105148320 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19fb25f254446f33,t,2026-07-30T09:33:23Z,message-service@sender.zoho-books.in,sender.zoho-books.in,Payment Received by OJAS ENTERPISES - Sent Using Zoho Books,"Payment Received ₹1,28301.00 Invoice No26-27/",incoming,payment_received,128301.0,INBOX
+19fb2645e69da8be,t,2026-07-30T09:39:05Z,message-service@sender.zoho-books.in,sender.zoho-books.in,Payment Received by OJAS ENTERPISES - Sent Using Zoho Books,Payment Received ₹15399.00 Invoice No26-27/,incoming,payment_received,15399.0,INBOX
+19fb2bd4e09934e5,t,2026-07-30T11:16:14Z,message-service@sender.zoho-books.in,sender.zoho-books.in,Payment Received by OJAS ENTERPISES - Sent Using Zoho Books,Payment Received ₹2557.60 Invoice No26-27/001,incoming,payment_received,2557.6,INBOX
+19fcb09fda531021,t,2026-08-04T04:29:35Z,dbauto.email26@deutsche.bank.in,deutsche.bank.in,E3S2608043940933 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19f8352deefec7b5,t,2026-07-21T06:17:46Z,dbae.india20@deutsche.bank.in,deutsche.bank.in,E3S2607217910540 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19f4bed68de7fc8b,t,2026-07-10T12:06:25Z,dbauto.email30@deutsche.bank.in,deutsche.bank.in,E3S2607101701325 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19f22995e80d2480,t,2026-07-02T11:30:10Z,dbauto.email32@deutsche.bank.in,deutsche.bank.in,E3S2607027185468 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19f0dd4469d83dce,t,2026-06-28T10:43:26Z,balajicorporation17@gmail.com,gmail.com,pending bills.,Please find the attached PDF copies of the pending bills. We have not yet received the payment.,incoming,vendor_bill,,INBOX
+19ed72c4b10f4616,t,2026-06-17T19:59:21Z,rawsaheb.rautray@ksb.com,ksb.com,Pending Purchase Order Statement - KSB,expectations for On time Delivery as per the Purchase Order delivery date,incoming,purchase_order,,INBOX
+19ebc1d7b5bd1a2e,t,2026-06-12T13:54:59Z,dbae.india10@deutsche.bank.in,deutsche.bank.in,E3S2606122002738 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19e8ce4fddff6c2c,t,2026-06-03T09:51:10Z,info@ferrochem.net,ferrochem.net,We acknowledge with thanks receipt of your Valuable Purchase Order,Details of received purchase order,incoming,purchase_order,,INBOX
+19e90e263c54a816,t,2026-06-04T04:26:20Z,info@ferrochem.net,ferrochem.net,Re: Request for Centrifugal tube with stand set,Please make payment Rs. 4200/- immediately 3560+18%gst,incoming,vendor_bill,4200.0,INBOX
+19eab30c60cbed84,t,2026-06-09T07:01:56Z,info@ferrochem.net,ferrochem.net,Re: Request for Centrifugal tube with stand set,Please make payment Rs. 9412/- Centrifuge Tube,incoming,vendor_bill,9412.0,INBOX
+19e882592b70af90,t,2026-06-02T11:41:43Z,dbauto.email39@deutsche.bank.in,deutsche.bank.in,E3S2606023089551 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19e69b29855fdaaf,t,2026-05-27T13:49:22Z,dbae.india8@deutsche.bank.in,deutsche.bank.in,E3S2605272540669 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19e35aa028b28438,t,2026-05-17T11:19:40Z,accbalajicorporation2020@gmail.com,gmail.com,Fwd: Balance confirmation as on 31.03.2026 - The Balaji Industries,Please check the below mail,incoming,balance_confirmation,,INBOX
+19f033f3994395ad,t,2026-06-26T09:25:01Z,thebalajiindustries7333@gmail.com,gmail.com,Re: Balance confirmation as on 31.03.2026 - The Balaji Industries,Balance confirm at 31/03/2026 Rs.63307 /-,outgoing,balance_confirmation,63307.0,SENT
+19e2cfbdc0c00374,t,2026-05-15T18:51:02Z,dbauto.email39@deutsche.bank.in,deutsche.bank.in,E3S2605151578331 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19e0878dba500c18,t,2026-05-08T16:42:25Z,dbauto.email32@deutsche.bank.in,deutsche.bank.in,E3S2605089541201 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19dac1c90392184d,t,2026-04-20T18:16:03Z,dbauto.email30@deutsche.bank.in,deutsche.bank.in,E3S2604207578539 Payment advice,Please refer to the attachment for details.,incoming,bank_payment_advice,,INBOX
+19f6face3d87fb86,t,2026-07-17T10:43:36Z,devkateenterprise@gmail.com,gmail.com,Quotation,Please Find the attached file of Labour Quotation.,incoming,quotation,,INBOX
