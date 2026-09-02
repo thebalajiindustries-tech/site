@@ -40,7 +40,14 @@ def _complete(prompt: str, max_tokens: int = 700) -> str:
         max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}],
     )
-    return msg.content[0].text
+    # Newer models can return "thinking" blocks before the text block; collect the
+    # text block(s) rather than assuming content[0] is text.
+    parts = [
+        getattr(b, "text", "")
+        for b in msg.content
+        if getattr(b, "type", "") == "text"
+    ]
+    return "".join(parts).strip()
 
 
 def _strip_fences(text: str) -> str:
