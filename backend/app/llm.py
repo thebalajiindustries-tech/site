@@ -1,7 +1,10 @@
 """LLM calls: question -> SQL, and rows -> plain-English answer + chart spec.
 
-Swappable provider (Anthropic or OpenAI) behind one small interface so you are
-never locked in.
+Cost optimizations:
+- The static instructions + schema are sent as a cached prefix (Anthropic prompt
+  caching), so repeated questions don't re-pay for the schema tokens.
+- The narration step sees a small row sample.
+Swappable provider (Anthropic or OpenAI).
 """
 import json
 import re
@@ -11,42 +14,43 @@ from .config import get_settings
 settings = get_settings()
 
 
-def _complete(prompt: str, max_tokens: int = 700) -> str:
-    """Send a single-user-message prompt to the configured provider, return text."""
+def _complete(prompt: str, max_tokens: int = 700, cache_prefix: str | None = None) -> str:
+    """Single-user-message completion. `cache_prefix` (static) is cached across calls."""
     if settings.LLM_PROVIDER == "openai":
         from openai import OpenAI
 
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        full = f"{cache_prefix}\n{prompt}" if cache_prefix else prompt
         resp = client.chat.completions.create(
             model=settings.MODEL,
             max_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": full}],
         )
         return resp.choices[0].message.content or ""
 
     # default: anthropic
     from anthropic import Anthropic
 
-    # Identity-linked API keys require the workspace id on every request.
     extra_headers = {}
     if settings.ANTHROPIC_WORKSPACE_ID:
         extra_headers["anthropic-workspace-id"] = settings.ANTHROPIC_WORKSPACE_ID
-    client = Anthropic(
-        api_key=settings.ANTHROPIC_API_KEY,
-        default_headers=extra_headers or None,
-    )
+    client = Anthropic(api_key=settings.ANTHROPIC_API_KEY, default_headers=extra_headers or None)
+
+    if cache_prefix:
+        content = [
+            {"type": "text", "text": cache_prefix, "cache_control": {"type": "ephemeral"}},
+            {"type": "text", "text": prompt},
+        ]
+    else:
+        content = prompt
+
     msg = client.messages.create(
         model=settings.MODEL,
         max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": content}],
     )
-    # Newer models can return "thinking" blocks before the text block; collect the
-    # text block(s) rather than assuming content[0] is text.
-    parts = [
-        getattr(b, "text", "")
-        for b in msg.content
-        if getattr(b, "type", "") == "text"
-    ]
+    # Newer models can emit a thinking block before the text block.
+    parts = [getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text"]
     return "".join(parts).strip()
 
 
@@ -74,7 +78,8 @@ def question_to_sql(question: str, schema: str, dialect: str = "postgres") -> st
             "- Use date_trunc and INTERVAL for time grouping; sensible date filters on "
             "columns like invoice_date, expense_date, created_time, date."
         )
-    prompt = f"""You are a {engine} expert for a business-analytics product.
+    # Static, cacheable prefix (rules + schema) — reused across every question.
+    cache_prefix = f"""You are a {engine} expert for a business-analytics product.
 Convert the user's question into ONE read-only {engine} query.
 
 Rules:
@@ -85,16 +90,14 @@ Rules:
 - Return ONLY the SQL. No prose, no markdown fences.
 
 DATABASE SCHEMA:
-{schema}
-
-QUESTION: {question}
-SQL:"""
-    return _strip_fences(_complete(prompt, max_tokens=600))
+{schema}"""
+    variable = f"\nQUESTION: {question}\nSQL:"
+    return _strip_fences(_complete(variable, max_tokens=500, cache_prefix=cache_prefix))
 
 
 def narrate(question: str, rows: list) -> dict:
     """Turn rows into {answer, chart:{type,x,y}} the frontend can render."""
-    sample = json.dumps(rows[:50], default=str)
+    sample = json.dumps(rows[:25], default=str)
     cur = settings.CURRENCY
     prompt = f"""The user asked: "{question}"
 The SQL returned these rows (JSON): {sample}
@@ -108,7 +111,7 @@ Reply with ONLY a JSON object shaped like:
 }}
 Use "none" when a single value or short list reads better than a chart.
 Return only the JSON."""
-    text = _strip_fences(_complete(prompt, max_tokens=500))
+    text = _strip_fences(_complete(prompt, max_tokens=400))
     try:
         data = json.loads(text)
         if not isinstance(data, dict) or "answer" not in data:

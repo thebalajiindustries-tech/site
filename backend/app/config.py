@@ -24,7 +24,7 @@ class Settings:
     # identity-linked keys must say which workspace the request runs in
     ANTHROPIC_WORKSPACE_ID: str = os.environ.get("ANTHROPIC_WORKSPACE_ID", "")
     OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
-    MODEL: str = os.environ.get("MODEL", "claude-sonnet-5")
+    MODEL: str = os.environ.get("MODEL", "claude-haiku-4-5-20251001")
 
     # --- guardrails / limits ---
     MAX_ROWS: int = int(os.environ.get("MAX_ROWS", "500"))

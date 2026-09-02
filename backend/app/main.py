@@ -172,7 +172,20 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
         sql = sanitize(raw_sql)
         log.info("[tenant %s] Q: %s | SQL: %s", tenant["id"], q, sql)
         columns, rows = db.run_select(db_url, sql)
-        narration = llm.narrate(q, rows)
+        # Cost optimization: a single scalar result needs no second LLM call.
+        if len(rows) == 1 and len(columns) == 1:
+            col = columns[0]
+            val = rows[0][col]
+            money = any(k in col.lower() for k in
+                        ("revenue","amount","total","paid","balance","outstanding","due","expense","sales","payment"))
+            label = col.replace("_", " ").strip().capitalize()
+            try:
+                shown = f"{settings.CURRENCY}{float(val):,.2f}" if (money and val is not None) else str(val)
+            except (TypeError, ValueError):
+                shown = str(val)
+            narration = {"answer": f"{label}: {shown}", "chart": {"type": "none"}}
+        else:
+            narration = llm.narrate(q, rows)
         return AskResponse(
             answer=narration.get("answer", ""),
             sql=sql,

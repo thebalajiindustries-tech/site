@@ -29,11 +29,27 @@ export default function Dashboard() {
   const [errs, setErrs] = useState<(string | null)[]>(KPIS.map(() => null));
 
   useEffect(() => {
+    const TTL = 10 * 60 * 1000; // reuse KPI answers for 10 min to avoid re-billing
     health().then((h) => setDb(h.database)).catch(() => setDb("down"));
     KPIS.forEach((k, i) => {
+      const key = `ganak-kpi:${i}`;
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const c = JSON.parse(raw) as { v: string; t: number };
+          if (c && typeof c.v === "string" && Date.now() - c.t < TTL) {
+            setVals((v) => { const a = [...v]; a[i] = c.v; return a; });
+            return; // fresh cache — no API call
+          }
+        }
+      } catch {}
       ask(k.q)
-        .then((r) => setVals((v) => { const c = [...v]; c[i] = headline(r.answer); return c; }))
-        .catch((e) => setErrs((v) => { const c = [...v]; c[i] = (e as Error).message; return c; }));
+        .then((r) => {
+          const h = headline(r.answer);
+          setVals((v) => { const a = [...v]; a[i] = h; return a; });
+          try { localStorage.setItem(key, JSON.stringify({ v: h, t: Date.now() })); } catch {}
+        })
+        .catch((e) => setErrs((v) => { const a = [...v]; a[i] = (e as Error).message; return a; }));
     });
   }, []);
 

@@ -16,8 +16,18 @@ export function getToken(): string | null {
   try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
 }
 function setToken(t: string) { try { localStorage.setItem(TOKEN_KEY, t); } catch {} }
+function clearKpiCache() {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("ganak-kpi:")) localStorage.removeItem(k);
+    }
+  } catch {}
+}
+
 export function logout() {
   try { localStorage.removeItem(TOKEN_KEY); } catch {}
+  clearKpiCache();
   if (typeof window !== "undefined") window.location.href = "/login";
 }
 
@@ -55,6 +65,7 @@ export async function login(email: string, password: string): Promise<AuthResult
   });
   const data = await parse<AuthResult>(res);
   setToken(data.token);
+  clearKpiCache();
   return data;
 }
 
