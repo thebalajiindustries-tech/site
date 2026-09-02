@@ -25,6 +25,8 @@ class Settings:
     ANTHROPIC_WORKSPACE_ID: str = os.environ.get("ANTHROPIC_WORKSPACE_ID", "")
     OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
     MODEL: str = os.environ.get("MODEL", "claude-haiku-4-5-20251001")
+    # occasional PDF extraction uses a stronger model for accuracy
+    EXTRACT_MODEL: str = os.environ.get("EXTRACT_MODEL", "claude-sonnet-5")
 
     # --- guardrails / limits ---
     MAX_ROWS: int = int(os.environ.get("MAX_ROWS", "500"))

@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import get_settings
-from . import db, llm, tenancy, auth, seed
+from . import db, llm, tenancy, auth, seed, docstore, docai
 from .guardrails import sanitize, UnsafeSQLError
 
 logging.basicConfig(level=logging.INFO)
@@ -227,3 +227,63 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
         else:
             msg = "Could not answer that. Try rephrasing."
         raise HTTPException(500, msg) from e
+
+
+# ---------------- documents: PDF -> structured fields -> warehouse ----------------
+import base64 as _b64
+
+
+class ExtractRequest(BaseModel):
+    filename: str
+    data_b64: str  # base64 of the PDF (no data: prefix)
+
+
+class DocumentRecord(BaseModel):
+    doc_type: str | None = None
+    party: str | None = None
+    doc_date: str | None = None
+    amount: float | None = None
+    currency: str | None = "INR"
+    reference_no: str | None = None
+    gst_no: str | None = None
+    direction: str | None = None
+    summary: str | None = None
+    source_filename: str | None = None
+    raw: dict | None = None
+
+
+@app.post("/documents/extract")
+def documents_extract(req: ExtractRequest, ident: dict = Depends(auth.current_user)):
+    if not (req.filename or "").lower().endswith(".pdf"):
+        raise HTTPException(400, "Please choose a PDF file.")
+    try:
+        data = _b64.b64decode(req.data_b64, validate=False)
+    except Exception:
+        raise HTTPException(400, "That file could not be read.")
+    if not data:
+        raise HTTPException(400, "The file is empty.")
+    if len(data) > 8 * 1024 * 1024:
+        raise HTTPException(400, "PDF is too large (max 8 MB). Try a smaller file.")
+    try:
+        fields = docai.extract_from_pdf(data)
+    except Exception as e:  # pragma: no cover
+        log.exception("pdf extract failed")
+        name = type(e).__name__
+        text = str(e)
+        if name in ("AuthenticationError",) or "401" in text or "Unauthorized" in text:
+            raise HTTPException(500, "AI key not accepted. Check backend/.env, then restart.")
+        raise HTTPException(500, "Couldn't read that PDF — try a clearer copy or a different file.")
+    fields["source_filename"] = req.filename
+    return fields
+
+
+@app.post("/documents/load")
+def documents_load(rec: DocumentRecord, ident: dict = Depends(auth.current_user)):
+    db_url = ident["tenant"]["db_url"]
+    try:
+        docstore.insert_document(db_url, rec.model_dump())
+        db.invalidate_schema(db_url)  # so Ask can query `documents` right away
+    except Exception as e:  # pragma: no cover
+        log.exception("document load failed")
+        raise HTTPException(500, "Couldn't save the document to your warehouse.")
+    return {"ok": True, "message": "Saved. You can now ask Ganak about it."}

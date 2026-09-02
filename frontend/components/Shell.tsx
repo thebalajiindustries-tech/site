@@ -8,13 +8,15 @@ const NAV = [
     icon: <><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="11" width="8" height="10" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></> },
   { href: "/ask", label: "Ask Ganak", group: "Workspace",
     icon: <path d="M21 11.5a8.5 8.5 0 0 1-12 7.7L3 21l1.8-5.9A8.5 8.5 0 1 1 21 11.5z"/> },
+  { href: "/documents", label: "Documents", group: "Workspace",
+    icon: <><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></> },
   { href: "/connections", label: "Connections", group: "Workspace",
     icon: <path d="M9 12h6M15.5 8.5 18 6a3.5 3.5 0 1 1 0 5l-2 2M8.5 15.5 6 18a3.5 3.5 0 1 1 0-5l2-2"/> },
   { href: "/billing", label: "Usage & Billing", group: "Account",
     icon: <><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></> },
 ];
 const TITLES: Record<string, string> = {
-  "/": "Dashboard", "/ask": "Ask Ganak", "/connections": "Connections", "/billing": "Usage & Billing",
+  "/": "Dashboard", "/ask": "Ask Ganak", "/documents": "Documents", "/connections": "Connections", "/billing": "Usage & Billing",
 };
 
 export default function Shell({ children }: { children: React.ReactNode }) {

@@ -100,3 +100,27 @@ export async function health(): Promise<{ ok: boolean; database: string; company
   const res = await fetch(`${BASE}/health`, { headers: { ...authHeaders() } });
   return handle(res);
 }
+
+export type DocFields = {
+  doc_type?: string; party?: string; doc_date?: string; amount?: number | null;
+  currency?: string; reference_no?: string; gst_no?: string; direction?: string;
+  summary?: string; source_filename?: string; raw?: Record<string, unknown>;
+};
+
+export async function extractDocument(filename: string, dataB64: string): Promise<DocFields> {
+  const res = await fetch(`${BASE}/documents/extract`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ filename, data_b64: dataB64 }),
+  });
+  return handle<DocFields>(res);
+}
+
+export async function loadDocument(rec: DocFields): Promise<{ ok: boolean; message: string }> {
+  const res = await fetch(`${BASE}/documents/load`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(rec),
+  });
+  return handle(res);
+}

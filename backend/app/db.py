@@ -136,3 +136,11 @@ def ping(db_url: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def invalidate_schema(db_url: str | None = None) -> None:
+    """Drop the cached schema so a newly created table (e.g. `documents`) is seen."""
+    if db_url is None:
+        _schema_cache.clear()
+    else:
+        _schema_cache.pop(db_url, None)
