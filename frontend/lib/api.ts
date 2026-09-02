@@ -6,7 +6,7 @@ export type AskResponse = {
   rows: Record<string, unknown>[];
   chart: ChartSpec;
 };
-export type Me = { email: string; company: string; location: string; role: string; dialect: string };
+export type Me = { email: string; company: string; location: string; role: string; dialect: string; balance_inr: number };
 export type AuthResult = { token: string; email: string; company: string; location: string; dialect: string };
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -121,6 +121,23 @@ export async function loadDocument(rec: DocFields): Promise<{ ok: boolean; messa
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(rec),
+  });
+  return handle(res);
+}
+
+export type LedgerRow = { ts: number; kind: string; amount_inr: number; balance_after: number; detail: string };
+export type Billing = { balance_inr: number; currency: string; ledger: LedgerRow[] };
+
+export async function getBilling(): Promise<Billing> {
+  const res = await fetch(`${BASE}/billing`, { headers: { ...authHeaders() } });
+  return handle<Billing>(res);
+}
+
+export async function recharge(amountInr: number): Promise<{ ok: boolean; balance_inr: number }> {
+  const res = await fetch(`${BASE}/billing/recharge`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ amount_inr: amountInr }),
   });
   return handle(res);
 }

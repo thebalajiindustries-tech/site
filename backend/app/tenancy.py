@@ -44,15 +44,30 @@ def init_db():
                 created_at REAL NOT NULL,
                 FOREIGN KEY (tenant_id) REFERENCES tenants(id)
             );
+            CREATE TABLE IF NOT EXISTS usage_ledger (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                tenant_id     INTEGER NOT NULL,
+                ts            REAL NOT NULL,
+                kind          TEXT NOT NULL,
+                amount_inr    REAL NOT NULL,
+                balance_after REAL,
+                detail        TEXT DEFAULT ''
+            );
             """
         )
+        # migration: add wallet column to older control DBs, and give existing
+        # companies a starting balance so they can use the app.
+        cols = [r[1] for r in c.execute("PRAGMA table_info(tenants)").fetchall()]
+        if "balance_inr" not in cols:
+            c.execute("ALTER TABLE tenants ADD COLUMN balance_inr REAL DEFAULT 0")
+            c.execute("UPDATE tenants SET balance_inr = ?", (settings.SEED_BALANCE_INR,))
 
 
-def create_tenant(name: str, db_url: str, location: str = "") -> int:
+def create_tenant(name: str, db_url: str, location: str = "", balance_inr: float = 0.0) -> int:
     with _cx() as c:
         cur = c.execute(
-            "INSERT INTO tenants(name,location,db_url,created_at) VALUES(?,?,?,?)",
-            (name, location, db_url, time.time()),
+            "INSERT INTO tenants(name,location,db_url,created_at,balance_inr) VALUES(?,?,?,?,?)",
+            (name, location, db_url, time.time(), balance_inr),
         )
         return cur.lastrowid
 
@@ -95,3 +110,35 @@ def get_user(user_id: int):
 def count_users() -> int:
     with _cx() as c:
         return c.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"]
+
+
+def get_balance(tenant_id: int) -> float:
+    with _cx() as c:
+        r = c.execute("SELECT balance_inr FROM tenants WHERE id=?", (tenant_id,)).fetchone()
+        return float(r["balance_inr"] or 0) if r else 0.0
+
+
+def adjust_balance(tenant_id: int, delta_inr: float) -> float:
+    """Atomically add delta (negative to debit). Returns the new balance."""
+    with _cx() as c:
+        c.execute("UPDATE tenants SET balance_inr = COALESCE(balance_inr,0) + ? WHERE id=?",
+                  (delta_inr, tenant_id))
+        r = c.execute("SELECT balance_inr FROM tenants WHERE id=?", (tenant_id,)).fetchone()
+        return float(r["balance_inr"] or 0) if r else 0.0
+
+
+def record_ledger(tenant_id: int, kind: str, amount_inr: float, balance_after: float, detail: str = "") -> None:
+    with _cx() as c:
+        c.execute(
+            "INSERT INTO usage_ledger(tenant_id,ts,kind,amount_inr,balance_after,detail) VALUES(?,?,?,?,?,?)",
+            (tenant_id, time.time(), kind, amount_inr, balance_after, detail),
+        )
+
+
+def recent_ledger(tenant_id: int, limit: int = 25) -> list:
+    with _cx() as c:
+        rows = c.execute(
+            "SELECT ts,kind,amount_inr,balance_after,detail FROM usage_ledger "
+            "WHERE tenant_id=? ORDER BY id DESC LIMIT ?", (tenant_id, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]

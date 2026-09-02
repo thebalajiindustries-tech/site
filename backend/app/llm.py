@@ -10,6 +10,7 @@ import json
 import re
 
 from .config import get_settings
+from . import billing
 
 settings = get_settings()
 
@@ -67,6 +68,13 @@ def _complete(prompt: str, max_tokens: int = 700, cache_prefix: str | None = Non
         max_tokens=max_tokens,
         messages=[{"role": "user", "content": content}],
     ))
+    try:
+        u = msg.usage
+        billing.add_usage(settings.MODEL, getattr(u, "input_tokens", 0), getattr(u, "output_tokens", 0),
+                          getattr(u, "cache_read_input_tokens", 0) or 0,
+                          getattr(u, "cache_creation_input_tokens", 0) or 0)
+    except Exception:
+        pass
     # Newer models can emit a thinking block before the text block.
     parts = [getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text"]
     return "".join(parts).strip()

@@ -97,6 +97,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <div className="topbar">
           <h2>{TITLES[path] ?? "Ganak"}</h2>
           <div className="grow" />
+          <span className="synced balance-chip">₹{(profile.balance_inr ?? 0).toFixed(2)}</span>
           <span className="synced">{profile.company} · connected</span>
           <button className="icon-btn" onClick={toggle} aria-label="Toggle theme">
             {theme === "dark" ? (

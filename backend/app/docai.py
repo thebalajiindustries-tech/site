@@ -4,6 +4,7 @@ import json
 import re
 
 from .config import get_settings
+from . import billing
 
 settings = get_settings()
 
@@ -44,6 +45,13 @@ def extract_from_pdf(pdf_bytes: bytes) -> dict:
             {"type": "text", "text": _PROMPT},
         ]}],
     )
+    try:
+        u = msg.usage
+        billing.add_usage(settings.EXTRACT_MODEL, getattr(u, "input_tokens", 0), getattr(u, "output_tokens", 0),
+                          getattr(u, "cache_read_input_tokens", 0) or 0,
+                          getattr(u, "cache_creation_input_tokens", 0) or 0)
+    except Exception:
+        pass
     text = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text").strip()
     text = re.sub(r"^```(?:json)?", "", text).strip()
     text = re.sub(r"```$", "", text).strip()

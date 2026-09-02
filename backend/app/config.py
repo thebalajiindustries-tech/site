@@ -43,6 +43,12 @@ class Settings:
     TOKEN_TTL_SECONDS: int = int(os.environ.get("TOKEN_TTL_SECONDS", str(7 * 24 * 3600)))
     SEED_DEMO: bool = os.environ.get("SEED_DEMO", "1") != "0"
 
+    # --- pay-as-you-go wallet ---
+    USD_INR: float = float(os.environ.get("USD_INR", "88"))
+    BILLING_MARKUP: float = float(os.environ.get("BILLING_MARKUP", "3.0"))
+    SEED_BALANCE_INR: float = float(os.environ.get("SEED_BALANCE_INR", "100"))
+    SIGNUP_BONUS_INR: float = float(os.environ.get("SIGNUP_BONUS_INR", "20"))
+
     # --- app ---
     CURRENCY: str = os.environ.get("CURRENCY", "₹")
     CORS_ORIGINS: list = os.environ.get(

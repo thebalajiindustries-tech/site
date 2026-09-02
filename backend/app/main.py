@@ -21,12 +21,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import get_settings
-from . import db, llm, tenancy, auth, seed, docstore, docai
+from . import db, llm, tenancy, auth, seed, docstore, docai, billing
 from .guardrails import sanitize, UnsafeSQLError
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("ganak")
 settings = get_settings()
+
+
+def _debit(tenant_id: int, kind: str, detail: str = ""):
+    """Convert the tokens this request spent into rupees and debit the wallet."""
+    cost = billing.request_cost_inr()
+    bal = tenancy.get_balance(tenant_id)
+    if cost > 0:
+        bal = tenancy.adjust_balance(tenant_id, -cost)
+        tenancy.record_ledger(tenant_id, kind, -cost, bal, detail)
+    return bal, cost
 
 app = FastAPI(title="Ganak API", version="2.0.0")
 app.add_middleware(
@@ -71,6 +81,7 @@ class MeResponse(BaseModel):
     location: str = ""
     role: str = "owner"
     dialect: str = "postgres"
+    balance_inr: float = 0
 
 
 class AskRequest(BaseModel):
@@ -89,6 +100,8 @@ class AskResponse(BaseModel):
     columns: list
     rows: list
     chart: ChartSpec
+    cost_inr: float = 0
+    balance_inr: float | None = None
 
 
 # ---------------- public ----------------
@@ -122,7 +135,7 @@ def register(req: RegisterRequest):
 
     # each new company gets its own fresh (empty) warehouse
     db_url = seed.provision_tenant_db(req.company)
-    tenant_id = tenancy.create_tenant(req.company.strip(), db_url, (req.location or "").strip())
+    tenant_id = tenancy.create_tenant(req.company.strip(), db_url, (req.location or "").strip(), settings.SIGNUP_BONUS_INR)
     user_id = tenancy.create_user(email, auth.hash_password(req.password), tenant_id, "owner")
     return _auth_payload(tenancy.get_user(user_id), tenancy.get_tenant(tenant_id))
 
@@ -146,6 +159,7 @@ def me(ident: dict = Depends(auth.current_user)):
     return MeResponse(
         email=u["email"], company=t["name"], location=t.get("location") or "",
         role=u.get("role") or "owner", dialect=db.dialect_of(t["db_url"]),
+        balance_inr=round(tenancy.get_balance(t["id"]), 2),
     )
 
 
@@ -172,20 +186,31 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
     if len(q) > 1000:
         raise HTTPException(400, "That question is too long \u2014 please shorten it.")
     tenant = ident["tenant"]
+    tid = tenant["id"]
+    if tenancy.get_balance(tid) <= 0:
+        raise HTTPException(402, "Your balance is empty. Please recharge to keep using Ganak.")
     db_url = tenant["db_url"]
     dialect = db.dialect_of(db_url)
+
+    billing.reset_usage()
+    _state = {}
+
+    def settle():
+        if "bal" not in _state:
+            _state["bal"], _state["cost"] = _debit(tid, "ask", q[:80])
+        return _state["bal"], _state["cost"]
+
     try:
         schema = db.load_schema(db_url)
         raw_sql = llm.question_to_sql(q, schema, dialect=dialect)
         sql = sanitize(raw_sql)
-        log.info("[tenant %s] Q: %s | SQL: %s", tenant["id"], q, sql)
+        log.info("[tenant %s] Q: %s | SQL: %s", tid, q, sql)
         columns, rows = db.run_select(db_url, sql)
-        # Cost optimization: a single scalar result needs no second LLM call.
         if len(rows) == 1 and len(columns) == 1:
             col = columns[0]
             val = rows[0][col]
             money = any(k in col.lower() for k in
-                        ("revenue","amount","total","paid","balance","outstanding","due","expense","sales","payment"))
+                        ("revenue", "amount", "total", "paid", "balance", "outstanding", "due", "expense", "sales", "payment"))
             label = col.replace("_", " ").strip().capitalize()
             try:
                 shown = f"{settings.CURRENCY}{float(val):,.2f}" if (money and val is not None) else str(val)
@@ -194,14 +219,15 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
             narration = {"answer": f"{label}: {shown}", "chart": {"type": "none"}}
         else:
             narration = llm.narrate(q, rows)
+        bal, cost = settle()
         return AskResponse(
             answer=narration.get("answer", ""),
-            sql=sql,
-            columns=columns,
-            rows=rows,
+            sql=sql, columns=columns, rows=rows,
             chart=ChartSpec(**(narration.get("chart") or {"type": "none"})),
+            cost_inr=round(cost or 0, 2), balance_inr=round(bal or 0, 2),
         )
     except UnsafeSQLError as e:
+        settle()
         log.info("Blocked non-SELECT/unsafe SQL: %s", e)
         raise HTTPException(
             400,
@@ -209,8 +235,10 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
             "revenue, expenses, invoices, payments, or who owes you money.",
         )
     except HTTPException:
+        settle()
         raise
     except Exception as e:  # pragma: no cover
+        settle()
         log.exception("ask failed")
         name = type(e).__name__
         text = str(e)
@@ -264,15 +292,21 @@ def documents_extract(req: ExtractRequest, ident: dict = Depends(auth.current_us
         raise HTTPException(400, "The file is empty.")
     if len(data) > 8 * 1024 * 1024:
         raise HTTPException(400, "PDF is too large (max 8 MB). Try a smaller file.")
+    tid = ident["tenant"]["id"]
+    if tenancy.get_balance(tid) <= 0:
+        raise HTTPException(402, "Your balance is empty. Please recharge to read documents.")
+    billing.reset_usage()
     try:
         fields = docai.extract_from_pdf(data)
     except Exception as e:  # pragma: no cover
+        _debit(tid, "document", req.filename)
         log.exception("pdf extract failed")
         name = type(e).__name__
         text = str(e)
         if name in ("AuthenticationError",) or "401" in text or "Unauthorized" in text:
             raise HTTPException(500, "AI key not accepted. Check backend/.env, then restart.")
         raise HTTPException(500, "Couldn't read that PDF — try a clearer copy or a different file.")
+    _debit(tid, "document", req.filename)
     fields["source_filename"] = req.filename
     return fields
 
@@ -287,3 +321,31 @@ def documents_load(rec: DocumentRecord, ident: dict = Depends(auth.current_user)
         log.exception("document load failed")
         raise HTTPException(500, "Couldn't save the document to your warehouse.")
     return {"ok": True, "message": "Saved. You can now ask Ganak about it."}
+
+
+# ---------------- billing: prepaid wallet ----------------
+class RechargeRequest(BaseModel):
+    amount_inr: float
+
+
+@app.get("/billing")
+def billing_status(ident: dict = Depends(auth.current_user)):
+    tid = ident["tenant"]["id"]
+    return {
+        "balance_inr": round(tenancy.get_balance(tid), 2),
+        "currency": settings.CURRENCY,
+        "ledger": tenancy.recent_ledger(tid),
+    }
+
+
+@app.post("/billing/recharge")
+def billing_recharge(req: RechargeRequest, ident: dict = Depends(auth.current_user)):
+    # NOTE: dev/simulated top-up. In production a payment provider (e.g. Razorpay)
+    # verifies the payment, then its webhook calls this to credit the wallet.
+    amt = float(req.amount_inr or 0)
+    if amt <= 0 or amt > 100000:
+        raise HTTPException(400, "Enter an amount between 1 and 100000.")
+    tid = ident["tenant"]["id"]
+    bal = tenancy.adjust_balance(tid, amt)
+    tenancy.record_ledger(tid, "recharge", amt, bal, "wallet top-up")
+    return {"ok": True, "balance_inr": round(bal, 2)}

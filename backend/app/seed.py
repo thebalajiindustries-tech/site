@@ -105,14 +105,14 @@ def bootstrap():
 
     # 1) The Balaji Industries -> real Postgres warehouse
     balaji_tid = tenancy.create_tenant(
-        "The Balaji Industries", settings.DATABASE_URL, "Kharadi, Pune"
+        "The Balaji Industries", settings.DATABASE_URL, "Kharadi, Pune", settings.SEED_BALANCE_INR
     )
     tenancy.create_user(BALAJI_USER, auth.hash_password(BALAJI_PASS), balaji_tid, "owner")
 
     # 2) Demo Traders -> self-contained SQLite warehouse with sample data
     ensure_sqlite_warehouse(settings.DEMO_DB_PATH, with_sample=True)
     demo_tid = tenancy.create_tenant(
-        "Demo Traders", "sqlite:///" + settings.DEMO_DB_PATH, "Pune"
+        "Demo Traders", "sqlite:///" + settings.DEMO_DB_PATH, "Pune", settings.SEED_BALANCE_INR
     )
     tenancy.create_user(DEMO_USER, auth.hash_password(DEMO_PASS), demo_tid, "owner")
 
