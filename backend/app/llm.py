@@ -50,16 +50,31 @@ def _strip_fences(text: str) -> str:
     return text
 
 
-def question_to_sql(question: str, schema: str) -> str:
-    prompt = f"""You are a PostgreSQL expert for a business-analytics product.
-Convert the user's question into ONE read-only PostgreSQL query.
+def question_to_sql(question: str, schema: str, dialect: str = "postgres") -> str:
+    if dialect == "sqlite":
+        engine = "SQLite"
+        dialect_rules = (
+            "- Target dialect: SQLite. Use ONLY SQLite-compatible SQL.\n"
+            "- Dates are TEXT in ISO format (YYYY-MM-DD); group/filter with "
+            "strftime('%Y', col), strftime('%Y-%m', col), or date(col). Do NOT use date_trunc or INTERVAL.\n"
+            "- Cast numbers with CAST(NULLIF(col,'') AS REAL) when aggregating. Do NOT use ::type casts."
+        )
+    else:
+        engine = "PostgreSQL"
+        dialect_rules = (
+            "- Target dialect: PostgreSQL.\n"
+            "- Money columns may be text; cast with NULLIF(col,'')::numeric when aggregating.\n"
+            "- Use date_trunc and INTERVAL for time grouping; sensible date filters on "
+            "columns like invoice_date, expense_date, created_time, date."
+        )
+    prompt = f"""You are a {engine} expert for a business-analytics product.
+Convert the user's question into ONE read-only {engine} query.
 
 Rules:
 - Use ONLY the tables and columns in the schema below. Never invent names.
 - Read-only: a single SELECT (or WITH ... SELECT). No writes, DDL, or multiple statements.
-- Money columns may be text; cast with NULLIF(col,'')::numeric when aggregating.
+{dialect_rules}
 - Prefer aggregates + GROUP BY for "how much / how many / by X / trend" questions.
-- Add sensible date filters using columns like invoice_date, expense_date, created_time.
 - Return ONLY the SQL. No prose, no markdown fences.
 
 DATABASE SCHEMA:

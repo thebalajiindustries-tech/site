@@ -14,3 +14,9 @@ pgdata/
 .venv/
 out/
 Thumbs.db
+
+# multi-tenant data (never commit)
+*.db
+ganak_control.db
+backend/tenants/
+*.tsbuildinfo

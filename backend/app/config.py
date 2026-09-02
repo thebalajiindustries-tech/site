@@ -4,11 +4,15 @@ from functools import lru_cache
 
 from dotenv import load_dotenv
 
-load_dotenv(override=True)  # .env always wins over stale OS env vars
+if os.environ.get("GANAK_SKIP_DOTENV") != "1":
+    load_dotenv(override=True)  # .env always wins over stale OS env vars
+
+# backend/  (this file is backend/app/config.py)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class Settings:
-    # --- database (your Zoho -> Postgres warehouse) ---
+    # --- default tenant data warehouse (The Balaji's Zoho -> Postgres) ---
     DATABASE_URL: str = os.environ.get(
         "DATABASE_URL",
         "postgresql://postgres:password@localhost:5432/the_balaji",
@@ -25,6 +29,17 @@ class Settings:
     # --- guardrails / limits ---
     MAX_ROWS: int = int(os.environ.get("MAX_ROWS", "500"))
     STATEMENT_TIMEOUT_MS: int = int(os.environ.get("STATEMENT_TIMEOUT_MS", "15000"))
+
+    # --- multi-tenant control plane + auth ---
+    CONTROL_DB_PATH: str = os.environ.get(
+        "CONTROL_DB_PATH", os.path.join(BASE_DIR, "ganak_control.db")
+    )
+    # where per-company SQLite warehouses (demo + self-serve signups) live
+    TENANTS_DIR: str = os.environ.get("TENANTS_DIR", os.path.join(BASE_DIR, "tenants"))
+    DEMO_DB_PATH: str = os.environ.get("DEMO_DB_PATH", os.path.join(TENANTS_DIR, "demo_traders.db"))
+    AUTH_SECRET: str = os.environ.get("GANAK_AUTH_SECRET", "dev-only-change-me")
+    TOKEN_TTL_SECONDS: int = int(os.environ.get("TOKEN_TTL_SECONDS", str(7 * 24 * 3600)))
+    SEED_DEMO: bool = os.environ.get("SEED_DEMO", "1") != "0"
 
     # --- app ---
     CURRENCY: str = os.environ.get("CURRENCY", "₹")

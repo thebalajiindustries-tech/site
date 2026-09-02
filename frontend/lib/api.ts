@@ -6,23 +6,86 @@ export type AskResponse = {
   rows: Record<string, unknown>[];
   chart: ChartSpec;
 };
+export type Me = { email: string; company: string; location: string; role: string; dialect: string };
+export type AuthResult = { token: string; email: string; company: string; location: string; dialect: string };
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const TOKEN_KEY = "ganak-token";
+
+export function getToken(): string | null {
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+}
+function setToken(t: string) { try { localStorage.setItem(TOKEN_KEY, t); } catch {} }
+export function logout() {
+  try { localStorage.removeItem(TOKEN_KEY); } catch {}
+  if (typeof window !== "undefined") window.location.href = "/login";
+}
+
+function authHeaders(): Record<string, string> {
+  const t = getToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+// For authenticated calls: a 401 means the session is gone -> bounce to login.
+async function handle<T>(res: Response): Promise<T> {
+  if (res.status === 401) {
+    try { localStorage.removeItem(TOKEN_KEY); } catch {}
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+    throw new Error("Your session has expired. Please log in again.");
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as { detail?: string }).detail || `Request failed (${res.status})`);
+  return data as T;
+}
+
+// For login/register: surface the message, never redirect.
+async function parse<T>(res: Response): Promise<T> {
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as { detail?: string }).detail || `Request failed (${res.status})`);
+  return data as T;
+}
+
+export async function login(email: string, password: string): Promise<AuthResult> {
+  const res = await fetch(`${BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await parse<AuthResult>(res);
+  setToken(data.token);
+  return data;
+}
+
+export async function register(
+  email: string, password: string, company: string, location: string
+): Promise<AuthResult> {
+  const res = await fetch(`${BASE}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, company, location }),
+  });
+  const data = await parse<AuthResult>(res);
+  setToken(data.token);
+  return data;
+}
+
+export async function me(): Promise<Me> {
+  const res = await fetch(`${BASE}/me`, { headers: { ...authHeaders() } });
+  return handle<Me>(res);
+}
 
 export async function ask(question: string): Promise<AskResponse> {
   const res = await fetch(`${BASE}/ask`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ question }),
   });
-  if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error((detail as { detail?: string }).detail || `Request failed (${res.status})`);
-  }
-  return res.json();
+  return handle<AskResponse>(res);
 }
 
-export async function health(): Promise<{ ok: boolean; database: string }> {
-  const res = await fetch(`${BASE}/health`);
-  return res.json();
+export async function health(): Promise<{ ok: boolean; database: string; company?: string }> {
+  const res = await fetch(`${BASE}/health`, { headers: { ...authHeaders() } });
+  return handle(res);
 }

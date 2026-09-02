@@ -50,7 +50,7 @@ export default function AskPage() {
         <div className="chatinner">
           <div className="msg bot">
             <BotAva />
-            <div className="bub"><p className="ans">Hi Kiran 👋 I&apos;m connected to your Zoho warehouse. Ask me about revenue, expenses, who owes you money, or how this month compares.</p></div>
+            <div className="bub"><p className="ans">Hi 👋 Ask me about your revenue, expenses, who owes you money, or how this month compares — I&apos;ll write the SQL, run it on your data, and answer.</p></div>
           </div>
           {msgs.map((m, i) =>
             m.role === "user" ? (

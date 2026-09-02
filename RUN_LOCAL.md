@@ -55,3 +55,12 @@ verify it. The AI can only ever **read** — it can't change or delete anything.
 Only the AI usage — a few paise per question on Anthropic. Everything else
 (Postgres, the app) is free and local. When you're ready to put Ganak online for
 others, see the "What's next" section in `README.md`.
+
+## Signing in (multi-tenant)
+
+Ganak now has logins. On first run two demo companies are created:
+
+- **The Balaji Industries** (your real data): `balaji@ganak.local` / `balaji123`
+- **Demo Traders** (sample data): `demo@ganak.local` / `demo123`
+
+Sign in as either at http://localhost:3000 — each company only ever sees its own data. Change these passwords before going live.

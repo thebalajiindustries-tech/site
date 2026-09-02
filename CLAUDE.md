@@ -1,39 +1,56 @@
 # Ganak
 
-Ask-your-data assistant for **The Balaji Industries** (VidmahiTech). A business user
-asks a natural-language question about their finances; Ganak turns it into **read-only**
-SQL, runs it against a local PostgreSQL warehouse (synced from Zoho Books), and answers
-in plain English with an optional chart.
+Multi-tenant ask-your-data assistant (VidmahiTech). A business user asks a
+natural-language question about their finances; Ganak turns it into **read-only**
+SQL, runs it against **that company's own database**, and answers in plain English
+with an optional chart.
+
+## Multi-tenancy (foundation)
+- **Isolation model:** one database per company. A request is authenticated, the
+  caller's company is resolved from a small **control plane**, and the pipeline
+  runs only against that company's `db_url`. The AI can never reach another
+  company's data — isolation is enforced at the connection, not in generated SQL.
+- **Control plane:** `backend/ganak_control.db` (SQLite) — companies + users.
+- **Tenant data:** per company. Postgres (`postgresql://…`) or SQLite (`sqlite:///…`).
+- **Auth:** email + password (PBKDF2 hashing) with HMAC-signed tokens — Python
+  stdlib only (`app/auth.py`). Swap for passlib/JWT in production.
+
+### Demo logins (seeded on first run)
+- **The Balaji Industries** — real Zoho→Postgres warehouse — `balaji@ganak.local` / `balaji123`
+- **Demo Traders** — self-contained SQLite sample data — `demo@ganak.local` / `demo123`
+Logging in as one company never shows the other's data. Change these before production.
 
 ## Structure
-- `backend/` — FastAPI service (Python). NL -> SQL -> run -> narrate.
-  - `app/main.py`    — `/ask`, `/health`, `/schema` endpoints
-  - `app/llm.py`     — Anthropic/OpenAI calls (question_to_sql, narrate)
-  - `app/db.py`      — **read-only** Postgres connection + schema introspection
-  - `app/guardrails.py` — single-SELECT sanitizer (blocks writes/DDL/multi-statement)
-  - `app/config.py`  — settings from `.env`
-  - `connectors/`    — Gmail finance-email ingestion
-- `frontend/` — Next.js 14 (App Router, TypeScript) chat + dashboard UI
-- `db/`       — seed SQL + sample emails
-- `start.bat` — Windows launcher (sets up venv/npm, runs both services)
+- `backend/app/main.py`      — API: /auth/register, /auth/login, /me, /ask, /schema, /health, /ping
+- `backend/app/auth.py`      — password hashing + signed tokens + current_user dependency
+- `backend/app/tenancy.py`   — control-plane (companies + users) in SQLite
+- `backend/app/db.py`        — read-only, tenant-aware data access (Postgres + SQLite)
+- `backend/app/llm.py`       — question→SQL (dialect-aware) + narrate
+- `backend/app/guardrails.py`— single-SELECT sanitizer (no writes/DDL/multi-statement)
+- `backend/app/seed.py`      — bootstrap demo companies + provision new tenant DBs
+- `backend/tests/test_isolation.py` — auth + cross-tenant isolation tests
+- `frontend/`                — Next.js 14: login, dashboard, Ask chat; token in localStorage
 
 ## Run locally (Windows)
-Right-click `start.bat` -> Run as administrator. App: http://localhost:3000 ,
-backend health: http://localhost:8000/health . See `RUN_LOCAL.md`.
+Right-click `start.bat` → Run as administrator. App: http://localhost:3000 →
+sign in with a demo login above. Backend: http://localhost:8000/ping .
+
+## Tests
+    cd backend && python tests/test_isolation.py    # proves cross-company isolation
 
 ## Required env (`backend/.env`, NOT committed)
-    DATABASE_URL=postgresql://postgres:<pw>@localhost:5432/the_balaji
+    DATABASE_URL=postgresql://postgres:<pw>@localhost:5432/the_balaji   # Balaji tenant warehouse
     LLM_PROVIDER=anthropic
     ANTHROPIC_API_KEY=sk-ant-...
-    ANTHROPIC_WORKSPACE_ID=wrkspc_...   # needed for identity-linked keys
+    ANTHROPIC_WORKSPACE_ID=wrkspc_...    # identity-linked keys
     MODEL=claude-sonnet-5
+    GANAK_AUTH_SECRET=<random>           # signs login tokens
 
-## Safety model (important)
-The AI can only ever **read**. Every query passes `guardrails.sanitize()` (one SELECT
-only, no writes/DDL/comments/semicolons) and runs on a connection opened
-`readonly=True` with a statement timeout and row cap. It never touches live Zoho or
-bank APIs — only the synced Postgres copy.
+## Safety model
+The AI can only ever **read**. Every query passes `guardrails.sanitize()` (one
+SELECT only) and runs on a read-only connection (Postgres READ ONLY / SQLite
+query_only) with a statement timeout and row cap, against only the logged-in
+company's database.
 
-## Data freshness
-The warehouse is filled by `zoho_postgres_sync.py` (in the PyProject folder).
-Re-run it (`incremental` or `full`) to pull recent months before querying.
+## Not yet built (next passes)
+Per-company Zoho/Gmail connect flow, Stripe billing, password reset, admin roles.
