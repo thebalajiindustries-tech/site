@@ -25,6 +25,7 @@ export default function AskPage() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"warehouse" | "live">("warehouse");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   async function send(q: string) {
@@ -34,7 +35,7 @@ export default function AskPage() {
     setBusy(true);
     setMsgs((m) => [...m, { role: "user", text: q }, { role: "bot", loading: true }]);
     try {
-      const data = await ask(q);
+      const data = await ask(q, mode);
       setMsgs((m) => [...m.slice(0, -1), { role: "bot", loading: false, data }]);
     } catch (e) {
       setMsgs((m) => [...m.slice(0, -1), { role: "bot", loading: false, error: (e as Error).message }]);
@@ -74,6 +75,18 @@ export default function AskPage() {
       </div>
       <div className="composer">
         <div className="composer-in">
+          <div style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center" }}>
+            <span className="muted" style={{ fontSize: ".76rem" }}>Source:</span>
+            {(["warehouse", "live"] as const).map((m) => (
+              <button key={m} onClick={() => setMode(m)} type="button"
+                style={{ padding: "4px 11px", borderRadius: 20, fontSize: ".76rem", cursor: "pointer",
+                  border: "1px solid var(--line,#d8dbe0)",
+                  background: mode === m ? "var(--teal,#0d9488)" : "transparent",
+                  color: mode === m ? "#fff" : "inherit", fontWeight: 500 }}>
+                {m === "warehouse" ? "Warehouse · fast" : "Live · Zoho"}
+              </button>
+            ))}
+          </div>
           <div className="sugg">
             {SUGGESTIONS.map((s) => (
               <button key={s} onClick={() => send(s)} disabled={busy}>{s}</button>

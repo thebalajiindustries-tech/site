@@ -49,6 +49,14 @@ class Settings:
     SEED_BALANCE_INR: float = float(os.environ.get("SEED_BALANCE_INR", "100"))
     SIGNUP_BONUS_INR: float = float(os.environ.get("SIGNUP_BONUS_INR", "20"))
 
+    # --- live Zoho Books access (answer without loading to the warehouse) ---
+    ZOHO_REFRESH_TOKEN: str = os.environ.get("ZOHO_REFRESH_TOKEN", "")
+    ZOHO_CLIENT_ID: str = os.environ.get("ZOHO_CLIENT_ID", "")
+    ZOHO_CLIENT_SECRET: str = os.environ.get("ZOHO_CLIENT_SECRET", "")
+    ZOHO_ORG_ID: str = os.environ.get("ZOHO_ORG_ID", "")
+    ZOHO_BASE_URL: str = os.environ.get("ZOHO_BASE_URL", "https://www.zohoapis.in/books/v3")
+    ZOHO_ACCOUNTS_URL: str = os.environ.get("ZOHO_ACCOUNTS_URL", "https://accounts.zoho.in")
+
     # --- app ---
     CURRENCY: str = os.environ.get("CURRENCY", "₹")
     CORS_ORIGINS: list = os.environ.get(

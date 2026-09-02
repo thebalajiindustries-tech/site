@@ -87,11 +87,11 @@ export async function me(): Promise<Me> {
   return handle<Me>(res);
 }
 
-export async function ask(question: string): Promise<AskResponse> {
+export async function ask(question: string, mode: "warehouse" | "live" = "warehouse"): Promise<AskResponse> {
   const res = await fetch(`${BASE}/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, mode }),
   });
   return handle<AskResponse>(res);
 }

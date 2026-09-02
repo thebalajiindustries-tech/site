@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import get_settings
-from . import db, llm, tenancy, auth, seed, docstore, docai, billing
+from . import db, llm, tenancy, auth, seed, docstore, docai, billing, zoho_live
 from .guardrails import sanitize, UnsafeSQLError
 
 logging.basicConfig(level=logging.INFO)
@@ -86,6 +86,7 @@ class MeResponse(BaseModel):
 
 class AskRequest(BaseModel):
     question: str
+    mode: str = "warehouse"  # "warehouse" (SQL) or "live" (Zoho Books API)
 
 
 class ChartSpec(BaseModel):
@@ -191,38 +192,49 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
         raise HTTPException(402, "Your balance is empty. Please recharge to keep using Ganak.")
     db_url = tenant["db_url"]
     dialect = db.dialect_of(db_url)
+    live = (req.mode or "warehouse").lower() == "live"
 
     billing.reset_usage()
     _state = {}
 
     def settle():
         if "bal" not in _state:
-            _state["bal"], _state["cost"] = _debit(tid, "ask", q[:80])
+            _state["bal"], _state["cost"] = _debit(tid, "ask-live" if live else "ask", q[:80])
         return _state["bal"], _state["cost"]
 
     try:
-        schema = db.load_schema(db_url)
-        raw_sql = llm.question_to_sql(q, schema, dialect=dialect)
-        sql = sanitize(raw_sql)
-        log.info("[tenant %s] Q: %s | SQL: %s", tid, q, sql)
-        columns, rows = db.run_select(db_url, sql)
-        if len(rows) == 1 and len(columns) == 1:
-            col = columns[0]
-            val = rows[0][col]
-            money = any(k in col.lower() for k in
-                        ("revenue", "amount", "total", "paid", "balance", "outstanding", "due", "expense", "sales", "payment"))
-            label = col.replace("_", " ").strip().capitalize()
-            try:
-                shown = f"{settings.CURRENCY}{float(val):,.2f}" if (money and val is not None) else str(val)
-            except (TypeError, ValueError):
-                shown = str(val)
-            narration = {"answer": f"{label}: {shown}", "chart": {"type": "none"}}
-        else:
+        if live:
+            if not zoho_live.configured():
+                raise HTTPException(400, "Live mode needs Zoho keys in backend/.env (ZOHO_REFRESH_TOKEN, ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, ZOHO_ORG_ID). Use Warehouse mode meanwhile.")
+            route = llm.question_to_zoho(q)
+            entity, rows = zoho_live.fetch(route.get("entity", "invoices"), route.get("params") or {})
+            log.info("[tenant %s] LIVE Zoho %s -> %d rows", tid, entity, len(rows))
             narration = llm.narrate(q, rows)
+            sql_display = f"[live] Zoho Books \u2192 {entity} ({len(rows)} records)"
+            columns = list(rows[0].keys()) if rows else []
+        else:
+            schema = db.load_schema(db_url)
+            raw_sql = llm.question_to_sql(q, schema, dialect=dialect)
+            sql_display = sanitize(raw_sql)
+            log.info("[tenant %s] Q: %s | SQL: %s", tid, q, sql_display)
+            columns, rows = db.run_select(db_url, sql_display)
+            if len(rows) == 1 and len(columns) == 1:
+                col = columns[0]
+                val = rows[0][col]
+                money = any(k in col.lower() for k in
+                            ("revenue", "amount", "total", "paid", "balance", "outstanding", "due", "expense", "sales", "payment"))
+                label = col.replace("_", " ").strip().capitalize()
+                try:
+                    shown = f"{settings.CURRENCY}{float(val):,.2f}" if (money and val is not None) else str(val)
+                except (TypeError, ValueError):
+                    shown = str(val)
+                narration = {"answer": f"{label}: {shown}", "chart": {"type": "none"}}
+            else:
+                narration = llm.narrate(q, rows)
         bal, cost = settle()
         return AskResponse(
             answer=narration.get("answer", ""),
-            sql=sql, columns=columns, rows=rows,
+            sql=sql_display, columns=columns, rows=rows,
             chart=ChartSpec(**(narration.get("chart") or {"type": "none"})),
             cost_inr=round(cost or 0, 2), balance_inr=round(bal or 0, 2),
         )
@@ -242,7 +254,9 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
         log.exception("ask failed")
         name = type(e).__name__
         text = str(e)
-        if "workspace-id is required" in text or "anthropic-workspace-id" in text:
+        if "zoho" in text.lower():
+            msg = text
+        elif "workspace-id is required" in text or "anthropic-workspace-id" in text:
             msg = "Your Anthropic key is workspace-linked. Add ANTHROPIC_WORKSPACE_ID=wrkspc_... to backend/.env, then restart."
         elif name in ("AuthenticationError", "PermissionDeniedError") or "401" in text or "Unauthorized" in text:
             msg = "AI key not accepted (401 Unauthorized). Create a fresh key at console.anthropic.com and paste the FULL key into backend/.env, then restart."
@@ -251,7 +265,7 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
         elif name == "RateLimitError" or "credit balance" in text.lower() or "429" in text:
             msg = "AI request was rate-limited or the account is out of credit. Add credit at console.anthropic.com and retry."
         elif name in ("APIConnectionError", "APITimeoutError") or "connect" in text.lower():
-            msg = "Could not reach the AI service. Check this PC's internet connection and retry."
+            msg = "Could not reach the service. Check this PC's internet connection and retry."
         else:
             msg = "Could not answer that. Try rephrasing."
         raise HTTPException(500, msg) from e

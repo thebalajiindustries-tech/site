@@ -146,3 +146,24 @@ Return only the JSON."""
         return data
     except (json.JSONDecodeError, ValueError):
         return {"answer": text or "Here are the results.", "chart": {"type": "none"}}
+
+
+def question_to_zoho(question: str) -> dict:
+    """Pick which Zoho Books entity + simple filters to fetch for a live question."""
+    prompt = f"""You route a question to the Zoho Books live API.
+Choose ONE entity to fetch, plus optional simple filters.
+Entities: invoices, payments, expenses, bills, customers, salesorders, purchaseorders.
+Reply with ONLY JSON: {{"entity": "<one entity>", "params": {{}}}}
+Optional params: "status" (e.g. "unpaid","overdue","paid"), "customer_name".
+Keep params minimal; when unsure use empty params.
+
+QUESTION: {question}"""
+    text = _strip_fences(_complete(prompt, max_tokens=200))
+    try:
+        data = json.loads(text)
+        if not isinstance(data, dict) or "entity" not in data:
+            raise ValueError
+    except (json.JSONDecodeError, ValueError):
+        data = {"entity": "invoices", "params": {}}
+    data.setdefault("params", {})
+    return data
