@@ -116,10 +116,24 @@ Supabase/Zoho credentials to test):**
       from the local Postgres warehouse into the Supabase `balaji` schema
       **— not done yet, do this before relying on production for real
       numbers**
-- [ ] Render Blueprint deployed (`ganak-backend` + `ganak-frontend`)
-- [ ] `api.vidmahitech.com` / `app.vidmahitech.com` DNS attached in
-      Cloudflare and verified in Render
-- [ ] Smoke test against the real production URLs (login, ask, billing)
+- [x] Render Blueprint deployed (`ganak-backend` + `ganak-frontend`,
+      both on the free plan)
+- [x] `api.vidmahitech.com` / `app.vidmahitech.com` DNS attached in
+      Cloudflare (CNAME, DNS-only/grey-cloud) and verified in Render with
+      valid SSL certs
+- [x] Smoke test against the real production URLs — 6 Sept 2026: logged in
+      as `demo@ganak.local` on `https://app.vidmahitech.com`, dashboard
+      loaded live warehouse figures, asked "What's my paid revenue for the
+      last 6 months?" via `/ask`, got a correct answer (₹10,32,000) with
+      the generated SQL shown, and confirmed the wallet ledger on
+      `/billing` debited per-query (₹100.00 → ₹99.31 across 5 asks) with
+      accurate line items. Full pipeline confirmed working in production:
+      auth → dashboard → NL→SQL → warehouse query → billing.
+
+Remaining before Balaji (the real customer) relies on this in production:
+run `migrate_balaji_to_supabase.bat` (still not done — see above), and
+delete `github_token.txt` from the project folder now that the GitHub
+push is verified.
 
 See `DEPLOY.md` for the full step-by-step for the remaining items.
 
