@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import get_settings
-from . import db, llm, tenancy, auth, seed, docstore, docai, billing, zoho_live
+from . import db, llm, tenancy, auth, seed, docstore, docai, billing, zoho_live, connectors_routes
 from .guardrails import sanitize, UnsafeSQLError
 
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +45,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(connectors_routes.router)
 
 
 @app.on_event("startup")

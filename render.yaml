@@ -47,6 +47,21 @@ services:
         sync: false
       - key: ZOHO_ORG_ID
         sync: false
+      # --- self-serve connectors: any tenant connects THEIR OWN Gmail/Zoho ---
+      - key: PUBLIC_API_BASE_URL
+        value: https://api.vidmahitech.com
+      - key: PUBLIC_APP_BASE_URL
+        value: https://app.vidmahitech.com
+      - key: GANAK_TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: ZOHO_OAUTH_CLIENT_ID
+        sync: false
+      - key: ZOHO_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
 
   - type: web
     runtime: docker

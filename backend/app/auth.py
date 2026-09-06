@@ -103,6 +103,38 @@ def verify_token(token: str) -> dict:
     return payload
 
 
+def make_oauth_state(tenant_id: int, provider: str, ttl_seconds: int = 600) -> str:
+    """Short-lived signed token carried through an OAuth redirect round-trip
+    so the callback (which the provider calls with no Authorization header)
+    still knows which tenant + provider started the flow, and that no one
+    tampered with or replayed an unrelated request into it."""
+    payload = {
+        "tid": tenant_id,
+        "provider": provider,
+        "exp": int(time.time()) + ttl_seconds,
+        "nonce": _b64e(os.urandom(12)),
+    }
+    body = _b64e(json.dumps(payload, separators=(",", ":")).encode())
+    return f"{body}.{_sign(body)}"
+
+
+def verify_oauth_state(token: str, provider: str) -> int:
+    """Returns the tenant_id the state was issued for, or raises 400."""
+    from fastapi import HTTPException as _HTTPException
+    try:
+        body, sig = token.split(".")
+    except ValueError:
+        raise _HTTPException(400, "Malformed OAuth state.")
+    if not hmac.compare_digest(sig, _sign(body)):
+        raise _HTTPException(400, "Invalid OAuth state -- please try connecting again.")
+    payload = json.loads(_b64d(body))
+    if payload.get("exp", 0) < time.time():
+        raise _HTTPException(400, "This connection attempt expired -- please try again.")
+    if payload.get("provider") != provider:
+        raise _HTTPException(400, "OAuth state does not match this provider.")
+    return int(payload["tid"])
+
+
 def current_user(authorization: str = Header(default="")) -> dict:
     """FastAPI dependency: resolves the caller to {user, tenant} or raises 401."""
     if not authorization.lower().startswith("bearer "):

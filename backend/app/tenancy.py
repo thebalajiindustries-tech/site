@@ -108,6 +108,26 @@ def init_db():
                 );
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS connectors (
+                    id                SERIAL PRIMARY KEY,
+                    tenant_id         INTEGER NOT NULL REFERENCES tenants(id),
+                    provider          TEXT NOT NULL,
+                    status            TEXT NOT NULL DEFAULT 'connected',
+                    account_label     TEXT DEFAULT '',
+                    org_id            TEXT DEFAULT '',
+                    refresh_token_enc TEXT NOT NULL DEFAULT '',
+                    access_token_enc  TEXT DEFAULT '',
+                    token_expires_at  DOUBLE PRECISION DEFAULT 0,
+                    scopes            TEXT DEFAULT '',
+                    last_synced_at    DOUBLE PRECISION DEFAULT 0,
+                    last_error        TEXT DEFAULT '',
+                    created_at        DOUBLE PRECISION NOT NULL,
+                    UNIQUE(tenant_id, provider)
+                );
+                """
+            )
         else:
             cur.executescript(
                 """
@@ -136,6 +156,23 @@ def init_db():
                     amount_inr    REAL NOT NULL,
                     balance_after REAL,
                     detail        TEXT DEFAULT ''
+                );
+                CREATE TABLE IF NOT EXISTS connectors (
+                    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id         INTEGER NOT NULL,
+                    provider          TEXT NOT NULL,
+                    status            TEXT NOT NULL DEFAULT 'connected',
+                    account_label     TEXT DEFAULT '',
+                    org_id            TEXT DEFAULT '',
+                    refresh_token_enc TEXT NOT NULL DEFAULT '',
+                    access_token_enc  TEXT DEFAULT '',
+                    token_expires_at  REAL DEFAULT 0,
+                    scopes            TEXT DEFAULT '',
+                    last_synced_at    REAL DEFAULT 0,
+                    last_error        TEXT DEFAULT '',
+                    created_at        REAL NOT NULL,
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+                    UNIQUE(tenant_id, provider)
                 );
                 """
             )
@@ -258,3 +295,99 @@ def recent_ledger(tenant_id: int, limit: int = 25) -> list:
             (tenant_id, limit),
         )
         return [dict(r) for r in cur.fetchall()]
+
+
+# ---------------- self-serve connectors (Gmail, Zoho, ...) ----------------
+# One row per (tenant, provider): re-connecting overwrites the old tokens
+# rather than creating a duplicate. Tokens are stored already-encrypted
+# (see app/crypto.py) -- this module never sees plaintext tokens.
+
+def upsert_connector(tenant_id: int, provider: str, refresh_token_enc: str,
+                      access_token_enc: str = "", token_expires_at: float = 0.0,
+                      org_id: str = "", account_label: str = "", scopes: str = "") -> int:
+    with _cx() as conn:
+        cur = conn.cursor()
+        if _dialect() == "postgres":
+            cur.execute(
+                _q("""
+                INSERT INTO connectors(tenant_id, provider, status, account_label, org_id,
+                                        refresh_token_enc, access_token_enc, token_expires_at,
+                                        scopes, created_at, last_error)
+                VALUES(?,?,?,?,?,?,?,?,?,?,'')
+                ON CONFLICT (tenant_id, provider) DO UPDATE SET
+                    status = 'connected', account_label = EXCLUDED.account_label,
+                    org_id = EXCLUDED.org_id, refresh_token_enc = EXCLUDED.refresh_token_enc,
+                    access_token_enc = EXCLUDED.access_token_enc,
+                    token_expires_at = EXCLUDED.token_expires_at, scopes = EXCLUDED.scopes,
+                    last_error = ''
+                RETURNING id
+                """),
+                (tenant_id, provider, "connected", account_label, org_id,
+                 refresh_token_enc, access_token_enc, token_expires_at, scopes, time.time()),
+            )
+            return cur.fetchone()[0]
+        cur.execute("SELECT id FROM connectors WHERE tenant_id=? AND provider=?", (tenant_id, provider))
+        row = cur.fetchone()
+        if row:
+            cur.execute(
+                "UPDATE connectors SET status='connected', account_label=?, org_id=?, "
+                "refresh_token_enc=?, access_token_enc=?, token_expires_at=?, scopes=?, last_error='' "
+                "WHERE id=?",
+                (account_label, org_id, refresh_token_enc, access_token_enc, token_expires_at, scopes, row["id"]),
+            )
+            return row["id"]
+        cur.execute(
+            "INSERT INTO connectors(tenant_id, provider, status, account_label, org_id, "
+            "refresh_token_enc, access_token_enc, token_expires_at, scopes, created_at) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (tenant_id, provider, "connected", account_label, org_id,
+             refresh_token_enc, access_token_enc, token_expires_at, scopes, time.time()),
+        )
+        return cur.lastrowid
+
+
+def get_connector(tenant_id: int, provider: str):
+    with _cx() as conn:
+        cur = _cur(conn)
+        cur.execute(_q("SELECT * FROM connectors WHERE tenant_id=? AND provider=?"), (tenant_id, provider))
+        return _row(cur.fetchone())
+
+
+def list_connectors(tenant_id: int) -> list:
+    with _cx() as conn:
+        cur = _cur(conn)
+        cur.execute(_q("SELECT * FROM connectors WHERE tenant_id=? ORDER BY provider"), (tenant_id,))
+        return [dict(r) for r in cur.fetchall()]
+
+
+def update_connector_access_token(connector_id: int, access_token_enc: str, token_expires_at: float) -> None:
+    with _cx() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            _q("UPDATE connectors SET access_token_enc=?, token_expires_at=? WHERE id=?"),
+            (access_token_enc, token_expires_at, connector_id),
+        )
+
+
+def mark_connector_synced(connector_id: int) -> None:
+    with _cx() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            _q("UPDATE connectors SET last_synced_at=?, status='connected', last_error='' WHERE id=?"),
+            (time.time(), connector_id),
+        )
+
+
+def mark_connector_error(connector_id: int, error: str) -> None:
+    with _cx() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            _q("UPDATE connectors SET status='error', last_error=? WHERE id=?"),
+            (error[:500], connector_id),
+        )
+
+
+def delete_connector(tenant_id: int, provider: str) -> None:
+    with _cx() as conn:
+        cur = conn.cursor()
+        cur.execute(_q("DELETE FROM connectors WHERE tenant_id=? AND provider=?"), (tenant_id, provider))

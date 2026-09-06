@@ -187,14 +187,12 @@ mailbox to grant read access to.
 - **Real payments.** `/billing/recharge` is a simulated top-up. Production
   needs a Razorpay (or similar) integration: the frontend collects payment,
   Razorpay's webhook calls the backend to actually credit the wallet.
-- **Self-serve data connections.** The Connections page
-  (`frontend/app/connections/page.tsx`) is currently a static status display
-  for the two seeded demo companies — a brand-new signup gets an empty
-  warehouse with no way to connect their own Zoho/Gmail from the UI yet.
-  Today the only way to get data into a new tenant's warehouse is the
-  Documents (PDF upload) feature. A real "Connect Zoho Books" OAuth flow per
-  tenant is the natural next step to make self-serve signups actually
-  useful.
+- **Self-serve data connections -- built 6 Sept 2026, needs two manual
+  one-time setup steps before it's live.** Any signup can now click
+  "Connect Zoho" / "Connect Gmail" on the Connections page and authorize
+  THEIR OWN Zoho org / Gmail mailbox -- this is a real multi-tenant OAuth
+  flow, not just Balaji's. See section 6a below for how it works and what's
+  still needed to switch it on in production.
 - **Zoho sync is stale (confirmed root cause, 6 Sept 2026).** Balaji's
   warehouse (`expenses`, `payments`, `banktransactions`, `vendor_payments`)
   hasn't synced since **3 April 2026** -- verified directly against Zoho
@@ -234,6 +232,73 @@ mailbox to grant read access to.
   removes this once there's real customer traffic that can't tolerate the
   delay.
 
+## 6a. Self-serve connectors: how it works, what's left
+
+**Backend** (`backend/app/`): `connectors_routes.py` exposes
+`GET /connectors`, `GET /connectors/{provider}/start`,
+`GET /connectors/{provider}/callback`, `POST /connectors/{provider}/sync`,
+`POST /connectors/{provider}/disconnect`. Each tenant's OAuth tokens live in
+a new `connectors` table (`tenancy.py`) encrypted at rest with Fernet
+(`crypto.py`, key = `GANAK_TOKEN_ENCRYPTION_KEY`). `connectors_zoho.py` and
+`connectors_gmail.py` do the OAuth token exchange/refresh and the actual
+sync, writing into that tenant's own `db_schema` -- never Balaji's. The Zoho
+sync reuses the two real-data bug fixes verified against Balaji's own
+warehouse the same day (see section 6 above): flattened dict columns are
+namespaced to their parent column, and any column still holding a raw
+list/dict is JSON-encoded before the Postgres insert. A first sync kicks
+off automatically right after OAuth completes (as a background task, so the
+browser redirect back to the app is instant); "Sync now" on the Connections
+page re-triggers it any time. Covered by `backend/tests/test_connectors.py`
+(passes locally; doesn't touch a real provider).
+
+**Frontend**: `frontend/app/connections/page.tsx` is now a real page (not a
+static mock) -- it lists both connectors' live status, has working
+Connect/Sync now/Disconnect buttons, and shows a banner after the OAuth
+redirect back from the provider.
+
+**What's still needed before this is actually live in production** (both
+are one-time setup steps in each provider's own console -- not code):
+
+1. **A real Zoho OAuth client.** Zoho API Console
+   (https://api-console.zoho.in/) → create a **Server-based Applications**
+   client (name it something like "Ganak Self-Serve" -- keep it separate
+   from any client used for Balaji's own permanent script credentials) →
+   redirect URI `https://api.vidmahitech.com/connectors/zoho/callback` (add
+   `http://localhost:8000/connectors/zoho/callback` too for local testing)
+   → copy the Client ID/Secret into `ZOHO_OAUTH_CLIENT_ID` /
+   `ZOHO_OAUTH_CLIENT_SECRET`.
+2. **A real Google "Web application" OAuth client.** Google Cloud Console,
+   project `zoho-482016` → APIs & Services → Credentials → Create OAuth
+   client ID → **Web application** (the existing "Ganak" client there is a
+   *Desktop app* client used only by Balaji's own local
+   `backend/connectors/gmail_sync.py` script -- self-serve needs its own
+   Web application client, since only that type accepts a fixed HTTPS
+   redirect URI) → redirect URI
+   `https://api.vidmahitech.com/connectors/gmail/callback` (+ a localhost
+   one for local testing) → copy the Client ID/Secret into
+   `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET`.
+   **Important caveat that isn't a code problem:** `gmail.readonly` is a
+   Google "sensitive" scope. Until this OAuth consent screen passes
+   Google's app verification, only test users explicitly added under OAuth
+   consent screen → Audience → Test users can complete the Gmail connect
+   flow -- everyone else sees an "unverified app" warning and is blocked.
+   Zoho has no equivalent hurdle, so "Connect Zoho" is usable by any real
+   signup as soon as step 1 above is done; "Connect Gmail" needs either
+   Google verification (privacy policy + homepage + a short demo video,
+   roughly a 1-2 week review) or staying limited to test users until then.
+3. **New env vars on Render** (`render.yaml` already lists these):
+   `PUBLIC_API_BASE_URL`, `PUBLIC_APP_BASE_URL` (set to the two production
+   domains -- already filled in), `GANAK_TOKEN_ENCRYPTION_KEY`
+   (`generateValue: true`, no action needed), and the four OAuth client
+   secrets from steps 1-2 above (`sync: false` -- Render will prompt for
+   these once).
+
+Both provider consoles required re-authenticating the account (Zoho asked
+for an MFA OTP; Google Cloud Console was rate-limiting automated requests
+from this session at the time this was written) -- whoever has 5 minutes
+with an authenticator app and a normal browser can finish steps 1-2 by hand
+following the bullet points above; nothing about them needs a developer.
+
 ## 7. Suggested next steps, roughly in order
 
 1. Finish the in-progress production deploy (Render Blueprint → Cloudflare
@@ -246,8 +311,10 @@ mailbox to grant read access to.
 4. Investigate the Zoho incremental sync freshness question above.
 5. Decide on and build real payments (Razorpay) once ready to onboard
    paying customers beyond the two demo companies.
-6. Build the self-serve "connect your own Zoho/Gmail" flow — this is what
-   makes a new signup actually useful without manual setup.
+6. Self-serve "connect your own Zoho/Gmail" -- **code is done (6 Sept
+   2026)**; finish the two manual OAuth console steps in section 6a to
+   actually switch it on in production, then run the end-to-end test
+   (sign up fresh, connect Zoho for real, confirm /ask answers from it).
 7. Revisit the AI-automation wishlist from earlier in this project (PDF →
    data is done; other ideas raised were open-ended "many more features
    which is possible" — worth a follow-up conversation on what's highest

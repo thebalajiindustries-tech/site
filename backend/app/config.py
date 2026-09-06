@@ -63,6 +63,32 @@ class Settings:
     ZOHO_BASE_URL: str = os.environ.get("ZOHO_BASE_URL", "https://www.zohoapis.in/books/v3")
     ZOHO_ACCOUNTS_URL: str = os.environ.get("ZOHO_ACCOUNTS_URL", "https://accounts.zoho.in")
 
+    # --- self-serve connectors: encryption + OAuth client config ---
+    # Fernet key (generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+    # protecting every stored refresh/access token. MUST be set in production.
+    GANAK_TOKEN_ENCRYPTION_KEY: str = os.environ.get("GANAK_TOKEN_ENCRYPTION_KEY", "")
+    # public URLs used to build OAuth redirect URIs and post-connect redirects
+    PUBLIC_API_BASE_URL: str = os.environ.get("PUBLIC_API_BASE_URL", "http://localhost:8000")
+    PUBLIC_APP_BASE_URL: str = os.environ.get("PUBLIC_APP_BASE_URL", "http://localhost:3000")
+
+    # Zoho OAuth client used for SELF-SERVE "Connect Zoho" (any tenant's own
+    # org) -- a Server-based Application client, distinct from ZOHO_CLIENT_ID
+    # above which is Balaji's own permanent single-org script credential.
+    ZOHO_OAUTH_CLIENT_ID: str = os.environ.get("ZOHO_OAUTH_CLIENT_ID", "")
+    ZOHO_OAUTH_CLIENT_SECRET: str = os.environ.get("ZOHO_OAUTH_CLIENT_SECRET", "")
+    ZOHO_OAUTH_SCOPE: str = os.environ.get(
+        "ZOHO_OAUTH_SCOPE", "ZohoBooks.fullaccess.READ"
+    )
+
+    # Google OAuth client used for SELF-SERVE "Connect Gmail" -- a Web
+    # application client (different type than the Desktop-app credentials.json
+    # used by backend/connectors/gmail_sync.py for Balaji's own local script).
+    GOOGLE_OAUTH_CLIENT_ID: str = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
+    GOOGLE_OAUTH_CLIENT_SECRET: str = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "")
+    GOOGLE_OAUTH_SCOPE: str = os.environ.get(
+        "GOOGLE_OAUTH_SCOPE", "https://www.googleapis.com/auth/gmail.readonly"
+    )
+
     # --- app ---
     CURRENCY: str = os.environ.get("CURRENCY", "₹")
     CORS_ORIGINS: list = os.environ.get(

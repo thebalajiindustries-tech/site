@@ -141,3 +141,38 @@ export async function recharge(amountInr: number): Promise<{ ok: boolean; balanc
   });
   return handle(res);
 }
+
+// ---------------- self-serve connectors (Gmail, Zoho, ...) ----------------
+export type ConnectorInfo = {
+  provider: string;
+  connected: boolean;
+  configured: boolean;
+  status: string;
+  account_label: string;
+  last_synced_at: number;
+  last_error: string;
+};
+
+export async function listConnectors(): Promise<ConnectorInfo[]> {
+  const res = await fetch(`${BASE}/connectors`, { headers: { ...authHeaders() } });
+  return handle<ConnectorInfo[]>(res);
+}
+
+export async function startConnector(provider: string): Promise<{ authorize_url: string }> {
+  const res = await fetch(`${BASE}/connectors/${provider}/start`, { headers: { ...authHeaders() } });
+  return handle(res);
+}
+
+export async function syncConnectorNow(provider: string): Promise<{ status: string }> {
+  const res = await fetch(`${BASE}/connectors/${provider}/sync`, {
+    method: "POST", headers: { ...authHeaders() },
+  });
+  return handle(res);
+}
+
+export async function disconnectConnector(provider: string): Promise<{ status: string }> {
+  const res = await fetch(`${BASE}/connectors/${provider}/disconnect`, {
+    method: "POST", headers: { ...authHeaders() },
+  });
+  return handle(res);
+}
