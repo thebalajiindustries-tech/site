@@ -5,8 +5,17 @@ Supabase project (SUPABASE_DB_URL) -- both read from backend/.env.
 Safe to re-run: each table is replaced wholesale in Supabase from the current
 local copy, so running it again after a fresh local Zoho sync just refreshes
 the cloud copy. It never touches the LOCAL database (read-only there).
+
+Date-like columns are explicitly coerced to real timestamps before the copy.
+The local warehouse stores several date columns (e.g. expenses.date) as plain
+TEXT, and pandas' default to_sql() faithfully preserves that as TEXT in
+Supabase too -- which breaks any SQL Ganak generates that compares the column
+with >=/<  against a real date (Postgres has no text >= date operator). This
+script fixes that at the source so every date-shaped column lands as a proper
+timestamp column in Supabase, regardless of how it's stored locally.
 """
 import os
+import re
 import sys
 
 from dotenv import load_dotenv
@@ -49,6 +58,36 @@ with supa.connect() as c:
     c.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{SCHEMA}"'))
     c.commit()
 
+# Columns that look like they hold a date/datetime, whatever their stored type.
+_DATE_NAME_RE = re.compile(
+    r"(^date$)|(_date$)|(^date_)|(_time$)|(^created_time$)|(^last_modified_time$)",
+    re.IGNORECASE,
+)
+
+
+def _coerce_date_columns(df: "pd.DataFrame", table: str) -> list[str]:
+    """Convert date-shaped columns to real datetimes in place. Returns the
+    list of columns that were converted, for the printed report."""
+    converted = []
+    for col in df.columns:
+        if not _DATE_NAME_RE.search(col):
+            continue
+        if pd.api.types.is_datetime64_any_dtype(df[col]):
+            continue  # already a real datetime (e.g. came in as timestamp)
+        non_null = df[col].notna().sum()
+        if non_null == 0:
+            continue
+        parsed = pd.to_datetime(df[col], errors="coerce", utc=False)
+        parsed_non_null = parsed.notna().sum()
+        # Only trust the conversion if the vast majority of values parsed --
+        # guards against a column whose name merely contains "date"/"time"
+        # but isn't actually one (rare, but cheap to check).
+        if parsed_non_null >= 0.9 * non_null:
+            df[col] = parsed
+            converted.append(col)
+    return converted
+
+
 total_rows = 0
 for t in tables:
     df = pd.read_sql_table(t, local, schema="public")
@@ -56,10 +95,12 @@ for t in tables:
     if n == 0:
         print(f"  {t}: 0 rows, skipping")
         continue
+    converted = _coerce_date_columns(df, t)
     df.to_sql(t, supa, schema=SCHEMA, if_exists="replace", index=False,
               method="multi", chunksize=500)
     total_rows += n
-    print(f"  {t}: copied {n} rows")
+    extra = f"  [fixed date columns: {', '.join(converted)}]" if converted else ""
+    print(f"  {t}: copied {n} rows{extra}")
 
 print()
 print(f"DONE. Copied {total_rows} rows across {len(tables)} table(s) into Supabase schema '{SCHEMA}'.")
