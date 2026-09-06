@@ -112,28 +112,34 @@ Supabase/Zoho credentials to test):**
 - [x] Supabase project created and connected (`SUPABASE_DB_URL`,
       `CONTROL_DB_URL` in `backend/.env`)
 - [x] Code pushed to GitHub: `thebalajiindustries-tech/site`, branch `ganak`
-- [ ] `migrate_balaji_to_supabase.bat` run to copy Balaji's real Zoho data
+- [x] `migrate_balaji_to_supabase.bat` run to copy Balaji's real Zoho data
       from the local Postgres warehouse into the Supabase `balaji` schema
-      **— not done yet, do this before relying on production for real
-      numbers**
+      — run 6 Sept 2026, 6,623 rows across 7 tables. First run surfaced a
+      real bug (date columns copied as `text`, breaking date-filtered
+      `/ask` questions); fixed in the script and re-run successfully. See
+      section 6 below for the separate, still-open data-staleness issue.
 - [x] Render Blueprint deployed (`ganak-backend` + `ganak-frontend`,
       both on the free plan)
 - [x] `api.vidmahitech.com` / `app.vidmahitech.com` DNS attached in
       Cloudflare (CNAME, DNS-only/grey-cloud) and verified in Render with
       valid SSL certs
 - [x] Smoke test against the real production URLs — 6 Sept 2026: logged in
-      as `demo@ganak.local` on `https://app.vidmahitech.com`, dashboard
-      loaded live warehouse figures, asked "What's my paid revenue for the
-      last 6 months?" via `/ask`, got a correct answer (₹10,32,000) with
-      the generated SQL shown, and confirmed the wallet ledger on
-      `/billing` debited per-query (₹100.00 → ₹99.31 across 5 asks) with
-      accurate line items. Full pipeline confirmed working in production:
-      auth → dashboard → NL→SQL → warehouse query → billing.
+      as `demo@ganak.local` and `balaji@ganak.local` on
+      `https://app.vidmahitech.com`, dashboard loaded live warehouse
+      figures for both, `/ask` answered correctly for revenue,
+      receivables, and expense-by-category questions with the generated
+      SQL shown, and the wallet ledger on `/billing` debited per-query
+      with accurate line items. Full pipeline confirmed working in
+      production: auth → dashboard → NL→SQL → warehouse query → billing.
+- [x] Local test suite re-run after all changes — 39/39 checks across
+      isolation, hardening, documents, billing, and live-mode tests, no
+      regressions.
 
-Remaining before Balaji (the real customer) relies on this in production:
-run `migrate_balaji_to_supabase.bat` (still not done — see above), and
-delete `github_token.txt` from the project folder now that the GitHub
-push is verified.
+Remaining before Balaji (the real customer) fully relies on this in
+production: fix the Zoho sync gap in `PyProject/` (section 6 below —
+expenses/payments haven't synced since 3 April 2026), and delete
+`github_token.txt` from the project folder now that the GitHub push is
+verified.
 
 See `DEPLOY.md` for the full step-by-step for the remaining items.
 
@@ -180,14 +186,40 @@ Demo logins: `balaji@ganak.local` / `balaji123` and `demo@ganak.local` /
   Documents (PDF upload) feature. A real "Connect Zoho Books" OAuth flow per
   tenant is the natural next step to make self-serve signups actually
   useful.
-- **Zoho incremental sync freshness.** Before the Supabase migration, there
-  was an open question about whether `zoho_postgres_sync.py`'s incremental
-  sync was actually pulling recent (Apr-Sep 2026) records into Balaji's
-  warehouse, or was stuck on an old full sync. This was deprioritized in
-  favor of building Live mode (which bypasses the warehouse entirely) as a
-  working alternative. Worth revisiting: run `refresh_data.bat` in
-  `PyProject/`, check `refresh_output.log`, and confirm recent months show
-  up in warehouse-mode answers.
+- **Zoho sync is stale (confirmed root cause, 6 Sept 2026).** Balaji's
+  warehouse (`expenses`, `payments`, `banktransactions`, `vendor_payments`)
+  hasn't synced since **3 April 2026** -- verified directly against Zoho
+  Books via the Zoho MCP, which shows real expenses posted as recently as
+  today. Two separate problems, both in `PyProject/` (a different project
+  than this repo):
+  1. `zoho_scheduler.py` (meant to run the incremental sync every N minutes
+     in a loop) has never produced a `zoho_scheduler.log` -- there's no
+     evidence it has ever run as a persistent background process. Syncs
+     have only ever happened when someone manually ran `refresh_data.bat`.
+  2. The last full sync (3 Apr 2026, see `zoho_sync.log`) hit a real bug
+     partway through: `Failed to sync invoices: The truth value of a
+     Series is ambiguous` -- a pandas error, most likely duplicate/
+     colliding column names produced by `flatten_json_columns()` when it
+     JSON-normalizes a nested field on the invoices entity. `expenses`
+     synced fine that run (it has simpler/flatter fields), which is why
+     expenses/payments/etc all share that same April cutoff. A second,
+     manual attempt on 2 Sept 2026 started but produced no actual sync
+     output before stopping (see the truncated entries at the end of
+     `zoho_sync.log`) -- worth re-running with output captured to see why.
+  `salesorders` (newest 29 Aug) and `bills` (newest 30 Jul) are much
+  fresher, so something else is updating those two tables outside the main
+  sync job -- worth tracking down what and reusing that mechanism.
+
+  Separately (fixed 6 Sept 2026): `migrate_balaji_to_supabase.py` was
+  copying date-shaped columns into Supabase as plain `text` instead of a
+  real date/timestamp type, because the local warehouse itself stores them
+  as text and pandas' `to_sql()` preserved that as-is. This silently broke
+  any `/ask` question with a date-range filter (e.g. "this quarter")
+  with an "operator does not exist: text >= date" 500 error. The script now
+  coerces date-shaped columns to real timestamps before copying, verified
+  by re-running the migration and confirming expense questions work in
+  production. This fix does not address the staleness above -- it just
+  means whatever data *is* there answers correctly.
 - **Cold starts.** Render's free tier spins both services down after 15
   minutes idle (~1 minute to wake back up). Fine for early use; a paid plan
   removes this once there's real customer traffic that can't tolerate the
