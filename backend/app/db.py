@@ -1,12 +1,14 @@
 """Tenant-aware, strictly READ-ONLY data access.
 
-Each tenant has its own database, identified by a db_url. We only ever open a
-read-only connection to it, so the AI can never write and can never reach a
-database other than the logged-in tenant's own.
+Each tenant has its own database (db_url) OR, for tenants sharing the Supabase
+Postgres project, its own SCHEMA within that one database (db_url + db_schema).
+Either way we only ever open a read-only connection scoped to that tenant, so
+the AI can never write and can never reach another tenant's data.
 
 Engines supported:
   - postgresql://…   psycopg2, session set READ ONLY + statement timeout
-  - sqlite:///path   opened with PRAGMA query_only = ON
+                      (+ search_path pinned to the tenant's schema, when given)
+  - sqlite:///path    opened with PRAGMA query_only = ON
 """
 import sqlite3
 
@@ -17,8 +19,8 @@ from .config import get_settings
 
 settings = get_settings()
 
-# schema text cache, keyed by db_url (each tenant DB cached independently)
-_schema_cache: dict[str, str] = {}
+# schema text cache, keyed by (db_url, db_schema) — each tenant cached independently
+_schema_cache: dict[tuple[str, str], str] = {}
 
 
 def dialect_of(db_url: str) -> str:
@@ -29,12 +31,20 @@ def _sqlite_path(db_url: str) -> str:
     return db_url.replace("sqlite:///", "", 1)
 
 
+def _key(db_url: str, schema: str | None) -> tuple[str, str]:
+    return (db_url, schema or "")
+
+
 # ---------- connections ----------
-def _pg_conn(db_url: str):
+def _pg_conn(db_url: str, schema: str | None = None):
     conn = psycopg2.connect(db_url, connect_timeout=5)
     conn.set_session(readonly=True, autocommit=True)
     with conn.cursor() as cur:
         cur.execute(f"SET statement_timeout = {settings.STATEMENT_TIMEOUT_MS};")
+        if schema:
+            # quoted identifier — schema names come from our own tenant records,
+            # never from user input, but quote defensively anyway.
+            cur.execute(f'SET search_path TO "{schema}", public;')
     return conn
 
 
@@ -46,31 +56,33 @@ def _sqlite_conn(db_url: str):
 
 
 # ---------- schema ----------
-def load_schema(db_url: str, refresh: bool = False) -> str:
-    if not refresh and db_url in _schema_cache:
-        return _schema_cache[db_url]
-    schema = (
+def load_schema(db_url: str, schema: str | None = None, refresh: bool = False) -> str:
+    key = _key(db_url, schema)
+    if not refresh and key in _schema_cache:
+        return _schema_cache[key]
+    out = (
         _load_schema_sqlite(db_url)
         if dialect_of(db_url) == "sqlite"
-        else _load_schema_pg(db_url)
+        else _load_schema_pg(db_url, schema)
     )
-    _schema_cache[db_url] = schema
-    return schema
+    _schema_cache[key] = out
+    return out
 
 
-def _load_schema_pg(db_url: str) -> str:
-    conn = _pg_conn(db_url)
+def _load_schema_pg(db_url: str, schema: str | None = None) -> str:
+    conn = _pg_conn(db_url, schema)
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT table_name, column_name, data_type
                 FROM information_schema.columns
-                WHERE table_schema = 'public'
-                  AND table_name NOT LIKE 'pg_%'
+                WHERE table_schema = %s
+                  AND table_name NOT LIKE 'pg_%%'
                   AND table_name <> 'sync_metadata'
                 ORDER BY table_name, ordinal_position;
-                """
+                """,
+                (schema or "public",),
             )
             tables: dict[str, list[str]] = {}
             for t, col, dtype in cur.fetchall():
@@ -101,7 +113,7 @@ def _load_schema_sqlite(db_url: str) -> str:
 
 
 # ---------- queries ----------
-def run_select(db_url: str, sql: str):
+def run_select(db_url: str, sql: str, schema: str | None = None):
     """Execute a pre-sanitized SELECT against the tenant DB. Returns (columns, rows)."""
     if dialect_of(db_url) == "sqlite":
         conn = _sqlite_conn(db_url)
@@ -110,7 +122,7 @@ def run_select(db_url: str, sql: str):
         finally:
             conn.close()
     else:
-        conn = _pg_conn(db_url)
+        conn = _pg_conn(db_url, schema)
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur.execute(sql)
@@ -121,14 +133,14 @@ def run_select(db_url: str, sql: str):
     return columns, rows
 
 
-def ping(db_url: str) -> bool:
+def ping(db_url: str, schema: str | None = None) -> bool:
     try:
         if dialect_of(db_url) == "sqlite":
             conn = _sqlite_conn(db_url)
             conn.execute("SELECT 1;").fetchone()
             conn.close()
         else:
-            conn = _pg_conn(db_url)
+            conn = _pg_conn(db_url, schema)
             with conn.cursor() as cur:
                 cur.execute("SELECT 1;")
                 cur.fetchone()
@@ -138,9 +150,9 @@ def ping(db_url: str) -> bool:
         return False
 
 
-def invalidate_schema(db_url: str | None = None) -> None:
+def invalidate_schema(db_url: str | None = None, schema: str | None = None) -> None:
     """Drop the cached schema so a newly created table (e.g. `documents`) is seen."""
     if db_url is None:
         _schema_cache.clear()
     else:
-        _schema_cache.pop(db_url, None)
+        _schema_cache.pop(_key(db_url, schema), None)

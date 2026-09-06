@@ -1,0 +1,61 @@
+# Render Blueprint for Ganak — https://render.com/docs/blueprint-spec
+# Deploy: push this repo to GitHub, then in Render: New -> Blueprint -> pick the repo.
+# Render reads this file and creates both services below in one go.
+services:
+  - type: web
+    runtime: docker
+    name: ganak-backend
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /ping
+    domains:
+      - api.vidmahitech.com
+    envVars:
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: MODEL
+        value: claude-haiku-4-5-20251001
+      - key: EXTRACT_MODEL
+        value: claude-sonnet-5
+      - key: CURRENCY
+        value: "₹"
+      - key: CORS_ORIGINS
+        value: https://app.vidmahitech.com
+      - key: SEED_DEMO
+        value: "1"
+      # secrets -- Render will prompt you for these once when you create the
+      # Blueprint. Copy each value from backend/.env (open it in Notepad).
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_WORKSPACE_ID
+        sync: false
+      - key: SUPABASE_DB_URL
+        sync: false
+      - key: CONTROL_DB_URL
+        sync: false
+      - key: GANAK_AUTH_SECRET
+        generateValue: true
+      - key: ZOHO_REFRESH_TOKEN
+        sync: false
+      - key: ZOHO_CLIENT_ID
+        sync: false
+      - key: ZOHO_CLIENT_SECRET
+        sync: false
+      - key: ZOHO_ORG_ID
+        sync: false
+
+  - type: web
+    runtime: docker
+    name: ganak-frontend
+    plan: free
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    domains:
+      - app.vidmahitech.com
+    envVars:
+      # baked into the browser bundle at build time -- must point at the
+      # backend's public URL (its Render URL until api.vidmahitech.com's
+      # DNS is verified, then switch it and Render will rebuild).
+      - key: NEXT_PUBLIC_API_URL
+        value: https://api.vidmahitech.com

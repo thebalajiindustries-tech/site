@@ -2,7 +2,8 @@
 
 This is the only place the app writes tenant data, and it writes ONLY to the
 `documents` table via fixed, parameterized SQL. The AI never writes — it extracts
-fields a human confirms, and this inserts them. Works on Postgres or SQLite.
+fields a human confirms, and this inserts them. Works on Postgres (optionally
+scoped to a tenant's schema) or SQLite.
 """
 import json
 import sqlite3
@@ -20,7 +21,16 @@ def _now():
     return datetime.datetime.utcnow().isoformat(timespec="seconds")
 
 
-def ensure_table(db_url: str) -> None:
+def _pg_conn(db_url: str, schema: str | None):
+    c = psycopg2.connect(db_url, connect_timeout=5)
+    c.autocommit = True
+    if schema:
+        with c.cursor() as cur:
+            cur.execute(f'SET search_path TO "{schema}", public;')
+    return c
+
+
+def ensure_table(db_url: str, schema: str | None = None) -> None:
     if dialect_of(db_url) == "sqlite":
         c = sqlite3.connect(_sqlite_path(db_url), timeout=5)
         c.execute(
@@ -32,7 +42,7 @@ def ensure_table(db_url: str) -> None:
         )
         c.commit(); c.close()
     else:
-        c = psycopg2.connect(db_url, connect_timeout=5); c.autocommit = True
+        c = _pg_conn(db_url, schema)
         cur = c.cursor()
         cur.execute(
             """CREATE TABLE IF NOT EXISTS documents(
@@ -64,15 +74,15 @@ _COLS = ("doc_type,party,doc_date,amount,currency,reference_no,gst_no,"
          "direction,summary,source_filename,uploaded_at,raw_json")
 
 
-def insert_document(db_url: str, rec: dict) -> None:
-    ensure_table(db_url)
+def insert_document(db_url: str, rec: dict, schema: str | None = None) -> None:
+    ensure_table(db_url, schema)
     vals = _clean(rec)
     if dialect_of(db_url) == "sqlite":
         c = sqlite3.connect(_sqlite_path(db_url), timeout=5)
         c.execute(f"INSERT INTO documents({_COLS}) VALUES({','.join(['?']*12)})", vals)
         c.commit(); c.close()
     else:
-        c = psycopg2.connect(db_url, connect_timeout=5); c.autocommit = True
+        c = _pg_conn(db_url, schema)
         cur = c.cursor()
         cur.execute(f"INSERT INTO documents({_COLS}) VALUES({','.join(['%s']*12)})", vals)
         c.close()

@@ -54,6 +54,12 @@ if not exist "frontend\node_modules\" (
   popd
 )
 
+REM ---------- Keep backend packages in sync (cheap, catches new deps) ----------
+call backend\venv\Scripts\activate.bat
+echo [run] Checking backend packages are up to date...
+pip install --quiet -r backend\requirements.txt
+call deactivate
+
 REM ---------- Stop any leftover copy from a previous run ----------
 echo [run] Clearing any previous Ganak processes...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000 " ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>&1

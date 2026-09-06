@@ -33,6 +33,12 @@ class Settings:
     STATEMENT_TIMEOUT_MS: int = int(os.environ.get("STATEMENT_TIMEOUT_MS", "15000"))
 
     # --- multi-tenant control plane + auth ---
+    # Cloud Postgres (Supabase) used as the shared database for the control
+    # plane and every tenant's data, each isolated in its own Postgres schema.
+    # Leave blank to keep running fully local (SQLite control DB + per-tenant
+    # SQLite/local-Postgres warehouses), as this app did before deployment.
+    SUPABASE_DB_URL: str = os.environ.get("SUPABASE_DB_URL", "")
+    CONTROL_DB_URL: str = os.environ.get("CONTROL_DB_URL", "")
     CONTROL_DB_PATH: str = os.environ.get(
         "CONTROL_DB_PATH", os.path.join(BASE_DIR, "ganak_control.db")
     )

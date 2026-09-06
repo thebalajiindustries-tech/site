@@ -2,7 +2,7 @@
 warehouse. Only GET requests are made; the token is a refresh-token grant.
 """
 import time
-import httpx
+import requests
 
 from .config import get_settings
 
@@ -29,7 +29,7 @@ def configured() -> bool:
 def _access_token() -> str:
     if _token["val"] and time.time() < _token["exp"] - 60:
         return _token["val"]
-    r = httpx.post(f"{settings.ZOHO_ACCOUNTS_URL}/oauth/v2/token", params={
+    r = requests.post(f"{settings.ZOHO_ACCOUNTS_URL}/oauth/v2/token", params={
         "refresh_token": settings.ZOHO_REFRESH_TOKEN,
         "client_id": settings.ZOHO_CLIENT_ID,
         "client_secret": settings.ZOHO_CLIENT_SECRET,
@@ -66,7 +66,7 @@ def fetch(entity: str, params: dict | None = None, max_pages: int = 3):
     base["organization_id"] = settings.ZOHO_ORG_ID
     while page <= max_pages:
         q = dict(base, page=page, per_page=200)
-        r = httpx.get(f"{settings.ZOHO_BASE_URL}/{endpoint}", params=q,
+        r = requests.get(f"{settings.ZOHO_BASE_URL}/{endpoint}", params=q,
                       headers={"Authorization": f"Zoho-oauthtoken {tok}"}, timeout=30)
         d = r.json()
         items = d.get(list_key, []) or []

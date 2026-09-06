@@ -134,9 +134,13 @@ def register(req: RegisterRequest):
     if tenancy.get_user_by_email(email):
         raise HTTPException(409, "That email is already registered. Try logging in.")
 
-    # each new company gets its own fresh (empty) warehouse
-    db_url = seed.provision_tenant_db(req.company)
-    tenant_id = tenancy.create_tenant(req.company.strip(), db_url, (req.location or "").strip(), settings.SIGNUP_BONUS_INR)
+    # each new company gets its own fresh (empty) warehouse (a Postgres schema
+    # in cloud mode, a standalone SQLite file locally)
+    db_url, db_schema = seed.provision_tenant_db(req.company)
+    tenant_id = tenancy.create_tenant(
+        req.company.strip(), db_url, (req.location or "").strip(),
+        settings.SIGNUP_BONUS_INR, db_schema,
+    )
     user_id = tenancy.create_user(email, auth.hash_password(req.password), tenant_id, "owner")
     return _auth_payload(tenancy.get_user(user_id), tenancy.get_tenant(tenant_id))
 
@@ -166,17 +170,18 @@ def me(ident: dict = Depends(auth.current_user)):
 
 @app.get("/health")
 def health(ident: dict = Depends(auth.current_user)):
-    db_url = ident["tenant"]["db_url"]
+    t = ident["tenant"]
     return {
         "ok": True,
-        "database": "up" if db.ping(db_url) else "down",
-        "company": ident["tenant"]["name"],
+        "database": "up" if db.ping(t["db_url"], t.get("db_schema")) else "down",
+        "company": t["name"],
     }
 
 
 @app.get("/schema")
 def schema(ident: dict = Depends(auth.current_user)):
-    return {"schema": db.load_schema(ident["tenant"]["db_url"], refresh=True)}
+    t = ident["tenant"]
+    return {"schema": db.load_schema(t["db_url"], t.get("db_schema"), refresh=True)}
 
 
 @app.post("/ask", response_model=AskResponse)
@@ -191,6 +196,7 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
     if tenancy.get_balance(tid) <= 0:
         raise HTTPException(402, "Your balance is empty. Please recharge to keep using Ganak.")
     db_url = tenant["db_url"]
+    db_schema = tenant.get("db_schema")
     dialect = db.dialect_of(db_url)
     live = (req.mode or "warehouse").lower() == "live"
 
@@ -213,11 +219,11 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
             sql_display = f"[live] Zoho Books \u2192 {entity} ({len(rows)} records)"
             columns = list(rows[0].keys()) if rows else []
         else:
-            schema = db.load_schema(db_url)
+            schema = db.load_schema(db_url, db_schema)
             raw_sql = llm.question_to_sql(q, schema, dialect=dialect)
             sql_display = sanitize(raw_sql)
             log.info("[tenant %s] Q: %s | SQL: %s", tid, q, sql_display)
-            columns, rows = db.run_select(db_url, sql_display)
+            columns, rows = db.run_select(db_url, sql_display, db_schema)
             if len(rows) == 1 and len(columns) == 1:
                 col = columns[0]
                 val = rows[0][col]
@@ -327,10 +333,11 @@ def documents_extract(req: ExtractRequest, ident: dict = Depends(auth.current_us
 
 @app.post("/documents/load")
 def documents_load(rec: DocumentRecord, ident: dict = Depends(auth.current_user)):
-    db_url = ident["tenant"]["db_url"]
+    t = ident["tenant"]
+    db_url, db_schema = t["db_url"], t.get("db_schema")
     try:
-        docstore.insert_document(db_url, rec.model_dump())
-        db.invalidate_schema(db_url)  # so Ask can query `documents` right away
+        docstore.insert_document(db_url, rec.model_dump(), db_schema)
+        db.invalidate_schema(db_url, db_schema)  # so Ask can query `documents` right away
     except Exception as e:  # pragma: no cover
         log.exception("document load failed")
         raise HTTPException(500, "Couldn't save the document to your warehouse.")
