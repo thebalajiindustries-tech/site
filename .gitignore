@@ -20,3 +20,4 @@ Thumbs.db
 ganak_control.db
 backend/tenants/
 *.tsbuildinfo
+github_token.txt
