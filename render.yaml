@@ -1,13 +1,16 @@
 # Render Blueprint for Ganak — https://render.com/docs/blueprint-spec
-# Deploy: push this repo to GitHub, then in Render: New -> Blueprint -> pick the repo.
+# This file lives at ganak/render.yaml inside the thebalajiindustries-tech/site repo
+# (that repo's root is the vidmahitech.com website — untouched by this).
+# In Render: New -> Blueprint -> pick the 'site' repo -> branch 'ganak' ->
+# set the Blueprint file path to 'ganak/render.yaml' when prompted.
 # Render reads this file and creates both services below in one go.
 services:
   - type: web
     runtime: docker
     name: ganak-backend
     plan: free
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    dockerfilePath: ./ganak/backend/Dockerfile
+    dockerContext: ./ganak/backend
     healthCheckPath: /ping
     domains:
       - api.vidmahitech.com
@@ -49,8 +52,8 @@ services:
     runtime: docker
     name: ganak-frontend
     plan: free
-    dockerfilePath: ./frontend/Dockerfile
-    dockerContext: ./frontend
+    dockerfilePath: ./ganak/frontend/Dockerfile
+    dockerContext: ./ganak/frontend
     domains:
       - app.vidmahitech.com
     envVars:
