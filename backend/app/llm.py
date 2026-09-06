@@ -104,6 +104,22 @@ def question_to_sql(question: str, schema: str, dialect: str = "postgres") -> st
             "- Use date_trunc and INTERVAL for time grouping; sensible date filters on "
             "columns like invoice_date, expense_date, created_time, date."
         )
+    # A handful of our own tables have fixed, code-defined enum columns whose
+    # exact spelling the model can't see from information_schema alone (e.g.
+    # underscores vs hyphens, exact casing). Spelling these out here fixes a
+    # real failure mode: the model guesses a plausible-looking value, the
+    # WHERE clause matches nothing, and the user gets a confident but WRONG
+    # "no results found" instead of an error -- worse than not answering.
+    enum_hints = []
+    if "TABLE emails (" in schema:
+        enum_hints.append(
+            "- emails.category is exactly one of (snake_case, no spaces/hyphens): "
+            "payment_received, bank_payment_advice, balance_confirmation, quotation, "
+            "purchase_order, vendor_bill, other."
+        )
+        enum_hints.append("- emails.direction is exactly one of: incoming, outgoing.")
+    hints = ("\n\nCOLUMN VALUE NOTES:\n" + "\n".join(enum_hints)) if enum_hints else ""
+
     # Static, cacheable prefix (rules + schema) — reused across every question.
     cache_prefix = f"""You are a {engine} expert for a business-analytics product.
 Convert the user's question into ONE read-only {engine} query.
@@ -116,7 +132,7 @@ Rules:
 - Return ONLY the SQL. No prose, no markdown fences.
 
 DATABASE SCHEMA:
-{schema}"""
+{schema}{hints}"""
     variable = f"\nQUESTION: {question}\nSQL:"
     return _strip_fences(_complete(variable, max_tokens=500, cache_prefix=cache_prefix))
 
