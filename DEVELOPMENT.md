@@ -173,6 +173,15 @@ See `RUN_LOCAL.md` for full detail. Short version: double-click `start.bat`.
 Demo logins: `balaji@ganak.local` / `balaji123` and `demo@ganak.local` /
 `demo123`.
 
+**Account convention (set 6 Sept 2026):** use `thebalajiindustries@gmail.com`
+as the admin/dev identity whenever a *new* third-party account is needed for
+Ganak's own infrastructure (Google Cloud Console for the Gmail OAuth client,
+and any future service signup). This is separate from
+`thebalajiindustries7333@gmail.com`, which is Balaji's actual business
+mailbox and stays the account Ganak reads finance emails *from* -- sign into
+that one specifically when a sync script's OAuth consent screen asks which
+mailbox to grant read access to.
+
 ## 6. Not built yet (known gaps)
 
 - **Real payments.** `/billing/recharge` is a simulated top-up. Production
