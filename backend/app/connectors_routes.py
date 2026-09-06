@@ -20,7 +20,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from .config import get_settings
-from . import auth, tenancy, crypto, connectors_zoho, connectors_gmail
+from . import auth, tenancy, crypto, db, connectors_zoho, connectors_gmail
 
 log = logging.getLogger("ganak.connectors")
 settings = get_settings()
@@ -47,6 +47,12 @@ def _sync_and_record(provider: str, tenant: dict, connector: dict) -> None:
         else:
             results = mod.run_sync(tenant, connector, mode="full")
         tenancy.mark_connector_synced(connector["id"])
+        # A sync can create brand-new tables (e.g. `emails` on first Gmail
+        # connect). /ask uses the CACHED schema for speed, so without this
+        # the AI keeps answering as if that table doesn't exist until the
+        # process restarts. /schema (used for the debug view) always
+        # refreshes, which is why that looked fine while /ask didn't.
+        db.invalidate_schema(tenant["db_url"], tenant.get("db_schema"))
         log.info(f"connector sync ok tenant={tenant['id']} provider={provider} results={results}")
     except Exception as e:
         tenancy.mark_connector_error(connector["id"], str(e))
