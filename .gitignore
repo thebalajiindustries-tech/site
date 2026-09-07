@@ -25,3 +25,7 @@ github_token.txt
 # Gmail OAuth secrets (never commit)
 backend/connectors/credentials.json
 backend/connectors/token.json
+
+# Claude session artifacts (screenshots, GIFs) -- not part of the build
+Claude outputs/
+_to_delete/

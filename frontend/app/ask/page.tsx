@@ -1,5 +1,6 @@
 "use client";
-import { useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ask, type AskResponse } from "../../lib/api";
 import ResultView from "../../components/ResultView";
 
@@ -21,12 +22,23 @@ const BotAva = () => (
   <span className="ava"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.4} strokeLinecap="round"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/></svg></span>
 );
 
-export default function AskPage() {
+function AskInner() {
+  const params = useSearchParams();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<"warehouse" | "live">("warehouse");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prefilled = useRef(false);
+
+  // A question can arrive from Home's ask bar via ?q= — drop it into the
+  // composer for the person to review and send, rather than auto-firing
+  // (they may have already seen an inline answer for it there).
+  useEffect(() => {
+    if (prefilled.current) return;
+    const q = params.get("q");
+    if (q) { setInput(q); prefilled.current = true; }
+  }, [params]);
 
   async function send(q: string) {
     q = q.trim();
@@ -80,8 +92,8 @@ export default function AskPage() {
             {(["warehouse", "live"] as const).map((m) => (
               <button key={m} onClick={() => setMode(m)} type="button"
                 style={{ padding: "4px 11px", borderRadius: 20, fontSize: ".76rem", cursor: "pointer",
-                  border: "1px solid var(--line,#d8dbe0)",
-                  background: mode === m ? "var(--teal,#0d9488)" : "transparent",
+                  border: "1px solid var(--line-strong)",
+                  background: mode === m ? "var(--accent)" : "transparent",
                   color: mode === m ? "#fff" : "inherit", fontWeight: 500 }}>
                 {m === "warehouse" ? "Warehouse · fast" : "Live · Zoho"}
               </button>
@@ -107,5 +119,13 @@ export default function AskPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AskPage() {
+  return (
+    <Suspense fallback={<div className="chatwrap" />}>
+      <AskInner />
+    </Suspense>
   );
 }

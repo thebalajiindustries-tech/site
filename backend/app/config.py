@@ -89,6 +89,20 @@ class Settings:
         "GOOGLE_OAUTH_SCOPE", "https://www.googleapis.com/auth/gmail.readonly"
     )
 
+    # --- scheduled email digests (daily/weekly summary, any SMTP account) ---
+    # Any SMTP account works: Gmail with an app password, Outlook, or an SMTP
+    # relay from SendGrid/Mailgun/etc. This is separate from a tenant's own
+    # "Connect Gmail" (read-only, for finance-email classification) -- that
+    # connector can't send mail, so digests always go out from this identity.
+    SMTP_HOST: str = os.environ.get("SMTP_HOST", "")
+    SMTP_PORT: int = int(os.environ.get("SMTP_PORT", "587"))
+    SMTP_USER: str = os.environ.get("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
+    SMTP_FROM: str = os.environ.get("SMTP_FROM", "")
+    SMTP_USE_TLS: bool = os.environ.get("SMTP_USE_TLS", "1") != "0"
+    # how often the background scheduler checks for a due digest
+    DIGEST_CHECK_INTERVAL_SECONDS: int = int(os.environ.get("DIGEST_CHECK_INTERVAL_SECONDS", "900"))
+
     # --- app ---
     CURRENCY: str = os.environ.get("CURRENCY", "₹")
     CORS_ORIGINS: list = os.environ.get(

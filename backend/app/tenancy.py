@@ -128,6 +128,33 @@ def init_db():
                 );
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS digest_settings (
+                    id            SERIAL PRIMARY KEY,
+                    tenant_id     INTEGER NOT NULL UNIQUE REFERENCES tenants(id),
+                    enabled       BOOLEAN NOT NULL DEFAULT FALSE,
+                    frequency     TEXT NOT NULL DEFAULT 'weekly',
+                    weekday       INTEGER NOT NULL DEFAULT 0,
+                    hour          INTEGER NOT NULL DEFAULT 8,
+                    recipients    TEXT DEFAULT '',
+                    last_sent_at  DOUBLE PRECISION DEFAULT 0,
+                    created_at    DOUBLE PRECISION NOT NULL
+                );
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS digest_log (
+                    id         SERIAL PRIMARY KEY,
+                    tenant_id  INTEGER NOT NULL REFERENCES tenants(id),
+                    ts         DOUBLE PRECISION NOT NULL,
+                    status     TEXT NOT NULL,
+                    detail     TEXT DEFAULT '',
+                    recipients TEXT DEFAULT ''
+                );
+                """
+            )
         else:
             cur.executescript(
                 """
@@ -173,6 +200,27 @@ def init_db():
                     created_at        REAL NOT NULL,
                     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
                     UNIQUE(tenant_id, provider)
+                );
+                CREATE TABLE IF NOT EXISTS digest_settings (
+                    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id    INTEGER NOT NULL UNIQUE,
+                    enabled      INTEGER NOT NULL DEFAULT 0,
+                    frequency    TEXT NOT NULL DEFAULT 'weekly',
+                    weekday      INTEGER NOT NULL DEFAULT 0,
+                    hour         INTEGER NOT NULL DEFAULT 8,
+                    recipients   TEXT DEFAULT '',
+                    last_sent_at REAL DEFAULT 0,
+                    created_at   REAL NOT NULL,
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+                );
+                CREATE TABLE IF NOT EXISTS digest_log (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id  INTEGER NOT NULL,
+                    ts         REAL NOT NULL,
+                    status     TEXT NOT NULL,
+                    detail     TEXT DEFAULT '',
+                    recipients TEXT DEFAULT '',
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id)
                 );
                 """
             )
@@ -391,3 +439,80 @@ def delete_connector(tenant_id: int, provider: str) -> None:
     with _cx() as conn:
         cur = conn.cursor()
         cur.execute(_q("DELETE FROM connectors WHERE tenant_id=? AND provider=?"), (tenant_id, provider))
+
+
+# ---------------- scheduled email digests ----------------
+# One row per tenant (enable/frequency/day/hour/recipients); digest_log keeps
+# a short history of send attempts (success or error) for the settings page.
+
+def get_digest_settings(tenant_id: int):
+    with _cx() as conn:
+        cur = _cur(conn)
+        cur.execute(_q("SELECT * FROM digest_settings WHERE tenant_id=?"), (tenant_id,))
+        return _row(cur.fetchone())
+
+
+def upsert_digest_settings(tenant_id: int, enabled: bool, frequency: str, weekday: int,
+                            hour: int, recipients: str) -> dict:
+    with _cx() as conn:
+        cur = conn.cursor()
+        if _dialect() == "postgres":
+            cur.execute(
+                _q("""
+                INSERT INTO digest_settings(tenant_id, enabled, frequency, weekday, hour, recipients, created_at)
+                VALUES(?,?,?,?,?,?,?)
+                ON CONFLICT (tenant_id) DO UPDATE SET
+                    enabled = EXCLUDED.enabled, frequency = EXCLUDED.frequency,
+                    weekday = EXCLUDED.weekday, hour = EXCLUDED.hour, recipients = EXCLUDED.recipients
+                """),
+                (tenant_id, enabled, frequency, weekday, hour, recipients, time.time()),
+            )
+        else:
+            cur.execute("SELECT id FROM digest_settings WHERE tenant_id=?", (tenant_id,))
+            row = cur.fetchone()
+            if row:
+                cur.execute(
+                    "UPDATE digest_settings SET enabled=?, frequency=?, weekday=?, hour=?, recipients=? WHERE tenant_id=?",
+                    (1 if enabled else 0, frequency, weekday, hour, recipients, tenant_id),
+                )
+            else:
+                cur.execute(
+                    "INSERT INTO digest_settings(tenant_id, enabled, frequency, weekday, hour, recipients, created_at) "
+                    "VALUES(?,?,?,?,?,?,?)",
+                    (tenant_id, 1 if enabled else 0, frequency, weekday, hour, recipients, time.time()),
+                )
+    return get_digest_settings(tenant_id)
+
+
+def list_digest_settings() -> list:
+    with _cx() as conn:
+        cur = _cur(conn)
+        cur.execute("SELECT * FROM digest_settings")
+        return [dict(r) for r in cur.fetchall()]
+
+
+def mark_digest_sent(tenant_id: int, ts: float | None = None) -> None:
+    with _cx() as conn:
+        cur = conn.cursor()
+        cur.execute(_q("UPDATE digest_settings SET last_sent_at=? WHERE tenant_id=?"),
+                    (ts if ts is not None else time.time(), tenant_id))
+
+
+def record_digest_log(tenant_id: int, status: str, detail: str, recipients: str) -> None:
+    with _cx() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            _q("INSERT INTO digest_log(tenant_id, ts, status, detail, recipients) VALUES(?,?,?,?,?)"),
+            (tenant_id, time.time(), status, (detail or "")[:500], recipients),
+        )
+
+
+def recent_digest_log(tenant_id: int, limit: int = 10) -> list:
+    with _cx() as conn:
+        cur = _cur(conn)
+        cur.execute(
+            _q("SELECT ts, status, detail, recipients FROM digest_log WHERE tenant_id=? "
+               "ORDER BY id DESC LIMIT ?"),
+            (tenant_id, limit),
+        )
+        return [dict(r) for r in cur.fetchall()]

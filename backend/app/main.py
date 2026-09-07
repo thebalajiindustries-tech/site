@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import get_settings
-from . import db, llm, tenancy, auth, seed, docstore, docai, billing, zoho_live, connectors_routes
+from . import db, llm, tenancy, auth, seed, docstore, docai, billing, zoho_live, connectors_routes, digest, digest_routes
 from .guardrails import sanitize, UnsafeSQLError
 
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(connectors_routes.router)
+app.include_router(digest_routes.router)
 
 
 @app.on_event("startup")
@@ -53,6 +54,7 @@ def _startup():
     seed.bootstrap()
     if settings.AUTH_SECRET in ("dev-only-change-me", ""):
         log.warning("GANAK_AUTH_SECRET is not strong \u2014 set it in backend/.env before production.")
+    digest.start_scheduler()
 
 
 # ---------------- models ----------------

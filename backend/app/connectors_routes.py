@@ -96,14 +96,14 @@ def callback(provider: str, background: BackgroundTasks, code: str = "", state: 
     if not mod:
         raise HTTPException(404, "Unknown connector.")
     if error:
-        return RedirectResponse(f"{app_url}/connections?error={requests.utils.quote(error)}")
+        return RedirectResponse(f"{app_url}/sources?error={requests.utils.quote(error)}")
     if not code:
-        return RedirectResponse(f"{app_url}/connections?error=missing_code")
+        return RedirectResponse(f"{app_url}/sources?error=missing_code")
 
     tenant_id = auth.verify_oauth_state(state, provider)
     tenant = tenancy.get_tenant(tenant_id)
     if not tenant:
-        return RedirectResponse(f"{app_url}/connections?error=tenant_not_found")
+        return RedirectResponse(f"{app_url}/sources?error=tenant_not_found")
 
     try:
         token_data = mod.exchange_code(code)
@@ -113,14 +113,14 @@ def callback(provider: str, background: BackgroundTasks, code: str = "", state: 
             # Both providers are asked for offline access + forced consent on
             # every authorization specifically so this always arrives; if it
             # didn't, something about the provider-side app config is off.
-            return RedirectResponse(f"{app_url}/connections?error=no_refresh_token")
+            return RedirectResponse(f"{app_url}/sources?error=no_refresh_token")
         expires_at = time.time() + int(token_data.get("expires_in", 3600))
 
         if provider == "zoho":
             api_domain = token_data.get("api_domain", "https://www.zohoapis.in")
             orgs = mod.list_organizations(access_token, api_domain)
             if not orgs:
-                return RedirectResponse(f"{app_url}/connections?error=no_zoho_org")
+                return RedirectResponse(f"{app_url}/sources?error=no_zoho_org")
             org = orgs[0]  # first-cut: the account's primary/first org
             tenancy.upsert_connector(
                 tenant_id, provider,
@@ -143,10 +143,10 @@ def callback(provider: str, background: BackgroundTasks, code: str = "", state: 
 
         connector = tenancy.get_connector(tenant_id, provider)
         background.add_task(_sync_and_record, provider, tenant, connector)
-        return RedirectResponse(f"{app_url}/connections?connected={provider}")
+        return RedirectResponse(f"{app_url}/sources?connected={provider}")
     except Exception as e:
         log.error(f"oauth callback failed tenant={tenant_id} provider={provider}: {e}")
-        return RedirectResponse(f"{app_url}/connections?error={requests.utils.quote(str(e)[:200])}")
+        return RedirectResponse(f"{app_url}/sources?error={requests.utils.quote(str(e)[:200])}")
 
 
 @router.post("/{provider}/sync")

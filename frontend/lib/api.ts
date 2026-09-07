@@ -176,3 +176,37 @@ export async function disconnectConnector(provider: string): Promise<{ status: s
   });
   return handle(res);
 }
+
+// ---------------- scheduled email digests ----------------
+export type DigestLogEntry = { ts: number; status: string; detail: string; recipients: string };
+export type DigestSettings = {
+  configured: boolean;
+  enabled: boolean;
+  frequency: "daily" | "weekly";
+  weekday: number;
+  hour: number;
+  recipients: string[];
+  last_sent_at: number;
+  log: DigestLogEntry[];
+};
+
+export async function getDigest(): Promise<DigestSettings> {
+  const res = await fetch(`${BASE}/digest`, { headers: { ...authHeaders() } });
+  return handle<DigestSettings>(res);
+}
+
+export async function saveDigest(settings: {
+  enabled: boolean; frequency: "daily" | "weekly"; weekday: number; hour: number; recipients: string[];
+}): Promise<DigestSettings> {
+  const res = await fetch(`${BASE}/digest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(settings),
+  });
+  return handle<DigestSettings>(res);
+}
+
+export async function sendDigestNow(): Promise<{ status: string }> {
+  const res = await fetch(`${BASE}/digest/send-now`, { method: "POST", headers: { ...authHeaders() } });
+  return handle(res);
+}

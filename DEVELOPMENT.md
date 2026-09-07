@@ -154,7 +154,10 @@ ganak/
     requirements.txt
     .env                 secrets + config -- never committed (see .gitignore)
   frontend/
-    app/                Next.js pages: login, dashboard, ask, billing, documents, connections
+    app/                Next.js pages: login, home (merged dashboard+ask), ask, sources
+                        (merged connections+documents, tabbed), digests, settings
+                        (merged billing+profile, tabbed) -- old /connections, /documents,
+                        /billing paths still exist as thin client-side redirects
     lib/api.ts           typed fetch wrapper for every backend endpoint
     Dockerfile           used by Render to build the frontend
   render.yaml            Render Blueprint -- both services in one file
@@ -189,7 +192,7 @@ mailbox to grant read access to.
   Razorpay's webhook calls the backend to actually credit the wallet.
 - **Self-serve data connections -- built 6 Sept 2026, needs two manual
   one-time setup steps before it's live.** Any signup can now click
-  "Connect Zoho" / "Connect Gmail" on the Connections page and authorize
+  "Connect Zoho" / "Connect Gmail" on the Sources page (Connections tab) and authorize
   THEIR OWN Zoho org / Gmail mailbox -- this is a real multi-tenant OAuth
   flow, not just Balaji's. See section 6a below for how it works and what's
   still needed to switch it on in production.
@@ -251,10 +254,15 @@ browser redirect back to the app is instant); "Sync now" on the Connections
 page re-triggers it any time. Covered by `backend/tests/test_connectors.py`
 (passes locally; doesn't touch a real provider).
 
-**Frontend**: `frontend/app/connections/page.tsx` is now a real page (not a
-static mock) -- it lists both connectors' live status, has working
+**Frontend**: as of the 7 Sept 2026 IA rebuild (section 6c), this lives in
+`frontend/app/sources/page.tsx` as the "Connections" tab (merged with
+Documents) -- it lists both connectors' live status, has working
 Connect/Sync now/Disconnect buttons, and shows a banner after the OAuth
-redirect back from the provider.
+redirect back from the provider. The old `frontend/app/connections/page.tsx`
+route now just forwards to `/sources?tab=connections` (preserving any
+`?connected=`/`?error=` query params) so old bookmarks and the OAuth
+callback both still land in the right place; the backend's callback
+(`connectors_routes.py`) now redirects straight to `/sources` itself.
 
 **What's still needed before this is actually live in production** (both
 are one-time setup steps in each provider's own console -- not code):
@@ -298,6 +306,101 @@ for an MFA OTP; Google Cloud Console was rate-limiting automated requests
 from this session at the time this was written) -- whoever has 5 minutes
 with an authenticator app and a normal browser can finish steps 1-2 by hand
 following the bullet points above; nothing about them needs a developer.
+
+## 6b. Scheduled email digests: how it works, what's left
+
+**Backend** (`backend/app/`): `digest.py` builds a digest by running a fixed
+set of questions (paid revenue, outstanding receivables, expenses, invoices
+raised, biggest receivable) through the exact same question -> SQL -> narrate
+pipeline `/ask` uses, then renders a branded, mobile-friendly HTML + plain
+text email and sends it over SMTP (`send_email`, stdlib `smtplib` -- no new
+dependency). `digest_routes.py` exposes `GET/POST /digest` (read/save a
+tenant's schedule + recipients) and `POST /digest/send-now` (a background
+task, same BackgroundTasks pattern as a connector sync, so the HTTP response
+comes back immediately). Settings + a short send log live in two new control-
+plane tables, `digest_settings` and `digest_log` (`tenancy.py`). A daemon
+thread (`digest.start_scheduler()`, started once from `main.py`'s startup
+hook) wakes every `DIGEST_CHECK_INTERVAL_SECONDS` (default 900s) and emails
+every tenant whose schedule is due in IST and hasn't already been sent today
+-- see `digest._is_due()`. Sending re-uses the same wallet debit as `/ask`
+(`billing.request_cost_inr()`), and a digest is skipped (logged, not
+retried until the next scheduled period) if the tenant's balance is empty.
+Covered by `backend/tests/test_digest.py` (settings validation, send-now
+gating, the due-check logic, and one full `run_due_digests()` pass --
+`llm` and `digest.send_email` are monkeypatched so it never calls a real AI
+provider or SMTP server).
+
+**Frontend**: `frontend/app/digests/page.tsx` -- on/off toggle, Daily/Weekly
++ day-of-week + hour pickers (native `<select>` for the hour so it opens
+each platform's own picker wheel), a chip-style recipient editor, a "Send a
+test now" button, and a recent-activity log. Built mobile-first: touch
+targets sized to iOS HIG (~44pt) / Android Material (~48dp) minimums, inputs
+kept at >=16px so iOS Safari doesn't auto-zoom on focus, and the digest
+email itself is a table-based layout that collapses to a single readable
+column with no pinch-zoom needed on a phone mail client. The same pass
+turned the app shell's sidebar into a proper mobile drawer (hamburger button
++ slide-in panel + backdrop, `components/Shell.tsx` + `globals.css`) --
+previously the sidebar just disappeared below 760px with no way to
+navigate at all on a phone.
+
+**What's still needed before this actually sends anything in production**
+(a one-time setup step, not code): a real SMTP account. Any provider works
+-- a Gmail address with an "app password"
+(myaccount.google.com/apppasswords), Outlook, or an SMTP relay from
+SendGrid/Mailgun/etc -- set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASSWORD`, and `SMTP_FROM` in `backend/.env` (see `.env.example`).
+Until then `digest.configured()` is `false`, the Email Digests page shows a
+banner saying so, and `/digest/send-now` returns a friendly 503 instead of
+trying to send.
+
+## 6c. Frontend IA rebuild (7 Sept 2026): Home, Sources, Settings, mobile tabs
+
+The frontend went through a full information-architecture pass: fewer, more
+useful screens instead of one screen per backend feature. No backend
+contracts changed except the two OAuth redirect targets noted in 6a --
+everything below is presentation, reusing the existing `/ask`, `/me`,
+`/connectors`, `/digest`, and `/billing` endpoints.
+
+- **Home** (`frontend/app/page.tsx`, replaces the old Dashboard) merges the
+  KPI dashboard with a persistent ask bar: type a question and get an
+  inline answer (via `ResultView`, the same component `/ask` uses) without
+  leaving the page, with a "Continue in full chat" link that hands the
+  question to `/ask` (prefilled, not auto-sent, so nothing gets asked --
+  and billed -- twice). Three of the four KPIs (paid revenue, expenses,
+  invoices raised) now show a vs-prior-30-days trend pill and a small
+  two-point sparkline, computed from a second `/ask` call for the prior
+  period and cached client-side alongside the existing one (same 10-minute
+  cache as before, just storing both numbers). A "Needs attention" panel
+  surfaces anything that wants action -- low wallet balance, a connector in
+  an error state, a failed digest send -- each linking straight to where
+  it's fixed, and a "Recent activity" feed replays the last few
+  `/billing` ledger entries (asks, documents, digests, recharges) in plain
+  English.
+- **Sources** (`frontend/app/sources/page.tsx`, new) merges Connections and
+  Documents into one page with a Connections/Documents tab switcher
+  (`?tab=connections|documents`); both tabs are the same components/logic
+  as the pages they replaced, just sharing one URL and one set of page
+  chrome.
+- **Settings** (`frontend/app/settings/page.tsx`, replaces Billing) adds a
+  Profile tab (read-only account info, the dark-mode toggle, log out)
+  alongside the existing Billing tab (wallet balance, recharge, the
+  transaction table) -- same `?tab=billing|profile` pattern as Sources.
+- **Ask** (`frontend/app/ask/page.tsx`) is unchanged functionally, plus it
+  now accepts `?q=` (from Home's ask bar) to prefill the composer.
+- The old `/connections`, `/documents`, and `/billing` routes are now tiny
+  client components that just `router.replace()` to their new home, so
+  nothing that linked to the old paths breaks.
+- **Mobile navigation**: alongside the existing off-canvas drawer
+  (hamburger + slide-in panel, built during the digest work), there's now
+  also a fixed bottom tab bar on screens <=760px wide with the five
+  primary sections (Home/Ask/Sources/Digests/Settings) one tap away --
+  `components/Shell.tsx` renders both; `globals.css` has the
+  `.bottom-tabs` rules plus a matching `.tabs` component used by Sources
+  and Settings for their in-page tab switchers.
+
+Verified with `npx tsc --noEmit` (clean) and a full `next build` (all 10
+routes compile) plus the full 7-file backend test suite (unaffected by the
+redirect-target change -- `test_connectors.py` never asserts on it).
 
 ## 7. Suggested next steps, roughly in order
 
