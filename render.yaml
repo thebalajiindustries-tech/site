@@ -12,8 +12,6 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /ping
-    domains:
-      - api.vidmahitech.com
     envVars:
       - key: LLM_PROVIDER
         value: anthropic
