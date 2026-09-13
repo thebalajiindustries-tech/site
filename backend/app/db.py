@@ -14,6 +14,7 @@ import sqlite3
 
 import psycopg2
 import psycopg2.extras
+import psycopg2.pool
 
 from .config import get_settings
 
@@ -21,6 +22,25 @@ settings = get_settings()
 
 # schema text cache, keyed by (db_url, db_schema) — each tenant cached independently
 _schema_cache: dict[tuple[str, str], str] = {}
+
+# One small pooled-connection set per distinct Postgres db_url. In practice
+# there's usually just one (the shared Supabase project all cloud tenants
+# live in) reused across every tenant's own schema. Before this, every
+# /ask, /schema, /health and dashboard call opened a brand-new TCP+TLS
+# connection to Postgres -- pure avoidable latency on every request. A
+# pooled connection is checked out, re-pointed at the caller's schema (see
+# _pg_conn), used, and returned -- never closed on the happy path.
+_pools: dict[str, "psycopg2.pool.ThreadedConnectionPool"] = {}
+
+
+def _get_pool(db_url: str) -> "psycopg2.pool.ThreadedConnectionPool":
+    pool = _pools.get(db_url)
+    if pool is None:
+        pool = psycopg2.pool.ThreadedConnectionPool(
+            settings.PG_POOL_MINCONN, settings.PG_POOL_MAXCONN, db_url, connect_timeout=5,
+        )
+        _pools[db_url] = pool
+    return pool
 
 
 def dialect_of(db_url: str) -> str:
@@ -37,15 +57,26 @@ def _key(db_url: str, schema: str | None) -> tuple[str, str]:
 
 # ---------- connections ----------
 def _pg_conn(db_url: str, schema: str | None = None):
-    conn = psycopg2.connect(db_url, connect_timeout=5)
+    """Check a pooled connection out and (re)point it at this tenant's schema.
+    readonly/autocommit/statement_timeout/search_path are re-applied on every
+    checkout, so a connection last used by a different tenant is always left
+    correctly scoped before the caller sees it."""
+    conn = _get_pool(db_url).getconn()
     conn.set_session(readonly=True, autocommit=True)
     with conn.cursor() as cur:
         cur.execute(f"SET statement_timeout = {settings.STATEMENT_TIMEOUT_MS};")
-        if schema:
-            # quoted identifier — schema names come from our own tenant records,
-            # never from user input, but quote defensively anyway.
-            cur.execute(f'SET search_path TO "{schema}", public;')
+        cur.execute(f'SET search_path TO "{schema or "public"}", public;')
     return conn
+
+
+def _pg_release(db_url: str, conn, ok: bool = True) -> None:
+    """Return a connection to its pool, or discard it (ok=False) when it might
+    be left in a bad state after an error -- so one broken connection can't
+    poison the pool for every other tenant sharing this db_url."""
+    try:
+        _get_pool(db_url).putconn(conn, close=not ok)
+    except Exception:
+        pass
 
 
 def _sqlite_conn(db_url: str):
@@ -71,6 +102,7 @@ def load_schema(db_url: str, schema: str | None = None, refresh: bool = False) -
 
 def _load_schema_pg(db_url: str, schema: str | None = None) -> str:
     conn = _pg_conn(db_url, schema)
+    ok = False
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -87,8 +119,9 @@ def _load_schema_pg(db_url: str, schema: str | None = None) -> str:
             tables: dict[str, list[str]] = {}
             for t, col, dtype in cur.fetchall():
                 tables.setdefault(t, []).append(f"{col} {dtype}")
+        ok = True
     finally:
-        conn.close()
+        _pg_release(db_url, conn, ok)
     return "\n".join(f"TABLE {t} (" + ", ".join(c) + ")" for t, c in tables.items())
 
 
@@ -123,12 +156,14 @@ def run_select(db_url: str, sql: str, schema: str | None = None):
             conn.close()
     else:
         conn = _pg_conn(db_url, schema)
+        ok = False
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur.execute(sql)
             rows = [dict(r) for r in cur.fetchall()]
+            ok = True
         finally:
-            conn.close()
+            _pg_release(db_url, conn, ok)
     columns = list(rows[0].keys()) if rows else []
     return columns, rows
 
@@ -141,10 +176,14 @@ def ping(db_url: str, schema: str | None = None) -> bool:
             conn.close()
         else:
             conn = _pg_conn(db_url, schema)
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1;")
-                cur.fetchone()
-            conn.close()
+            ok = False
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1;")
+                    cur.fetchone()
+                ok = True
+            finally:
+                _pg_release(db_url, conn, ok)
         return True
     except Exception:
         return False

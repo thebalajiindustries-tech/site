@@ -31,6 +31,11 @@ class Settings:
     # --- guardrails / limits ---
     MAX_ROWS: int = int(os.environ.get("MAX_ROWS", "500"))
     STATEMENT_TIMEOUT_MS: int = int(os.environ.get("STATEMENT_TIMEOUT_MS", "15000"))
+    # Small per-db_url connection pool (see db.py) -- most tenants share one
+    # Postgres database (Supabase), so this keeps a handful of warm connections
+    # instead of paying a fresh TCP+TLS handshake on every request.
+    PG_POOL_MINCONN: int = int(os.environ.get("PG_POOL_MINCONN", "1"))
+    PG_POOL_MAXCONN: int = int(os.environ.get("PG_POOL_MAXCONN", "6"))
 
     # --- multi-tenant control plane + auth ---
     # Cloud Postgres (Supabase) used as the shared database for the control
