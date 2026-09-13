@@ -12,7 +12,7 @@ import json
 import os
 import time
 
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException
 
 from .config import get_settings
 from . import tenancy
@@ -147,3 +147,13 @@ def current_user(authorization: str = Header(default="")) -> dict:
     if not tenant:
         raise HTTPException(401, "Company not found.")
     return {"user": user, "tenant": tenant}
+
+
+def admin_user(ident: dict = Depends(current_user)) -> dict:
+    """FastAPI dependency: like current_user, but only the configured admin
+    email may pass. Everyone else gets a 403 -- there is no admin role in the
+    `users` table (yet), so this is a single hardcoded owner check."""
+    email = (ident["user"].get("email") or "").strip().lower()
+    if email != settings.ADMIN_EMAIL.strip().lower():
+        raise HTTPException(403, "Admin access only.")
+    return ident

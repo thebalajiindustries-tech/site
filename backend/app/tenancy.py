@@ -297,6 +297,44 @@ def get_user(user_id: int):
         return _row(cur.fetchone())
 
 
+def list_tenants_overview() -> list:
+    """Admin: one row per tenant (company) with its users, current balance,
+    lifetime spend/recharge totals, and connector status. Small-scale by
+    design (a handful of tenants) so N+1 queries per tenant are fine here."""
+    with _cx() as conn:
+        cur = _cur(conn)
+        cur.execute("SELECT id, name, location, balance_inr, created_at FROM tenants ORDER BY created_at DESC")
+        tenants = [dict(r) for r in cur.fetchall()]
+        for t in tenants:
+            cur = _cur(conn)
+            cur.execute(_q("SELECT email, role, created_at FROM users WHERE tenant_id=? ORDER BY id"), (t["id"],))
+            t["users"] = [dict(r) for r in cur.fetchall()]
+
+            cur = _cur(conn)
+            cur.execute(
+                _q(
+                    "SELECT "
+                    "COALESCE(SUM(CASE WHEN amount_inr < 0 THEN -amount_inr ELSE 0 END), 0) AS total_spent, "
+                    "COALESCE(SUM(CASE WHEN amount_inr > 0 THEN amount_inr ELSE 0 END), 0) AS total_recharged "
+                    "FROM usage_ledger WHERE tenant_id=?"
+                ),
+                (t["id"],),
+            )
+            agg = dict(cur.fetchone())
+            t["total_spent_inr"] = round(float(agg["total_spent"] or 0), 2)
+            t["total_recharged_inr"] = round(float(agg["total_recharged"] or 0), 2)
+            t["balance_inr"] = round(float(t["balance_inr"] or 0), 2)
+
+            cur = _cur(conn)
+            cur.execute(
+                _q("SELECT provider, status, account_label, last_synced_at, last_error "
+                   "FROM connectors WHERE tenant_id=? ORDER BY provider"),
+                (t["id"],),
+            )
+            t["connectors"] = [dict(r) for r in cur.fetchall()]
+    return tenants
+
+
 def count_users() -> int:
     with _cx() as conn:
         cur = _cur(conn)

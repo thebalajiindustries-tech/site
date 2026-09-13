@@ -15,9 +15,15 @@ const NAV = [
   { href: "/settings", label: "Settings", group: "Account",
     icon: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></> },
 ];
+// Kept in sync with backend/app/config.py's ADMIN_EMAIL default -- only
+// cosmetic (hides the link for everyone else); the backend enforces access
+// regardless of what the client sends.
+const ADMIN_EMAIL = "thebalajiindustries@gmail.com";
+const ADMIN_NAV = { href: "/admin", label: "Admin", group: "Account",
+  icon: <><path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4z"/><path d="m9 12 2 2 4-4"/></> };
 const TITLES: Record<string, string> = {
   "/": "Home", "/ask": "Ask Ganak", "/sources": "Sources",
-  "/digests": "Email Digests", "/settings": "Settings",
+  "/digests": "Email Digests", "/settings": "Settings", "/admin": "Admin",
 };
 // Old bookmarked paths redirect client-side (see their own page.tsx) but the
 // shell still needs a sensible title for the instant before that fires.
@@ -80,6 +86,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const initial = (profile.company || "G").trim().charAt(0).toUpperCase();
   const userInitial = (profile.email || "?").trim().charAt(0).toUpperCase();
 
+  const navItems = profile?.email?.trim().toLowerCase() === ADMIN_EMAIL ? [...NAV, ADMIN_NAV] : NAV;
+
   let lastGroup = "";
   return (
     <div className="shell">
@@ -94,7 +102,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="org"><span className="av">{initial}</span><span className="nm">{profile.company}<small>{profile.location || " "}</small></span></div>
         <nav className="side">
-          {NAV.map((n) => {
+          {navItems.map((n) => {
             const head = n.group !== lastGroup ? ((lastGroup = n.group), n.group) : null;
             const active = path === n.href;
             return (
@@ -139,7 +147,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </div>
         {children}
         <nav className="bottom-tabs">
-          {NAV.map((n) => (
+          {navItems.map((n) => (
             <button key={n.href} className={path === n.href ? "active" : ""} onClick={() => router.push(n.href)} aria-label={n.label}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">{n.icon}</svg>
               {SHORT_LABEL[n.href] ?? n.label}

@@ -115,6 +115,9 @@ class Settings:
     ).split(",")
     ORG_NAME: str = os.environ.get("ORG_NAME", "The Balaji Industries")
 
+    # --- admin console (owner-only overview: tenants, billing, connectors) ---
+    ADMIN_EMAIL: str = os.environ.get("ADMIN_EMAIL", "thebalajiindustries@gmail.com")
+
 
 @lru_cache
 def get_settings() -> "Settings":

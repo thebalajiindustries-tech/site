@@ -210,3 +210,28 @@ export async function sendDigestNow(): Promise<{ status: string }> {
   const res = await fetch(`${BASE}/digest/send-now`, { method: "POST", headers: { ...authHeaders() } });
   return handle(res);
 }
+
+// ---------------- admin console (owner-only) ----------------
+export type AdminConnector = {
+  provider: string; status: string; account_label: string;
+  last_synced_at: number; last_error: string;
+};
+export type AdminUserRow = { email: string; role: string; created_at: number };
+export type AdminTenant = {
+  id: number; name: string; location: string; balance_inr: number; created_at: number;
+  users: AdminUserRow[]; total_spent_inr: number; total_recharged_inr: number;
+  connectors: AdminConnector[];
+};
+export type AdminOverview = {
+  admin_email: string;
+  totals: {
+    tenant_count: number; user_count: number; total_balance_inr: number;
+    total_spent_inr: number; total_recharged_inr: number;
+  };
+  tenants: AdminTenant[];
+};
+
+export async function adminOverview(): Promise<AdminOverview> {
+  const res = await fetch(`${BASE}/admin/overview`, { headers: { ...authHeaders() } });
+  return handle<AdminOverview>(res);
+}

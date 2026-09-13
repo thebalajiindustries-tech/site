@@ -373,3 +373,17 @@ def billing_recharge(req: RechargeRequest, ident: dict = Depends(auth.current_us
     bal = tenancy.adjust_balance(tid, amt)
     tenancy.record_ledger(tid, "recharge", amt, bal, "wallet top-up")
     return {"ok": True, "balance_inr": round(bal, 2)}
+
+
+# ---------------- admin console (owner-only) ----------------
+@app.get("/admin/overview")
+def admin_overview(ident: dict = Depends(auth.admin_user)):
+    tenants = tenancy.list_tenants_overview()
+    totals = {
+        "tenant_count": len(tenants),
+        "user_count": sum(len(t["users"]) for t in tenants),
+        "total_balance_inr": round(sum(t["balance_inr"] for t in tenants), 2),
+        "total_spent_inr": round(sum(t["total_spent_inr"] for t in tenants), 2),
+        "total_recharged_inr": round(sum(t["total_recharged_inr"] for t in tenants), 2),
+    }
+    return {"admin_email": settings.ADMIN_EMAIL, "totals": totals, "tenants": tenants}
