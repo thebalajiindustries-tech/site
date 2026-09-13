@@ -67,8 +67,6 @@ services:
     plan: free
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
-    domains:
-      - app.vidmahitech.com
     envVars:
       # baked into the browser bundle at build time -- must point at the
       # backend's public URL (its Render URL until api.vidmahitech.com's
