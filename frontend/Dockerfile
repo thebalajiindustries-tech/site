@@ -10,9 +10,17 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
+# --- runtime image ---
+# `output: "standalone"` (next.config.mjs) makes Next trace only the deps
+# server.js actually needs and copy them into .next/standalone, so the
+# runtime image below no longer needs the full node_modules or the
+# TypeScript/build toolchain -- much smaller image, faster pull + boot on
+# Render's free tier after a cold start.
 FROM node:20-slim
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build /app ./
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/public ./public
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
