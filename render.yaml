@@ -68,9 +68,12 @@ services:
     plan: free
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
+    buildArgs:
+      # Next.js NEXT_PUBLIC_* vars are baked into the bundle at BUILD time,
+      # so they must be passed as a Docker buildArg, not a runtime envVar.
+      # (envVar was the bug: the build never received the URL, fell back
+      # to localhost:8000, and the server crashed at request time -> 502s.)
+      NEXT_PUBLIC_API_URL: https://api.vidmahitech.com
     envVars:
-      # baked into the browser bundle at build time -- must point at the
-      # backend's public URL (its Render URL until api.vidmahitech.com's
-      # DNS is verified, then switch it and Render will rebuild).
-      - key: NEXT_PUBLIC_API_URL
-        value: https://api.vidmahitech.com
+      - key: NODE_ENV
+        value: production
