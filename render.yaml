@@ -4,6 +4,7 @@
 # from, so this never touches that site).
 # In Render: New -> Blueprint -> pick the 'site' repo -> branch 'ganak'.
 # Render reads this file and creates both services below in one go.
+# Updated: 2026-09-13 - Trigger redeploy to apply env vars
 services:
   - type: web
     runtime: docker
