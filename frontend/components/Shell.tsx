@@ -1,7 +1,7 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getToken, me as fetchMe, logout, type Me } from "../lib/api";
+import { getToken, me as fetchMe, logout, listConnectors, type Me, type ConnectorInfo } from "../lib/api";
 
 const NAV = [
   { href: "/", label: "Home", group: "Workspace",
@@ -33,6 +33,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Me | null>(null);
   const [ready, setReady] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  // null while unknown, so the chip shows a placeholder rather than claiming
+  // a state it hasn't verified
+  const [srcCount, setSrcCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    listConnectors()
+      .then((cs: ConnectorInfo[]) => setSrcCount(cs.filter((c) => c.connected).length))
+      .catch(() => setSrcCount(null));
+  }, [path]);
 
   // Close the mobile drawer on every route change (incl. tapping a nav item).
   useEffect(() => { setNavOpen(false); }, [path]);
@@ -116,7 +125,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           <h2>{TITLES[path] ?? LEGACY_TITLES[path] ?? "Ganak"}</h2>
           <div className="grow" />
           <span className="synced balance-chip">₹{(profile.balance_inr ?? 0).toFixed(2)}</span>
-          <span className="synced company-chip">{profile.company} · connected</span>
+          <span className={"synced company-chip" + (srcCount === 0 ? " warn" : "")}
+            title={srcCount === 0 ? "No data source connected" : `${srcCount} data source${srcCount === 1 ? "" : "s"} connected`}>
+            {profile.company} · {srcCount === null ? "…" : srcCount === 0 ? "no sources" : `${srcCount} source${srcCount === 1 ? "" : "s"}`}
+          </span>
           <button className="icon-btn" onClick={toggle} aria-label="Toggle theme">
             {theme === "dark" ? (
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>

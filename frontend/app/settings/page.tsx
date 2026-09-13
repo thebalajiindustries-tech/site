@@ -31,7 +31,7 @@ function BillingPanel() {
 
   return (
     <div>
-      <div className="kpis" style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,2fr)" }}>
+      <div className="kpis kpis-billing">
         <div className="card kpi" style={low ? { borderLeft: "3px solid var(--amber)" } : undefined}>
           <div className="k-lbl">Wallet balance</div>
           <div className="k-val" style={{ color: low ? "var(--amber)" : undefined }}>{fmt(bal)}</div>
@@ -41,7 +41,7 @@ function BillingPanel() {
           <div className="ph"><h3>Recharge</h3><span className="sub">add credit to your wallet</span></div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
             {QUICK.map((q) => (
-              <button key={q} onClick={() => setAmount(String(q))}
+              <button key={q} onClick={() => setAmount(String(q))} className="amt-btn"
                 style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer",
                   border: "1px solid var(--line-strong)",
                   background: Number(amount) === q ? "var(--accent)" : "transparent",
@@ -50,8 +50,8 @@ function BillingPanel() {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <input value={amount} inputMode="numeric" onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-              style={{ height: 40, flex: 1, borderRadius: 8, border: "1px solid var(--line-strong)", padding: "0 12px", background: "var(--surface)", color: "inherit" }} />
-            <button className="btn-primary" onClick={topUp} disabled={busy} style={{ padding: "0 18px", minHeight: 40 }}>
+              style={{ height: 44, flex: 1, borderRadius: 8, border: "1px solid var(--line-strong)", padding: "0 12px", background: "var(--surface)", color: "inherit" }} />
+            <button className="btn-primary" onClick={topUp} disabled={busy} style={{ padding: "0 18px", minHeight: 44 }}>
               {busy ? "Adding…" : "Add credit"}
             </button>
           </div>
@@ -68,7 +68,7 @@ function BillingPanel() {
           <p className="muted">No activity yet. Ask a question or add a document and it&apos;ll show here.</p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".85rem" }}>
+            <table className="ledger" style={{ width: "100%", borderCollapse: "collapse", fontSize: ".85rem" }}>
               <thead>
                 <tr style={{ textAlign: "left", color: "var(--muted)" }}>
                   <th style={th}>When</th><th style={th}>Type</th><th style={th}>Detail</th>
@@ -78,14 +78,14 @@ function BillingPanel() {
               <tbody>
                 {data.ledger.map((r, i) => (
                   <tr key={i} style={{ borderTop: "1px solid var(--line)" }}>
-                    <td style={td}>{when(r.ts)}</td>
-                    <td style={td}>{r.kind}</td>
-                    <td style={{ ...td, color: "var(--muted)" }}>{r.detail}</td>
-                    <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums",
+                    <td data-label="When" style={td}>{when(r.ts)}</td>
+                    <td data-label="Type" style={td}>{r.kind}</td>
+                    <td data-label="Detail" style={{ ...td, color: "var(--muted)" }}>{r.detail}</td>
+                    <td data-label="Amount" style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums",
                       color: r.amount_inr >= 0 ? "var(--accent-ink)" : "inherit" }}>
                       {r.amount_inr >= 0 ? "+" : "−"}{fmt(Math.abs(r.amount_inr)).slice(1)}
                     </td>
-                    <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmt(r.balance_after)}</td>
+                    <td data-label="Balance" style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmt(r.balance_after)}</td>
                   </tr>
                 ))}
               </tbody>

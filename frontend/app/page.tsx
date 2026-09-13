@@ -120,14 +120,26 @@ export default function Home() {
   const [askedQ, setAskedQ] = useState("");
   const askRef = useRef<HTMLDivElement>(null);
 
+  // null until /connectors answers, so we never flash the wrong state
+  const connectorsKnown = connectors !== null;
+  const anyConnected = (connectors || []).some((c) => c.connected);
+
   useEffect(() => {
-    const TTL = 10 * 60 * 1000; // reuse KPI answers for 10 min to avoid re-billing
     health().then((h) => setDb(h.database)).catch(() => setDb("down"));
     me().then(setProfile).catch(() => {});
     listConnectors().then(setConnectors).catch(() => {});
     getDigest().then(setDigest).catch(() => {});
     getBilling().then(setBilling).catch(() => {});
 
+  }, []);
+
+  // The KPI tiles are real, billable /ask calls (two per tile: current period
+  // and prior). Before any source is connected they'd query an empty warehouse
+  // -- spending the wallet to render numbers that cannot mean anything -- so
+  // they only run once at least one connector is live.
+  useEffect(() => {
+    if (!anyConnected) return;
+    const TTL = 10 * 60 * 1000; // reuse KPI answers for 10 min to avoid re-billing
     KPIS.forEach((k, i) => {
       const key = `ganak-kpi:${k.key}`;
       try {
@@ -151,7 +163,7 @@ export default function Home() {
         })
         .catch((e) => setErrs((v) => { const a = [...v]; a[i] = (e as Error).message; return a; }));
     });
-  }, []);
+  }, [anyConnected]);
 
   async function submitAsk(q: string) {
     q = q.trim();
@@ -170,6 +182,10 @@ export default function Home() {
   }
 
   const attn: { key: string; msg: string; href: string }[] = [];
+  if (connectorsKnown && !anyConnected) {
+    attn.push({ key: "nosrc", href: "/sources?tab=connections",
+      msg: "No data source connected yet — connect Zoho Books or Gmail to see your numbers." });
+  }
   if (profile && profile.balance_inr < 10) {
     attn.push({ key: "bal", href: "/settings?tab=billing",
       msg: `Wallet balance is low (${fmtInr(profile.balance_inr)}) — top up to keep AI features running.` });
@@ -226,6 +242,30 @@ export default function Home() {
         </div>
       )}
 
+      {connectorsKnown && !anyConnected ? (
+        <div className="card panel" style={{ marginTop: 16 }}>
+          <div className="ph"><h3>Start here</h3><span className="sub">takes about a minute</span></div>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Ganak answers questions from your own books and finance email. Connect a source
+            and your revenue, receivables and expenses appear here automatically.
+          </p>
+          <ol className="onboard">
+            <li>
+              <div className="ob-body">
+                <div className="ob-t">Connect Zoho Books or Gmail</div>
+                <div className="st-desc">Read-only — Ganak can never change or delete anything in the source.</div>
+              </div>
+              <button className="btn-primary" onClick={() => router.push("/sources?tab=connections")}>Connect a source</button>
+            </li>
+            <li>
+              <div className="ob-body">
+                <div className="ob-t">Ask your first question</div>
+                <div className="st-desc">Use the bar above — try &ldquo;who owes me the most money right now?&rdquo;</div>
+              </div>
+            </li>
+          </ol>
+        </div>
+      ) : (
       <div className="kpis" style={{ marginTop: 16 }}>
         {KPIS.map((k, i) => {
           const cur = numFrom(vals[i]);
@@ -246,6 +286,7 @@ export default function Home() {
           );
         })}
       </div>
+      )}
 
       <div className="home-grid">
         <div>

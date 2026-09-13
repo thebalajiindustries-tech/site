@@ -90,7 +90,7 @@ function AskInner() {
           <div style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center" }}>
             <span className="muted" style={{ fontSize: ".76rem" }}>Source:</span>
             {(["warehouse", "live"] as const).map((m) => (
-              <button key={m} onClick={() => setMode(m)} type="button"
+              <button key={m} onClick={() => setMode(m)} type="button" className="src-btn"
                 style={{ padding: "4px 11px", borderRadius: 20, fontSize: ".76rem", cursor: "pointer",
                   border: "1px solid var(--line-strong)",
                   background: mode === m ? "var(--accent)" : "transparent",
