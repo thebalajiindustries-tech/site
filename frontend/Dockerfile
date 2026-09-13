@@ -19,6 +19,13 @@ RUN npm run build
 FROM node:20-slim
 WORKDIR /app
 ENV NODE_ENV=production
+# Next.js standalone's server.js binds to $HOSTNAME if it's set, and Docker
+# containers get HOSTNAME set to the container ID by default. That makes the
+# server listen only on that specific (often unreachable) interface instead
+# of all interfaces, so Render's edge can never reach it -- the container
+# logs "Ready" and looks healthy, but every request 502s. Forcing 0.0.0.0
+# makes it bind on all interfaces, which is what the platform edge expects.
+ENV HOSTNAME=0.0.0.0
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
