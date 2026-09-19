@@ -115,6 +115,16 @@ class Settings:
     ).split(",")
     ORG_NAME: str = os.environ.get("ORG_NAME", "The Balaji Industries")
 
+    # --- environment identity (production vs staging) ---
+    # A staging deploy sets GANAK_ENVIRONMENT=staging and GANAK_SCHEMA_PREFIX
+    # so it shares the same Supabase project as production but every schema
+    # it touches (control plane + every tenant warehouse) gets its own
+    # prefixed name, e.g. "control" -> "staging_control", "balaji" ->
+    # "staging_balaji". Both default to empty/"production" so an unset env
+    # var is a no-op and production behaviour is completely unchanged.
+    GANAK_ENVIRONMENT: str = os.environ.get("GANAK_ENVIRONMENT", "production")
+    SCHEMA_PREFIX: str = os.environ.get("GANAK_SCHEMA_PREFIX", "")
+
     # --- admin console (owner-only overview: tenants, billing, connectors) ---
     ADMIN_EMAIL: str = os.environ.get("ADMIN_EMAIL", "thebalajiindustries@gmail.com")
 

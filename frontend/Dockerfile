@@ -8,6 +8,11 @@ COPY . .
 # "Build Arguments" / "Docker Build Args" settings), not just a runtime env var.
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Optional: "staging" on the staging services so the app shows a banner
+# instead of looking identical to production. Unset (empty) on the real
+# site -- layout.tsx treats empty/missing as "production".
+ARG NEXT_PUBLIC_APP_ENV
+ENV NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV
 RUN npm run build
 
 # --- runtime image ---

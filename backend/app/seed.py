@@ -138,7 +138,7 @@ def provision_tenant_db(company_name: str) -> tuple[str, str]:
     Returns (db_url, db_schema) — db_schema is '' for local SQLite tenants.
     """
     if cloud_mode():
-        base = _slug(company_name)
+        base = settings.SCHEMA_PREFIX + _slug(company_name)
         schema = base
         i = 1
         existing = {t["db_schema"] for t in _all_schema_names()}
@@ -175,20 +175,24 @@ def bootstrap():
         return
 
     if cloud_mode():
-        # everyone lives in the shared Supabase project, one schema each
+        # everyone lives in the shared Supabase project, one schema each --
+        # prefixed per environment so a staging deploy never reads or writes
+        # production's real "balaji" warehouse (see config.SCHEMA_PREFIX).
         balaji_url = settings.SUPABASE_DB_URL
-        ensure_pg_warehouse(balaji_url, "balaji", with_sample=False)
+        balaji_schema = f"{settings.SCHEMA_PREFIX}balaji"
+        demo_schema = f"{settings.SCHEMA_PREFIX}demo_traders"
+        ensure_pg_warehouse(balaji_url, balaji_schema, with_sample=False)
         balaji_tid = tenancy.create_tenant(
-            "The Balaji Industries", balaji_url, "Kharadi, Pune", settings.SEED_BALANCE_INR, "balaji"
+            "The Balaji Industries", balaji_url, "Kharadi, Pune", settings.SEED_BALANCE_INR, balaji_schema
         )
         tenancy.create_user(BALAJI_USER, auth.hash_password(BALAJI_PASS), balaji_tid, "owner")
 
-        ensure_pg_warehouse(balaji_url, "demo_traders", with_sample=True)
+        ensure_pg_warehouse(balaji_url, demo_schema, with_sample=True)
         demo_tid = tenancy.create_tenant(
-            "Demo Traders", balaji_url, "Pune", settings.SEED_BALANCE_INR, "demo_traders"
+            "Demo Traders", balaji_url, "Pune", settings.SEED_BALANCE_INR, demo_schema
         )
         tenancy.create_user(DEMO_USER, auth.hash_password(DEMO_PASS), demo_tid, "owner")
-        log.info("Seeded demo companies on Supabase: schemas 'balaji' and 'demo_traders'.")
+        log.info(f"Seeded demo companies on Supabase: schemas '{balaji_schema}' and '{demo_schema}'.")
         return
 
     # 1) The Balaji Industries -> real Postgres warehouse (local)
