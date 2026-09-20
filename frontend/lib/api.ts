@@ -258,34 +258,40 @@ export async function adminOverview(): Promise<AdminOverview> {
 
 // ---------------- Inbox -> Books (find finance emails missing from Zoho, add after review) ----------------
 export type InboxRecordType =
-  "bill" | "customer_payment" | "estimate" | "purchase_order" | "sales_order" | "expense";
+  "bill" | "customer_payment" | "vendor_payment" | "estimate" | "purchase_order" | "sales_order" | "expense";
 
 export type InboxMissingItem = {
   message_id: string; email_date: string; sender: string; subject: string; snippet: string;
   category: string; direction: string; suggested_type: InboxRecordType; amount: number | null;
-  checked: boolean; note: string;
+  checked: boolean; note: string; read_body?: boolean;
 };
 export type InboxMissing = {
   gmail_synced: boolean; zoho_synced: boolean; write_enabled: boolean;
-  items: InboxMissingItem[]; counts: Record<string, number>;
+  items: InboxMissingItem[]; counts: Record<string, number>; body_pending?: number;
 };
 export type InboxLineItem = { description: string; quantity: number; rate: number };
 export type InboxFields = {
   party_name: string; document_number: string; date: string; due_date: string; currency: string;
   total: number | null; line_items: InboxLineItem[]; reference_number: string;
-  related_invoice_number: string; payment_mode: string; gst_no: string; notes: string;
+  related_invoice_number: string; related_invoice_numbers?: string[]; payment_mode: string; gst_no: string; notes: string;
   // chosen in the review form (not read from the email):
   account_id?: string; paid_through_account_id?: string; deposit_account_id?: string; invoice_id?: string;
+  bill_ids?: string[];
   contact_id?: string;
 };
 export type InboxInvoiceCandidate = {
   invoice_id: string; invoice_number: string; customer_name: string; balance: number | null;
   total: number | null; date: string; best: boolean;
 };
+export type InboxBillCandidate = {
+  bill_id: string; bill_number: string; vendor_name: string; balance: number | null;
+  total: number | null; date: string; best: boolean;
+};
 export type InboxExtract = {
   record_type: InboxRecordType; fields: InboxFields;
   party_match: { contact_id: string; contact_name: string } | null;
   invoice_candidates: InboxInvoiceCandidate[];
+  bill_candidates: InboxBillCandidate[];
   email: { subject: string; sender: string; date: string; has_pdf: boolean };
   warnings: string[];
 };

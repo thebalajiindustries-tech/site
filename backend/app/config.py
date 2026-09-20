@@ -93,6 +93,7 @@ class Settings:
     ZOHO_WRITE_SCOPE: str = os.environ.get(
         "ZOHO_WRITE_SCOPE",
         "ZohoBooks.bills.CREATE,ZohoBooks.contacts.CREATE,ZohoBooks.customerpayments.CREATE,"
+        "ZohoBooks.vendorpayments.CREATE,"
         "ZohoBooks.estimates.CREATE,ZohoBooks.purchaseorders.CREATE,"
         "ZohoBooks.salesorders.CREATE,ZohoBooks.expenses.CREATE",
     )
