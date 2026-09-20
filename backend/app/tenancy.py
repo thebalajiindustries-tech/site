@@ -39,9 +39,10 @@ def _cx():
             conn.close()
     else:
         conn = psycopg2.connect(url, connect_timeout=10)
+        schema = f"{settings.SCHEMA_PREFIX}control"
         with conn.cursor() as c:
-            c.execute("CREATE SCHEMA IF NOT EXISTS control;")
-            c.execute("SET search_path TO control;")
+            c.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}";')
+            c.execute(f'SET search_path TO "{schema}";')
         try:
             yield conn
             conn.commit()

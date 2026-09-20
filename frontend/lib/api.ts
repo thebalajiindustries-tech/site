@@ -177,6 +177,26 @@ export async function disconnectConnector(provider: string): Promise<{ status: s
   return handle(res);
 }
 
+// A Zoho account can hold more than one organization. When it does, the
+// OAuth callback doesn't guess -- it redirects back here with a ticket
+// instead of connecting right away; these two calls let the picker in
+// sources/page.tsx show the choices and finalize the one the user picks.
+export type ZohoOrg = { organization_id: string; name: string };
+
+export async function getPendingZohoOrgs(ticket: string): Promise<{ organizations: ZohoOrg[] }> {
+  const res = await fetch(`${BASE}/connectors/zoho/pending-orgs?ticket=${encodeURIComponent(ticket)}`);
+  return handle(res);
+}
+
+export async function selectZohoOrg(ticket: string, organizationId: string): Promise<{ status: string }> {
+  const res = await fetch(`${BASE}/connectors/zoho/select-org`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ ticket, organization_id: organizationId }),
+  });
+  return handle(res);
+}
+
 // ---------------- scheduled email digests ----------------
 export type DigestLogEntry = { ts: number; status: string; detail: string; recipients: string };
 export type DigestSettings = {
