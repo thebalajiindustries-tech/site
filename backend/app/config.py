@@ -84,6 +84,18 @@ class Settings:
     ZOHO_OAUTH_SCOPE: str = os.environ.get(
         "ZOHO_OAUTH_SCOPE", "ZohoBooks.fullaccess.READ"
     )
+    # --- Inbox -> Books: add records to Zoho from Gmail emails ---
+    # OFF by default. When "1", (a) the Zoho consent screen also asks for the
+    # CREATE scopes below and (b) POST /inbox-books/create is allowed. Reading
+    # and reviewing missing emails never needs this flag. Every create is a
+    # separate, explicit click by the user -- never automatic.
+    INBOX_BOOKS_WRITE: bool = os.environ.get("INBOX_BOOKS_WRITE", "0") == "1"
+    ZOHO_WRITE_SCOPE: str = os.environ.get(
+        "ZOHO_WRITE_SCOPE",
+        "ZohoBooks.bills.CREATE,ZohoBooks.contacts.CREATE,ZohoBooks.customerpayments.CREATE,"
+        "ZohoBooks.estimates.CREATE,ZohoBooks.purchaseorders.CREATE,"
+        "ZohoBooks.salesorders.CREATE,ZohoBooks.expenses.CREATE",
+    )
 
     # Google OAuth client used for SELF-SERVE "Connect Gmail" -- a Web
     # application client (different type than the Desktop-app credentials.json

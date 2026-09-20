@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import type { AskResponse } from "../lib/api";
 
 function num(v: unknown): number | null {
@@ -19,6 +20,12 @@ export default function ResultView({ data }: { data: AskResponse }) {
   return (
     <div>
       <p className="ans" dangerouslySetInnerHTML={{ __html: boldNumbers(data.answer) }} />
+
+      {data.answer.includes("Inbox → Books") && (
+        <Link href="/inbox" className="btn-primary" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none", marginTop: 6 }}>
+          Open Inbox → Books
+        </Link>
+      )}
 
       {data.sql && (
         <details className="sqlbox">

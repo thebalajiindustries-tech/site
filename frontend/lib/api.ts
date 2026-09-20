@@ -255,3 +255,83 @@ export async function adminOverview(): Promise<AdminOverview> {
   const res = await fetch(`${BASE}/admin/overview`, { headers: { ...authHeaders() } });
   return handle<AdminOverview>(res);
 }
+
+// ---------------- Inbox -> Books (find finance emails missing from Zoho, add after review) ----------------
+export type InboxRecordType =
+  "bill" | "customer_payment" | "estimate" | "purchase_order" | "sales_order" | "expense";
+
+export type InboxMissingItem = {
+  message_id: string; email_date: string; sender: string; subject: string; snippet: string;
+  category: string; direction: string; suggested_type: InboxRecordType; amount: number | null;
+  checked: boolean; note: string;
+};
+export type InboxMissing = {
+  gmail_synced: boolean; zoho_synced: boolean; write_enabled: boolean;
+  items: InboxMissingItem[]; counts: Record<string, number>;
+};
+export type InboxLineItem = { description: string; quantity: number; rate: number };
+export type InboxFields = {
+  party_name: string; document_number: string; date: string; due_date: string; currency: string;
+  total: number | null; line_items: InboxLineItem[]; reference_number: string;
+  related_invoice_number: string; payment_mode: string; gst_no: string; notes: string;
+  // chosen in the review form (not read from the email):
+  account_id?: string; paid_through_account_id?: string; deposit_account_id?: string; invoice_id?: string;
+  contact_id?: string;
+};
+export type InboxInvoiceCandidate = {
+  invoice_id: string; invoice_number: string; customer_name: string; balance: number | null;
+  total: number | null; date: string; best: boolean;
+};
+export type InboxExtract = {
+  record_type: InboxRecordType; fields: InboxFields;
+  party_match: { contact_id: string; contact_name: string } | null;
+  invoice_candidates: InboxInvoiceCandidate[];
+  email: { subject: string; sender: string; date: string; has_pdf: boolean };
+  warnings: string[];
+};
+export type InboxAccount = { account_id: string; account_name: string; account_type: string };
+export type InboxAccounts = { expense_accounts: InboxAccount[]; bank_accounts: InboxAccount[] };
+
+export async function inboxStatus(): Promise<{ gmail_connected: boolean; zoho_connected: boolean; write_enabled: boolean }> {
+  const res = await fetch(`${BASE}/inbox-books/status`, { headers: { ...authHeaders() } });
+  return handle(res);
+}
+
+export async function inboxMissing(days = 30): Promise<InboxMissing> {
+  const res = await fetch(`${BASE}/inbox-books/missing?days=${days}`, { headers: { ...authHeaders() } });
+  return handle<InboxMissing>(res);
+}
+
+export async function inboxExtract(messageId: string, recordType: InboxRecordType): Promise<InboxExtract> {
+  const res = await fetch(`${BASE}/inbox-books/extract`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ message_id: messageId, record_type: recordType }),
+  });
+  return handle<InboxExtract>(res);
+}
+
+export async function inboxAccounts(): Promise<InboxAccounts> {
+  const res = await fetch(`${BASE}/inbox-books/accounts`, { headers: { ...authHeaders() } });
+  return handle<InboxAccounts>(res);
+}
+
+export async function inboxCreate(
+  messageId: string, recordType: InboxRecordType, fields: InboxFields, allowDuplicate = false
+): Promise<{ ok: boolean; zoho_id: string; zoho_number: string; message: string }> {
+  const res = await fetch(`${BASE}/inbox-books/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ message_id: messageId, record_type: recordType, fields, allow_duplicate: allowDuplicate }),
+  });
+  return handle(res);
+}
+
+export async function inboxDismiss(messageId: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${BASE}/inbox-books/dismiss`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ message_id: messageId }),
+  });
+  return handle(res);
+}

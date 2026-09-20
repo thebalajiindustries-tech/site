@@ -52,6 +52,7 @@ ENTITIES = {
     "customers": "contacts",
     "vendors": "vendors",
     "items": "items",
+    "estimates": "estimates",
     "salesorders": "salesorders",
     "purchaseorders": "purchaseorders",
     "payments": "customerpayments",
@@ -69,10 +70,20 @@ def configured() -> bool:
 
 
 # ---------------- OAuth ----------------
+def _oauth_scope() -> str:
+    """Read scope always; the CREATE scopes only when Inbox -> Books writing
+    is switched on (INBOX_BOOKS_WRITE=1), so consent screens stay read-only
+    until that feature is deliberately enabled."""
+    scope = settings.ZOHO_OAUTH_SCOPE
+    if settings.INBOX_BOOKS_WRITE and settings.ZOHO_WRITE_SCOPE:
+        scope = f"{scope},{settings.ZOHO_WRITE_SCOPE}"
+    return scope
+
+
 def authorize_url(state: str) -> str:
     redirect_uri = f"{settings.PUBLIC_API_BASE_URL}/connectors/zoho/callback"
     params = {
-        "scope": settings.ZOHO_OAUTH_SCOPE,
+        "scope": _oauth_scope(),
         "client_id": settings.ZOHO_OAUTH_CLIENT_ID,
         "response_type": "code",
         "access_type": "offline",  # required to receive a refresh_token
@@ -242,15 +253,19 @@ def _engine_for_tenant(tenant: dict):
     return engine, schema
 
 
-def run_full_sync(tenant: dict, connector: dict) -> dict:
+def run_full_sync(tenant: dict, connector: dict, only: Optional[list] = None) -> dict:
     """Pulls every entity for this tenant's Zoho org into their own
-    schema/db. Safe to re-run (each table is replaced wholesale)."""
+    schema/db. Safe to re-run (each table is replaced wholesale). `only`
+    limits the pull to the named tables (e.g. ["bills"]) -- used to refresh
+    just what a create touched."""
     access_token, api_domain = _valid_access_token(connector)
     org_id = connector["org_id"]
     engine, schema = _engine_for_tenant(tenant)
 
     results = {}
     for table_name, endpoint in ENTITIES.items():
+        if only is not None and table_name not in only:
+            continue
         item_key = endpoint if endpoint.endswith("s") else f"{endpoint}s"
         try:
             items = _fetch_paginated(api_domain, endpoint, item_key, access_token, org_id)

@@ -226,3 +226,67 @@ def run_sync(tenant: dict, connector: dict, mode: str = "full") -> dict:
         index=False, method="multi", chunksize=500,
     )
     return {"emails": len(df)}
+
+
+# ---------------- one full message (used by Inbox -> Books) ----------------
+_MAX_TEXT = 12000
+_MAX_PDF_BYTES = 5 * 1024 * 1024
+
+
+def _b64url(data: str) -> bytes:
+    import base64
+    return base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
+
+
+def _strip_html(html: str) -> str:
+    import re
+    html = re.sub(r"(?is)<(script|style).*?>.*?</\1>", " ", html)
+    html = re.sub(r"(?s)<[^>]+>", " ", html)
+    import html as _h
+    return re.sub(r"\s+", " ", _h.unescape(html)).strip()
+
+
+def _walk_parts(part: dict):
+    yield part
+    for p in part.get("parts", []) or []:
+        yield from _walk_parts(p)
+
+
+def fetch_full_message(connector: dict, message_id: str) -> dict:
+    """Read ONE email in full: subject/sender/date, readable text (plain text, or
+    stripped HTML) capped at ~12k chars, and the first PDF attachment (<=5 MB)
+    as raw bytes. Read-only (gmail.readonly)."""
+    access_token = _valid_access_token(connector)
+    headers = {"Authorization": f"Bearer {access_token}"}
+    resp = requests.get(f"{GMAIL_API}/users/me/messages/{message_id}",
+                        headers=headers, params={"format": "full"}, timeout=25)
+    resp.raise_for_status()
+    msg = resp.json()
+    payload = msg.get("payload", {}) or {}
+    hdrs = payload.get("headers", [])
+
+    plain, html, pdf = [], [], None
+    for part in _walk_parts(payload):
+        mime = (part.get("mimeType") or "").lower()
+        body = part.get("body", {}) or {}
+        if mime == "text/plain" and body.get("data"):
+            plain.append(_b64url(body["data"]).decode("utf-8", "replace"))
+        elif mime == "text/html" and body.get("data"):
+            html.append(_b64url(body["data"]).decode("utf-8", "replace"))
+        elif pdf is None and (mime == "application/pdf" or (part.get("filename") or "").lower().endswith(".pdf")):
+            size = int(body.get("size") or 0)
+            if size and size > _MAX_PDF_BYTES:
+                continue
+            if body.get("data"):
+                pdf = _b64url(body["data"])
+            elif body.get("attachmentId"):
+                a = requests.get(f"{GMAIL_API}/users/me/messages/{message_id}/attachments/{body['attachmentId']}",
+                                 headers=headers, timeout=30)
+                a.raise_for_status()
+                raw = _b64url(a.json().get("data", ""))
+                pdf = raw if len(raw) <= _MAX_PDF_BYTES else None
+    text_body = "\n".join(plain).strip() or _strip_html("\n".join(html))
+    return {
+        "subject": _header(hdrs, "Subject"), "sender": _header(hdrs, "From"),
+        "date": _header(hdrs, "Date"), "text": text_body[:_MAX_TEXT], "pdf": pdf,
+    }

@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   listConnectors, startConnector, syncConnectorNow, disconnectConnector,
-  getPendingZohoOrgs, selectZohoOrg, extractDocument, loadDocument,
+  getPendingZohoOrgs, selectZohoOrg, extractDocument, loadDocument, inboxStatus,
   type ConnectorInfo, type DocFields, type ZohoOrg,
 } from "../../lib/api";
 
@@ -43,6 +43,9 @@ function ConnectionsPanel({ params }: { params: ReturnType<typeof useSearchParam
   // here with a ticket instead of connecting straight away.
   const [orgPicker, setOrgPicker] = useState<{ ticket: string; orgs: ZohoOrg[] } | null>(null);
   const [pickingOrg, setPickingOrg] = useState<string | null>(null);
+  // When the "add to Zoho from Inbox" feature is switched on, Zoho asks for extra
+  // permission at connect time, so the read-only wording below must change.
+  const [canWrite, setCanWrite] = useState(false);
 
   function load() {
     listConnectors().then(setItems).catch((e) => setErr((e as Error).message));
@@ -61,6 +64,7 @@ function ConnectionsPanel({ params }: { params: ReturnType<typeof useSearchParam
         .catch(() => setErr("That connection attempt expired — please try connecting Zoho again."));
     }
     load();
+    inboxStatus().then((s) => setCanWrite(s.write_enabled)).catch(() => {});
     // if we just connected, poll for a bit so "last synced" updates without a manual refresh
     if (connected) {
       const iv = setInterval(load, 4000);
@@ -114,8 +118,20 @@ function ConnectionsPanel({ params }: { params: ReturnType<typeof useSearchParam
   return (
     <div>
       <p className="muted" style={{ marginTop: 0, maxWidth: 640 }}>
-        Ganak reads a synced, read-only copy of your own data — it can never change or
-        delete anything in the source tool. Connect your own Zoho Books org and Gmail
+        {canWrite ? (
+          <>
+            Ganak reads a synced copy of your own data. Gmail is read-only. For Zoho Books, Ganak can
+            also <b>add</b> records (bills, payments, quotations, POs, expenses) — but only when you review
+            one on the Inbox → Books page and press Add; it never edits or deletes existing records.
+            If you connected Zoho before this was switched on, disconnect and reconnect it once to grant that permission.
+          </>
+        ) : (
+          <>
+            Ganak reads a synced, read-only copy of your own data — it can never change or
+            delete anything in the source tool.
+          </>
+        )}{" "}
+        Connect your own Zoho Books org and Gmail
         below; each connects to your account, not anyone else&apos;s.
       </p>
 

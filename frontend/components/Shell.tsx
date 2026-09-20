@@ -10,6 +10,8 @@ const NAV = [
     icon: <path d="M21 11.5a8.5 8.5 0 0 1-12 7.7L3 21l1.8-5.9A8.5 8.5 0 1 1 21 11.5z"/> },
   { href: "/sources", label: "Sources", group: "Workspace",
     icon: <path d="M9 12h6M15.5 8.5 18 6a3.5 3.5 0 1 1 0 5l-2 2M8.5 15.5 6 18a3.5 3.5 0 1 1 0-5l2-2"/> },
+  { href: "/inbox", label: "Inbox → Books", group: "Workspace",
+    icon: <><path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5 13 7 5h10l2 8v6H5z"/></> },
   { href: "/digests", label: "Email Digests", group: "Workspace",
     icon: <><path d="M3 6h18v12H3z"/><path d="m3 7 9 6 9-6"/></> },
   { href: "/settings", label: "Settings", group: "Account",
@@ -22,7 +24,7 @@ const ADMIN_EMAIL = "thebalajiindustries@gmail.com";
 const ADMIN_NAV = { href: "/admin", label: "Admin", group: "Account",
   icon: <><path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4z"/><path d="m9 12 2 2 4-4"/></> };
 const TITLES: Record<string, string> = {
-  "/": "Home", "/ask": "Ask Ganak", "/sources": "Sources",
+  "/": "Home", "/ask": "Ask Ganak", "/sources": "Sources", "/inbox": "Inbox → Books",
   "/digests": "Email Digests", "/settings": "Settings", "/admin": "Admin",
 };
 // Old bookmarked paths redirect client-side (see their own page.tsx) but the
@@ -30,7 +32,7 @@ const TITLES: Record<string, string> = {
 const LEGACY_TITLES: Record<string, string> = {
   "/connections": "Sources", "/documents": "Sources", "/billing": "Settings",
 };
-const SHORT_LABEL: Record<string, string> = { "/ask": "Ask", "/digests": "Digests" };
+const SHORT_LABEL: Record<string, string> = { "/ask": "Ask", "/digests": "Digests", "/inbox": "Inbox" };
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
