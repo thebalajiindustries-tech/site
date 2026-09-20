@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import get_settings
-from . import db, llm, tenancy, auth, seed, docstore, docai, billing, zoho_live, connectors_routes, digest, digest_routes
+from . import db, llm, tenancy, auth, seed, docstore, docai, billing, zoho_live, connectors_routes, digest, digest_routes, inbox_books, inbox_books_routes
 from .guardrails import sanitize, UnsafeSQLError
 
 logging.basicConfig(level=logging.INFO)
@@ -47,6 +47,7 @@ app.add_middleware(
 )
 app.include_router(connectors_routes.router)
 app.include_router(digest_routes.router)
+app.include_router(inbox_books_routes.router)
 
 
 @app.on_event("startup")
@@ -187,6 +188,26 @@ def schema(ident: dict = Depends(auth.current_user)):
     return {"schema": db.load_schema(t["db_url"], t.get("db_schema"), refresh=True)}
 
 
+def _inbox_pointer(tenant: dict) -> "AskResponse":
+    tid = tenant["id"]
+    if not (tenancy.get_connector(tid, "gmail") and tenancy.get_connector(tid, "zoho")):
+        msg = ("Adding emails to Zoho Books is done from the Inbox \u2192 Books page, not from this chat box. "
+               "First connect both Gmail and Zoho Books on the Sources page, then open Inbox \u2192 Books.")
+    else:
+        try:
+            found = inbox_books.find_missing(tenant, days=30)
+            n = len(found["items"])
+        except Exception:  # pragma: no cover
+            n = None
+        head = ("I found {n} recent email{s} that {v} not in Zoho Books yet. ".format(
+            n=n, s="" if n == 1 else "s", v="is" if n == 1 else "are") if n else
+            ("I don't see any recent finance emails missing from Zoho Books. " if n == 0 else ""))
+        msg = head + ("Open Inbox \u2192 Books to review each one and add it to Zoho - "
+                      "nothing is added until you confirm it. (This chat box only reads your data.)")
+    return AskResponse(answer=msg, sql="", columns=[], rows=[], chart=ChartSpec(type="none"),
+                       cost_inr=0, balance_inr=round(tenancy.get_balance(tid) or 0, 2))
+
+
 @app.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
     q = (req.question or "").strip()
@@ -196,6 +217,10 @@ def ask(req: AskRequest, ident: dict = Depends(auth.current_user)):
         raise HTTPException(400, "That question is too long \u2014 please shorten it.")
     tenant = ident["tenant"]
     tid = tenant["id"]
+    # "check my Gmail and add it to Zoho Books" is an action, not a question:
+    # Ask stays read-only, so point to Inbox -> Books (free, no AI call, no charge).
+    if inbox_books.looks_like_inbox_request(q):
+        return _inbox_pointer(tenant)
     if tenancy.get_balance(tid) <= 0:
         raise HTTPException(402, "Your balance is empty. Please recharge to keep using Ganak.")
     db_url = tenant["db_url"]
