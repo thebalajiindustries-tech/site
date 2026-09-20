@@ -23,6 +23,7 @@ import json
 import logging
 import math
 import re
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
@@ -33,11 +34,12 @@ from sqlalchemy.exc import IntegrityError
 
 from .config import get_settings
 from . import billing, connectors_gmail, connectors_zoho
+from .email_classify import classify, parse_amount, parse_amounts, parse_dates
 
 log = logging.getLogger("ganak.inbox_books")
 settings = get_settings()
 
-RECORD_TYPES = ("bill", "customer_payment", "estimate", "purchase_order", "sales_order", "expense")
+RECORD_TYPES = ("bill", "customer_payment", "vendor_payment", "estimate", "purchase_order", "sales_order", "expense")
 
 # record type -> (synced Zoho table, amount cols, date cols, reference cols, Zoho API endpoint, response key)
 _SPECS = {
@@ -46,6 +48,10 @@ _SPECS = {
     "customer_payment": dict(table="payments", amount=("amount", "bcy_amount"), date=("date",),
                              refs=("payment_number", "reference_number"), endpoint="customerpayments",
                              key="payment", party="customer"),
+    # a payment WE made to a supplier (Zoho: Purchases -> Payments Made)
+    "vendor_payment": dict(table="vendor_payments", amount=("amount", "bcy_amount"), date=("date",),
+                           refs=("payment_number", "reference_number"), endpoint="vendorpayments",
+                           key="payment", party="vendor"),
     "estimate": dict(table="estimates", amount=("total",), date=("date",),
                      refs=("estimate_number", "reference_number"), endpoint="estimates",
                      key="estimate", party="customer"),
@@ -62,6 +68,8 @@ _SPECS = {
 _AMOUNT_TOLERANCE = 0.5
 _DATE_WINDOW_DAYS = 10
 _EXPENSE_HINT = re.compile(r"receipt|paid|payment (?:of|to)|order confirmation|expense", re.IGNORECASE)
+_PO_REMINDER = re.compile(r"\b(?:statement|reminder|pending po|pending purchase|delivery schedule|on[- ]time delivery)\b",
+                          re.IGNORECASE)
 _INTENT = re.compile(
     r"(?=[\s\S]*\b(?:gmail|e-?mails?|mails?|inbox)\b)"
     r"(?=[\s\S]*\b(?:zoho|books?)\b)"
@@ -72,6 +80,10 @@ _INTENT = re.compile(
 _QUESTION_START = re.compile(r"\s*(?:how|what|when|which|who|show|list|total|count|compare)\b", re.IGNORECASE)
 _ACTION_HINT = re.compile(r"\b(?:add it|add this|add them|not added|if (?:this|it) (?:is )?not)\b", re.IGNORECASE)
 _MSG_ID = re.compile(r"^[0-9A-Za-z_-]{4,64}$")
+_ZOHO_ID = re.compile(r"^[0-9A-Za-z_-]{1,64}$")
+_BODY_CAP = 25          # emails whose full text is read per "Check again" (free Gmail reads, no AI)
+_BODY_BUDGET_SECONDS = 20
+_BODY_TEXT_KEEP = 4000  # characters of each email's text kept for matching (tenant's own database)
 
 
 class InboxError(Exception):
@@ -211,58 +223,183 @@ def dismiss(tenant: dict, message_id: str) -> None:
         _record_action(engine, schema, message_id, "", "dismissed")
 
 
+# ---------------- what an email's full text tells us (free: Gmail read, no AI) ----------------
+def _ensure_body_cache(engine, schema) -> None:
+    with engine.begin() as c:
+        c.execute(text(
+            f"CREATE TABLE IF NOT EXISTS {_qt(schema, 'inbox_body_facts')} ("
+            "message_id TEXT PRIMARY KEY, body TEXT, amounts TEXT, dates TEXT, fetched_at TEXT)"
+        ))
+
+
+def _load_body_facts(engine, schema, ids) -> dict:
+    """{message_id: {"body": str, "amounts": [float], "dates": ["YYYY-MM-DD"]}} for emails read before."""
+    if not ids:
+        return {}
+    try:
+        _ensure_body_cache(engine, schema)
+        with engine.connect() as c:
+            rows = c.execute(text(f"SELECT message_id, body, amounts, dates FROM {_qt(schema, 'inbox_body_facts')}")).fetchall()
+    except Exception as e:
+        log.warning("inbox_books: body cache unreadable: %s", e)
+        return {}
+    want, out = set(ids), {}
+    for mid, body, amounts, dates in rows:
+        if mid in want:
+            try:
+                out[mid] = {"body": body or "", "amounts": json.loads(amounts or "[]"), "dates": json.loads(dates or "[]")}
+            except ValueError:
+                continue
+    return out
+
+
+def _store_body_facts(engine, schema, message_id: str, text_body: str) -> dict:
+    body = re.sub(r"\s+", " ", text_body or "").strip()[:_BODY_TEXT_KEEP]
+    facts = {"body": body, "amounts": parse_amounts(body, limit=8), "dates": parse_dates(body, limit=8)}
+    _ensure_body_cache(engine, schema)
+    with engine.begin() as c:
+        c.execute(text(f"DELETE FROM {_qt(schema, 'inbox_body_facts')} WHERE message_id=:m"), {"m": message_id})
+        c.execute(text(
+            f"INSERT INTO {_qt(schema, 'inbox_body_facts')} (message_id, body, amounts, dates, fetched_at) "
+            "VALUES (:m, :b, :a, :d, :ts)"),
+            {"m": message_id, "b": body, "a": json.dumps(facts["amounts"]), "d": json.dumps(facts["dates"]),
+             "ts": datetime.now(timezone.utc).isoformat()})
+    return facts
+
+
 # ---------------- 1. find what is missing (read-only) ----------------
-def suggest_type(category: str, direction: str, amount, subject: str, snippet: str):
+_WE_PAID_BY_DEBIT = re.compile(r"\bdebited\b", re.IGNORECASE)
+_WE_PAID_THANKS = re.compile(r"thank you for your payment|received your payment|your payment (?:of .{0,30})?(?:has been|was) received",
+                             re.IGNORECASE)
+_RECEIVED_BY = re.compile(r"payment received by\s+(.+?)(?:\s+-\s+sent using|\s*$)", re.IGNORECASE)
+_COMPANY_NOISE = re.compile(r"\b(?:the|pvt|private|ltd|limited|llp|and|co|company)\b")
+
+
+def _company_key(name: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", _COMPANY_NOISE.sub(" ", (name or "").lower()))
+
+
+def _same_company(a: str, b: str) -> bool:
+    ka, kb = _company_key(a), _company_key(b)
+    return bool(ka) and bool(kb) and (ka in kb or kb in ka)
+
+
+def payment_side(subject: str, text_blob: str, direction: str, company: str) -> str:
+    """Who paid whom? 'in' = money came to us (a customer payment), 'out' = we paid a supplier
+    (a vendor payment), '' = can't tell / nothing to book.
+
+    The classic trap is a Zoho Books mail "Payment Received by <SUPPLIER> - Sent Using Zoho Books":
+    the supplier is thanking US for paying them, so it is a payment we MADE - not income."""
+    m = _RECEIVED_BY.search(subject or "")
+    if m:
+        return "in" if _same_company(m.group(1), company) else "out"
+    if (direction or "incoming") != "incoming":
+        return ""
+    blob = f"{subject} {text_blob}"
+    if _WE_PAID_BY_DEBIT.search(blob) or _WE_PAID_THANKS.search(blob):
+        return "out"
+    return "in"
+
+
+def suggest_type(category: str, direction: str, amount, subject: str, snippet: str,
+                 sender: str = "", company: str = "", body: str = ""):
     d = direction or "incoming"
     if category == "vendor_bill":
         return "bill" if d == "incoming" else None
     if category in ("payment_received", "bank_payment_advice"):
-        return "customer_payment" if d == "incoming" else None
+        return {"in": "customer_payment", "out": "vendor_payment"}.get(
+            payment_side(subject, f"{snippet} {body}", d, company))
     if category == "quotation":
         return "estimate" if d == "outgoing" else None
     if category == "purchase_order":
+        if _PO_REMINDER.search(f"{subject} {snippet}"):
+            return None  # a "pending PO statement" / delivery reminder is not an order
         return "purchase_order" if d == "outgoing" else "sales_order"
     if category == "other" and amount and _EXPENSE_HINT.search(f"{subject} {snippet}"):
         return "expense"
     return None
 
 
-def _match(df: pd.DataFrame, spec: dict, blob: str, amount, email_date):
+def _ref_in(ref: str, blob: str) -> bool:
+    """Is this Zoho document number written in the email text? A digit at either end of the number must not
+    touch another digit (so '1234' is not found inside '51234'), but 'Invoice No26-27/016' still counts."""
+    ref = ref.strip().lower()
+    if len(ref) < 4:
+        return False
+    pre = r"(?<![0-9])" if ref[0].isdigit() else r"(?<![a-z])"
+    post = r"(?![0-9])" if ref[-1].isdigit() else r"(?![a-z])"
+    return re.search(pre + re.escape(ref) + post, blob) is not None
+
+
+def _match(df: pd.DataFrame, spec: dict, blob: str, amount, email_date, extra_amounts=(), extra_dates=()):
     """Returns (checked, matched_reason, zoho_ref). `checked` is False when the
-    email gave us nothing to compare (no amount and no reference in its text)."""
+    email gave us nothing to compare (no amount and no reference in its text).
+    `extra_amounts` / `extra_dates` come from the email's full text (see _store_body_facts)."""
     blob = (blob or "").lower()
     for col in spec["refs"]:
         if col not in df.columns:
             continue
         for ref in df[col].dropna().astype(str):
-            ref = ref.strip()
-            if len(ref) >= 4 and ref.lower() in blob:
-                return True, "reference number", ref
+            if _ref_in(ref, blob):
+                return True, "reference number", ref.strip()
+    amounts_to_try = []
+    for a in [amount, *extra_amounts]:
+        a = _num(a)
+        if a is not None and a > 0 and a not in amounts_to_try:
+            amounts_to_try.append(a)
     acol = _first_col(df, spec["amount"])
-    if amount is None or acol is None:
+    if not amounts_to_try or acol is None:
         return False, "", ""
-    amounts = pd.to_numeric(df[acol], errors="coerce")
-    close = df[(amounts - float(amount)).abs() <= _AMOUNT_TOLERANCE]
+    zamounts = pd.to_numeric(df[acol], errors="coerce")
+    close = pd.DataFrame()
+    for a in amounts_to_try:
+        close = df[(zamounts - a).abs() <= _AMOUNT_TOLERANCE]
+        if not close.empty:
+            break
     if close.empty:
         return True, "", ""
     dcol = _first_col(df, spec["date"])
-    if dcol is None or email_date is None or pd.isna(email_date):
+    when = [d for d in [email_date, *[pd.Timestamp(x, tz="UTC") for x in extra_dates if _iso(x)]]
+            if d is not None and not pd.isna(d)]
+    if dcol is None or not when:
         return True, "amount", ""
     dates = pd.to_datetime(close[dcol], errors="coerce", utc=True)
-    near = close[((dates - email_date).abs() <= pd.Timedelta(days=_DATE_WINDOW_DAYS))]
+    near_mask = pd.Series(False, index=close.index)
+    for w in when:
+        near_mask = near_mask | ((dates - w).abs() <= pd.Timedelta(days=_DATE_WINDOW_DAYS))
+    near = close[near_mask]
     if near.empty:
         return True, "", ""
     ref_col = _first_col(near, spec["refs"])
     return True, "amount and date", (str(near.iloc[0][ref_col]) if ref_col else "")
 
 
-def find_missing(tenant: dict, days: int = 30, limit: int = 100) -> dict:
+def find_missing(tenant: dict, days: int = 30, limit: int = 100, gmail_connector: dict = None) -> dict:
+    """`gmail_connector` (optional): when given, the full text of emails that still look missing is read
+    from Gmail (free) so amounts / invoice numbers written in the body are compared too."""
     with _db(tenant) as (engine, schema):
-        return _find_missing(engine, schema, days, limit)
+        return _find_missing(engine, schema, days, limit, company=str(tenant.get("name") or ""),
+                             gmail=gmail_connector)
 
 
-def _find_missing(engine, schema, days: int, limit: int) -> dict:
-    out = {"gmail_synced": False, "zoho_synced": False, "items": [], "counts": {},
+def _read_bodies(engine, schema, gmail, todo, facts) -> None:
+    """Fetch the full text of up to _BODY_CAP emails (free Gmail reads) and remember what they say.
+    Stops early after a time budget or three failures in a row (e.g. Gmail refusing) - never raises."""
+    started, fails = time.monotonic(), 0
+    for mid in todo[:_BODY_CAP]:
+        if time.monotonic() - started > _BODY_BUDGET_SECONDS or fails >= 3:
+            break
+        try:
+            msg = connectors_gmail.fetch_full_message(gmail, mid, include_pdf=False)
+            facts[mid] = _store_body_facts(engine, schema, mid, msg.get("text") or "")
+            fails = 0
+        except Exception as e:
+            fails += 1
+            log.warning("inbox_books: could not read email %s: %s", mid, e)
+
+
+def _find_missing(engine, schema, days: int, limit: int, company: str = "", gmail: dict = None) -> dict:
+    out = {"gmail_synced": False, "zoho_synced": False, "items": [], "counts": {}, "body_pending": 0,
            "write_enabled": settings.INBOX_BOOKS_WRITE}
     emails = _frame(engine, schema, "emails")
     if emails is None or emails.empty:
@@ -277,32 +414,69 @@ def _find_missing(engine, schema, days: int, limit: int) -> dict:
     out["zoho_synced"] = any(f is not None for f in frames.values())
     done = _actions(engine, schema)
 
+    rows = []
     for _, e in emails.iterrows():
         mid = str(e["message_id"])
         if (mid, "") in done or any((mid, t) in done for t in RECORD_TYPES):
             continue
-        amount = _num(e.get("amount"))
         subject, snippet = str(e.get("subject") or ""), str(e.get("snippet") or "")
-        rtype = suggest_type(str(e.get("category") or ""), str(e.get("direction") or ""), amount, subject, snippet)
+        sender = str(e.get("sender") or "")
+        category = classify(sender, subject, snippet)  # re-derived so classifier fixes apply without a re-sync
+        if category == "other":
+            category = str(e.get("category") or "other")
+        rows.append({"mid": mid, "dt": e["_dt"], "sender": sender, "subject": subject, "snippet": snippet,
+                     "category": category, "direction": str(e.get("direction") or ""),
+                     "amount": _num(e.get("amount")) or parse_amount(subject) or parse_amount(snippet)})
+
+    facts = _load_body_facts(engine, schema, [r["mid"] for r in rows])
+
+    def evaluate(r):
+        b = facts.get(r["mid"]) or {}
+        rtype = suggest_type(r["category"], r["direction"], r["amount"], r["subject"], r["snippet"],
+                             sender=r["sender"], company=company, body=b.get("body", ""))
         if rtype is None:
-            continue
+            return None
         df = frames[rtype]
-        note = ""
         if df is None:
-            checked, matched = False, False
-            note = "Zoho data for this type isn't synced yet - sync Zoho, then check again."
-        else:
-            checked, reason, _ref = _match(df, _SPECS[rtype], f"{subject} {snippet}", amount, e["_dt"])
-            matched = bool(reason)
-            if not checked:
-                note = "Couldn't compare (no amount or reference found in the email)."
+            return rtype, False, False
+        checked, reason, _ref = _match(df, _SPECS[rtype], f"{r['subject']} {r['snippet']} {b.get('body', '')}",
+                                       r["amount"], r["dt"], b.get("amounts", []), b.get("dates", []))
+        return rtype, checked, bool(reason)
+
+    for r in rows:
+        r["res"] = evaluate(r)
+
+    if gmail is not None and out["zoho_synced"]:
+        todo = [r["mid"] for r in rows if r["res"] and not r["res"][2] and r["mid"] not in facts
+                and frames[r["res"][0]] is not None]
+        if todo:
+            _read_bodies(engine, schema, gmail, todo, facts)
+            for r in rows:
+                if r["mid"] in facts:
+                    r["res"] = evaluate(r)
+        out["body_pending"] = sum(1 for r in rows if r["res"] and not r["res"][2] and r["mid"] not in facts
+                                  and frames[r["res"][0]] is not None)
+
+    for r in rows:
+        if r["res"] is None:
+            continue
+        rtype, checked, matched = r["res"]
         if matched:
             continue
+        b = facts.get(r["mid"]) or {}
+        note = ""
+        if frames[rtype] is None:
+            note = "Zoho data for this type isn't synced yet - sync Zoho, then check again."
+        elif not checked:
+            note = ("Couldn't compare - no amount or reference in the email text (it may only be in an attached PDF)."
+                    if r["mid"] in facts else
+                    "Couldn't compare (no amount or reference found in the email).")
+        shown = r["amount"] if r["amount"] is not None else (b.get("amounts") or [None])[0]
         out["items"].append({
-            "message_id": mid, "email_date": _iso(e["_dt"]), "sender": str(e.get("sender") or ""),
-            "subject": subject, "snippet": snippet[:200], "category": str(e.get("category") or ""),
-            "direction": str(e.get("direction") or ""), "suggested_type": rtype, "amount": amount,
-            "checked": checked, "note": note,
+            "message_id": r["mid"], "email_date": _iso(r["dt"]), "sender": r["sender"],
+            "subject": r["subject"], "snippet": r["snippet"][:200], "category": r["category"],
+            "direction": r["direction"], "suggested_type": rtype, "amount": shown,
+            "checked": checked, "note": note, "read_body": r["mid"] in facts,
         })
         out["counts"][rtype] = out["counts"].get(rtype, 0) + 1
         if len(out["items"]) >= limit:
@@ -321,6 +495,7 @@ _FIELDS_JSON = """{
  "line_items": [{"description": "...", "quantity": <number>, "rate": <unit price number>}],
  "reference_number": "UTR / payment / other reference, or empty",
  "related_invoice_number": "for a payment: the invoice number it pays, or empty",
+ "related_invoice_numbers": ["for a payment: EVERY invoice / bill number it pays, exactly as written (empty list if none)"],
  "payment_mode": "banktransfer|cash|check|creditcard|others  (for payments; else empty)",
  "gst_no": "GSTIN if present, or empty",
  "notes": "one short plain-English sentence"
@@ -328,7 +503,8 @@ _FIELDS_JSON = """{
 
 _TYPE_HINT = {
     "bill": "a vendor bill we must pay",
-    "customer_payment": "a payment we RECEIVED from a customer",
+    "customer_payment": "a payment we RECEIVED from a customer (money that came into our account)",
+    "vendor_payment": "a payment WE MADE to a supplier (money that left our account); party_name is the supplier who was paid",
     "estimate": "a quotation we sent to a customer",
     "purchase_order": "a purchase order we sent to a vendor",
     "sales_order": "a purchase order a customer sent us (a sales order)",
@@ -394,6 +570,8 @@ def _clean_fields(raw: dict) -> dict:
         "total": _num(raw.get("total")), "line_items": items,
         "reference_number": str(raw.get("reference_number") or "").strip(),
         "related_invoice_number": str(raw.get("related_invoice_number") or "").strip(),
+        "related_invoice_numbers": [str(x).strip()[:60] for x in (raw.get("related_invoice_numbers") or [])
+                                    if isinstance(x, (str, int)) and str(x).strip()][:30],
         "payment_mode": str(raw.get("payment_mode") or "").strip() or "banktransfer",
         "gst_no": str(raw.get("gst_no") or "").strip(), "notes": str(raw.get("notes") or "").strip(),
     }
@@ -442,6 +620,32 @@ def _invoice_candidates(engine, schema, party: str, total, invoice_no: str) -> l
     return out[:10]
 
 
+def _bill_candidates(engine, schema, party: str, numbers, blob: str) -> list:
+    """Open bills a payment we made could be settling: the supplier's own bills, plus any bill whose number
+    is written in the email. Bills named in the email come first and are pre-ticked in the form."""
+    df = _frame(engine, schema, "bills")
+    if df is None or "bill_id" not in df.columns:
+        return []
+    wanted = {n.strip().lower() for n in numbers if n and n.strip()}
+    blob = (blob or "").lower()
+    out = []
+    for _, r in df.iterrows():
+        if str(r.get("status") or "").lower() in ("paid", "void", "draft"):
+            continue
+        bal = _num(r.get("balance"))
+        if bal is not None and bal <= 0:
+            continue
+        number = str(r.get("bill_number") or "").strip()
+        named = bool(number) and (number.lower() in wanted or _ref_in(number, blob))
+        same_party = bool(party) and str(r.get("vendor_name") or "").strip().lower() == party.strip().lower()
+        if named or same_party:
+            out.append({"bill_id": str(r["bill_id"]), "bill_number": number,
+                        "vendor_name": str(r.get("vendor_name") or ""), "balance": bal,
+                        "total": _num(r.get("total")), "date": _iso(r.get("date")), "best": named})
+    out.sort(key=lambda c: (not c["best"], c["date"]))
+    return out[:30]
+
+
 def extract(tenant: dict, gmail_connector: dict, record_type: str, message_id: str) -> dict:
     if record_type not in RECORD_TYPES:
         raise InboxError(400, "Unknown record type.")
@@ -470,6 +674,10 @@ def _extract_result(engine, schema, record_type: str, fields: dict, message: dic
         "invoice_candidates": _invoice_candidates(engine, schema, fields["party_name"], fields["total"],
                                                   fields["related_invoice_number"])
         if record_type == "customer_payment" else [],
+        "bill_candidates": _bill_candidates(engine, schema, fields["party_name"],
+                                            [fields["related_invoice_number"], *fields["related_invoice_numbers"]],
+                                            f"{message.get('subject', '')} {message.get('text', '')}")
+        if record_type == "vendor_payment" else [],
         "email": {"subject": message.get("subject", ""), "sender": message.get("sender", ""),
                   "date": message.get("date", ""), "has_pdf": bool(message.get("pdf"))},
         "warnings": warnings,
@@ -548,7 +756,7 @@ def _validate(record_type: str, f: dict) -> dict:
             items.append({"description": str(li.get("description") or record_type.replace("_", " "))[:200],
                           "quantity": qty, "rate": rate})
     line_sum = round(sum(i["quantity"] * i["rate"] for i in items), 2)
-    if record_type in ("customer_payment", "expense"):
+    if record_type in ("customer_payment", "vendor_payment", "expense"):
         # the money that actually moved: always the total, never a sum of (pre-tax) lines
         amount = total if total is not None and total > 0 else line_sum
         items = []
@@ -577,8 +785,16 @@ def _validate(record_type: str, f: dict) -> dict:
             raise InboxError(400, "Choose the expense account and the account it was paid from.")
     if record_type == "customer_payment" and not f.get("deposit_account_id"):
         raise InboxError(400, "Choose the bank or cash account the payment went into.")
+    bill_ids = f.get("bill_ids") or []
+    if record_type == "vendor_payment":
+        if not f.get("paid_through_account_id"):
+            raise InboxError(400, "Choose the bank or cash account the payment was made from.")
+        if (not isinstance(bill_ids, list) or len(bill_ids) > 30
+                or any(not _ZOHO_ID.match(str(b)) for b in bill_ids)):
+            raise InboxError(400, "The bills selected for this payment aren't valid - please re-select them.")
     return {**f, "party_name": party, "date": date, "due_date": _iso(f.get("due_date")),
-            "line_items": items, "amount": amount}
+            "line_items": items, "amount": amount,
+            "bill_ids": [str(b) for b in bill_ids] if record_type == "vendor_payment" else []}
 
 
 def _payload(record_type: str, f: dict, contact_id: str) -> dict:
@@ -606,6 +822,13 @@ def _payload(record_type: str, f: dict, contact_id: str) -> dict:
             p["invoices"] = [{"invoice_id": str(f["invoice_id"]),
                               "amount_applied": f.get("amount_applied", f["amount"])}]
         return p
+    if record_type == "vendor_payment":
+        p = {"vendor_id": contact_id, "payment_mode": f.get("payment_mode") or "banktransfer",
+             "amount": f["amount"], "date": f["date"], "paid_through_account_id": str(f["paid_through_account_id"]),
+             "reference_number": ref or num, "description": notes}
+        if f.get("_alloc"):
+            p["bills"] = f["_alloc"]
+        return p
     lines = [{"name": i["description"], "rate": i["rate"], "quantity": i["quantity"]} for i in f["line_items"]]
     key = {"estimate": "customer_id", "sales_order": "customer_id", "purchase_order": "vendor_id"}[record_type]
     p = {key: contact_id, "date": f["date"], "line_items": lines, "notes": notes}
@@ -615,8 +838,9 @@ def _payload(record_type: str, f: dict, contact_id: str) -> dict:
 
 
 def _refresh_after_create(tenant: dict, connector: dict, table: str) -> None:
+    tables = [table, "bills"] if table == "vendor_payments" else [table]  # paying bills changes their balance
     try:
-        connectors_zoho.run_full_sync(tenant, connector, only=[table, "customers"])
+        connectors_zoho.run_full_sync(tenant, connector, only=[*tables, "customers"])
     except Exception as e:  # never fail a successful create over a refresh
         log.warning("inbox_books: refresh after create failed: %s", e)
 
@@ -690,6 +914,30 @@ def create(tenant: dict, zoho_connector: dict, record_type: str, message_id: str
         return _create(tenant, zoho_connector, engine, schema, record_type, message_id, f, allow_duplicate)
 
 
+def _allocate_to_bills(engine, schema, bill_ids, amount: float) -> list:
+    """Split the money we paid over the bills the user ticked, oldest first, never more than a bill still
+    owes. Anything left over stays unapplied in Zoho (it shows as an excess payment to apply later)."""
+    bills = _frame(engine, schema, "bills")
+    if bills is None or not {"bill_id", "balance"} <= set(bills.columns):
+        raise InboxError(409, "Your synced Zoho bills aren't available - sync Zoho and try again.")
+    hit = bills[bills["bill_id"].astype(str).isin(bill_ids)]
+    if len(hit) != len(set(bill_ids)):
+        raise InboxError(409, "One of the selected bills isn't in your synced Zoho data - sync Zoho and try again.")
+    if "date" in hit.columns:
+        hit = hit.sort_values("date")
+    remaining, alloc = float(amount), []
+    for _, r in hit.iterrows():
+        bal = _num(r["balance"]) or 0.0
+        if bal <= 0 or remaining <= 0:
+            continue
+        take = round(min(bal, remaining), 2)
+        alloc.append({"bill_id": str(r["bill_id"]), "amount_applied": take})
+        remaining = round(remaining - take, 2)
+    if not alloc:
+        raise InboxError(400, "The bills you picked have nothing left to pay - untick them to record an unapplied payment.")
+    return alloc
+
+
 def _create(tenant, zoho_connector, engine, schema, record_type, message_id, f, allow_duplicate) -> dict:
     spec = _SPECS[record_type]
     token, api_domain = connectors_zoho._valid_access_token(zoho_connector)
@@ -725,6 +973,9 @@ def _create(tenant, zoho_connector, engine, schema, record_type, message_id, f, 
                 applied = round(min(f["amount"], max(bal, 0)), 2)
         f = {**f, "amount_applied": applied if applied is not None else f["amount"]}
 
+    if record_type == "vendor_payment" and f.get("bill_ids"):
+        f = {**f, "_alloc": _allocate_to_bills(engine, schema, f["bill_ids"], f["amount"])}
+
     _reserve(engine, schema, message_id, record_type)  # from here on only ONE request can proceed
     posted = False  # becomes True once we've sent anything that could have created a record
     try:
@@ -757,7 +1008,7 @@ def _create(tenant, zoho_connector, engine, schema, record_type, message_id, f, 
         raise InboxError(502, "Zoho didn't answer in time, so Ganak can't tell whether the record was created. "
                               "Check Zoho Books first - it stays blocked here to avoid a double entry.") from e
 
-    rec = data.get(spec["key"]) or {}
+    rec = data.get(spec["key"]) or data.get("payment") or {}
     zoho_id = str(rec.get(spec["key"] + "_id") or rec.get("payment_id") or "")
     zoho_no = str(rec.get(spec["key"] + "_number") or rec.get("bill_number") or rec.get("reference_number") or "")
     _record_action(engine, schema, message_id, record_type, "created", zoho_id, zoho_no,

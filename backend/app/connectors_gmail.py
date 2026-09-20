@@ -252,10 +252,11 @@ def _walk_parts(part: dict):
         yield from _walk_parts(p)
 
 
-def fetch_full_message(connector: dict, message_id: str) -> dict:
+def fetch_full_message(connector: dict, message_id: str, include_pdf: bool = True) -> dict:
     """Read ONE email in full: subject/sender/date, readable text (plain text, or
     stripped HTML) capped at ~12k chars, and the first PDF attachment (<=5 MB)
-    as raw bytes. Read-only (gmail.readonly)."""
+    as raw bytes (skipped when include_pdf=False -- the free body check only needs the
+    text). Read-only (gmail.readonly)."""
     access_token = _valid_access_token(connector)
     headers = {"Authorization": f"Bearer {access_token}"}
     resp = requests.get(f"{GMAIL_API}/users/me/messages/{message_id}",
@@ -273,7 +274,7 @@ def fetch_full_message(connector: dict, message_id: str) -> dict:
             plain.append(_b64url(body["data"]).decode("utf-8", "replace"))
         elif mime == "text/html" and body.get("data"):
             html.append(_b64url(body["data"]).decode("utf-8", "replace"))
-        elif pdf is None and (mime == "application/pdf" or (part.get("filename") or "").lower().endswith(".pdf")):
+        elif include_pdf and pdf is None and (mime == "application/pdf" or (part.get("filename") or "").lower().endswith(".pdf")):
             size = int(body.get("size") or 0)
             if size and size > _MAX_PDF_BYTES:
                 continue

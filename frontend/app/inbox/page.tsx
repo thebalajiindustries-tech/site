@@ -11,7 +11,8 @@ import {
 
 const TYPE_LABEL: Record<InboxRecordType, string> = {
   bill: "Vendor bill",
-  customer_payment: "Payment received",
+  customer_payment: "Payment received (from a customer)",
+  vendor_payment: "Payment made (to a vendor)",
   estimate: "Quotation (estimate)",
   purchase_order: "Purchase order",
   sales_order: "Sales order (customer PO)",
@@ -45,6 +46,7 @@ type Form = {
   party_name: string; document_number: string; date: string; due_date: string; total: string;
   lines: LineForm[]; reference_number: string; payment_mode: string; gst_no: string; notes: string;
   account_id: string; paid_through_account_id: string; deposit_account_id: string; invoice_id: string;
+  bill_ids: string[];
 };
 
 function toForm(x: InboxExtract): Form {
@@ -58,6 +60,7 @@ function toForm(x: InboxExtract): Form {
     reference_number: f.reference_number, payment_mode: f.payment_mode || "banktransfer", gst_no: f.gst_no,
     notes: f.notes, account_id: "", paid_through_account_id: "", deposit_account_id: "",
     invoice_id: best ? best.invoice_id : "",
+    bill_ids: (x.bill_candidates || []).filter((c) => c.best).map((c) => c.bill_id),
   };
 }
 
@@ -118,7 +121,7 @@ export default function InboxBooks() {
     try {
       const x = await inboxExtract(item.message_id, t);
       setEx(x); setForm(toForm(x));
-      if (t === "bill" || t === "expense" || t === "customer_payment") {
+      if (t === "bill" || t === "expense" || t === "customer_payment" || t === "vendor_payment") {
         inboxAccounts().then(setAccounts).catch((e) => setAccErr((e as Error).message));
       }
     } catch (e) { setDialogErr((e as Error).message); }
@@ -127,6 +130,9 @@ export default function InboxBooks() {
 
   function close() { if (!saving) setOpen(null); }
 
+  function toggleBill(id: string) {
+    setForm((f) => (f ? { ...f, bill_ids: f.bill_ids.includes(id) ? f.bill_ids.filter((b) => b !== id) : [...f.bill_ids, id] } : f));
+  }
   function setF<K extends keyof Form>(k: K, v: Form[K]) { setForm((f) => (f ? { ...f, [k]: v } : f)); }
   function setLine(i: number, k: keyof LineForm, v: string) {
     setForm((f) => (f ? { ...f, lines: f.lines.map((l, j) => (j === i ? { ...l, [k]: v } : l)) } : f));
@@ -159,6 +165,7 @@ export default function InboxBooks() {
         reference_number: form.reference_number.trim(), payment_mode: form.payment_mode, gst_no: form.gst_no.trim(),
         notes: form.notes.trim(), account_id: form.account_id, paid_through_account_id: form.paid_through_account_id,
         deposit_account_id: form.deposit_account_id, invoice_id: form.invoice_id,
+        bill_ids: rtype === "vendor_payment" ? form.bill_ids : undefined,
         contact_id: ex.party_match && ex.party_match.contact_name.trim().toLowerCase() === form.party_name.trim().toLowerCase()
           ? ex.party_match.contact_id : undefined,
       }, allowDupe);
@@ -179,6 +186,7 @@ export default function InboxBooks() {
     } catch (e) { setErr((e as Error).message); }
   }
 
+  const isPayment = rtype === "customer_payment" || rtype === "vendor_payment";
   const notConnected = status && (!status.gmail_connected || !status.zoho_connected);
 
   return (
@@ -222,6 +230,12 @@ export default function InboxBooks() {
               title="Pull the newest emails and Zoho records first">{syncing ? "Syncing…" : "Sync Gmail & Zoho first"}</button>
           </div>
 
+          {data && (data.body_pending ?? 0) > 0 && (
+            <div className="card" style={{ padding: "10px 14px", marginBottom: 12, borderLeft: "3px solid var(--line-strong)" }}>
+              Ganak reads each email&apos;s full text to compare amounts and invoice numbers — {data.body_pending} more still to read.
+              Press <b>Check again</b> to continue.
+            </div>
+          )}
           {data && !data.gmail_synced && (
             <div className="card panel"><b>No emails synced yet.</b>
               <p className="muted" style={{ margin: "6px 0 0" }}>Press “Sync Gmail &amp; Zoho first”, wait a minute, then check again.</p></div>
@@ -257,7 +271,7 @@ export default function InboxBooks() {
                       {TYPES.map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
                     </select>
                     <div className="btn-row" style={{ display: "flex", gap: 8 }}>
-                      <button className="btn-primary" disabled={!status.write_enabled} onClick={() => review(i)}>Review &amp; add</button>
+                      <button className="btn-primary" disabled={!status.write_enabled} title={status.write_enabled ? "" : "Adding to Zoho isn't switched on for this Ganak yet"} onClick={() => review(i)}>Review &amp; add</button>
                       <button className="btn-secondary" onClick={() => dismiss(i)} title="Hide this email — it isn't a Zoho record">Not needed</button>
                     </div>
                   </div>
@@ -284,13 +298,13 @@ export default function InboxBooks() {
                   <div key={w} className="muted" style={{ fontSize: ".82rem", marginBottom: 8 }}>ℹ {w}</div>
                 ))}
                 <div style={grid}>
-                  <Field label={rtype === "bill" || rtype === "purchase_order" || rtype === "expense" ? "Vendor" : "Customer"}>
+                  <Field label={rtype === "bill" || rtype === "purchase_order" || rtype === "expense" || rtype === "vendor_payment" ? "Vendor" : "Customer"}>
                     <input style={inp} value={form.party_name} onChange={(e) => setF("party_name", e.target.value)} />
                     <span className="muted" style={{ fontSize: ".75rem" }}>
                       {ex.party_match ? `Matches “${ex.party_match.contact_name}” in Zoho` : "Not in Zoho yet — will be created"}
                     </span>
                   </Field>
-                  {rtype !== "expense" && rtype !== "customer_payment" ? (
+                  {rtype !== "expense" && !isPayment ? (
                     <Field label={rtype === "bill" ? "Bill number" : "Document number (optional)"}>
                       <input style={inp} value={form.document_number} onChange={(e) => setF("document_number", e.target.value)} />
                     </Field>
@@ -307,7 +321,7 @@ export default function InboxBooks() {
                       <input style={inp} value={form.due_date} placeholder="2026-10-19" onChange={(e) => setF("due_date", e.target.value)} />
                     </Field>
                   )}
-                  <Field label={rtype === "customer_payment" ? "Amount received (₹)" : rtype === "expense" ? "Amount paid (₹)" : "Total on the document, incl. GST (₹)"}>
+                  <Field label={rtype === "customer_payment" ? "Amount received (₹)" : rtype === "expense" || rtype === "vendor_payment" ? "Amount paid (₹)" : "Total on the document, incl. GST (₹)"}>
                     <input style={inp} inputMode="decimal" value={form.total} onChange={(e) => setF("total", e.target.value)} />
                   </Field>
                 </div>
@@ -376,12 +390,47 @@ export default function InboxBooks() {
                       </Field>
                     </>
                   )}
+                  {rtype === "vendor_payment" && (
+                    <>
+                      <Field label="Paid from">
+                        <AccountSelect value={form.paid_through_account_id} onChange={(v) => setF("paid_through_account_id", v)} list={accounts?.bank_accounts} err={accErr} />
+                      </Field>
+                      <Field label="Payment mode">
+                        <select style={inp} value={form.payment_mode} onChange={(e) => setF("payment_mode", e.target.value)}>
+                          {PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </Field>
+                    </>
+                  )}
                   {!ex.party_match && (
                     <Field label="GSTIN (optional, for the new contact)">
                       <input style={inp} value={form.gst_no} onChange={(e) => setF("gst_no", e.target.value)} />
                     </Field>
                   )}
                 </div>
+                {rtype === "vendor_payment" && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div className="muted" style={{ fontSize: ".82rem", fontWeight: 500, marginBottom: 6 }}>
+                      Which bills does this pay? (optional)
+                    </div>
+                    {ex.bill_candidates.length === 0 && (
+                      <div className="muted" style={{ fontSize: ".82rem" }}>
+                        No open bills found for this vendor — the payment will be recorded unapplied, and you can apply it to bills in Zoho.
+                      </div>
+                    )}
+                    {ex.bill_candidates.map((c) => (
+                      <label key={c.bill_id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: ".85rem", marginBottom: 4 }}>
+                        <input type="checkbox" checked={form.bill_ids.includes(c.bill_id)} onChange={() => toggleBill(c.bill_id)} />
+                        {c.bill_number} · {c.vendor_name} · owes {money(c.balance)}{c.best ? " ✓ named in the email" : ""}
+                      </label>
+                    ))}
+                    {ex.bill_candidates.length > 0 && (
+                      <div className="muted" style={{ fontSize: ".75rem", marginTop: 4 }}>
+                        The money is spread over the ticked bills, oldest first, never more than each still owes. Anything left stays unapplied.
+                      </div>
+                    )}
+                  </div>
+                )}
                 <Field label="Notes">
                   <input style={inp} value={form.notes} onChange={(e) => setF("notes", e.target.value)} />
                 </Field>

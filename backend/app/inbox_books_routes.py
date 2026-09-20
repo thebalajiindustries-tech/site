@@ -67,8 +67,8 @@ def status(ident: dict = Depends(auth.current_user)):
 @router.get("/missing")
 def missing(days: int = 30, ident: dict = Depends(auth.current_user)):
     tenant = ident["tenant"]
-    _connectors(tenant["id"])
-    return _wrap(inbox_books.find_missing, tenant, days=days)
+    gmail, _zoho = _connectors(tenant["id"])
+    return _wrap(inbox_books.find_missing, tenant, days=days, gmail_connector=gmail)
 
 
 @router.post("/extract")
