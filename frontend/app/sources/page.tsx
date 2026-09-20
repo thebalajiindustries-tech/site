@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   listConnectors, startConnector, syncConnectorNow, disconnectConnector,
-  extractDocument, loadDocument, type ConnectorInfo, type DocFields,
+  getPendingZohoOrgs, selectZohoOrg, extractDocument, loadDocument,
+  type ConnectorInfo, type DocFields, type ZohoOrg,
 } from "../../lib/api";
 
 // ---------------- shared bits ----------------
@@ -37,6 +38,11 @@ function ConnectionsPanel({ params }: { params: ReturnType<typeof useSearchParam
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+  // Set when a Zoho account has more than one organization: the OAuth
+  // callback can't guess which one to use, so it sends the browser back
+  // here with a ticket instead of connecting straight away.
+  const [orgPicker, setOrgPicker] = useState<{ ticket: string; orgs: ZohoOrg[] } | null>(null);
+  const [pickingOrg, setPickingOrg] = useState<string | null>(null);
 
   function load() {
     listConnectors().then(setItems).catch((e) => setErr((e as Error).message));
@@ -45,8 +51,15 @@ function ConnectionsPanel({ params }: { params: ReturnType<typeof useSearchParam
   useEffect(() => {
     const connected = params.get("connected");
     const error = params.get("error");
+    const selectOrg = params.get("select_org");
+    const ticket = params.get("ticket");
     if (connected) setBanner(`${META[connected]?.name || connected} connected — pulling your data in now.`);
     if (error) setErr(`Connection failed (${error}). Please try again.`);
+    if (selectOrg === "zoho" && ticket) {
+      getPendingZohoOrgs(ticket)
+        .then((r) => setOrgPicker({ ticket, orgs: r.organizations }))
+        .catch(() => setErr("That connection attempt expired — please try connecting Zoho again."));
+    }
     load();
     // if we just connected, poll for a bit so "last synced" updates without a manual refresh
     if (connected) {
@@ -55,6 +68,23 @@ function ConnectionsPanel({ params }: { params: ReturnType<typeof useSearchParam
       return () => { clearInterval(iv); clearTimeout(stop); };
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function chooseOrg(organizationId: string) {
+    if (!orgPicker) return;
+    setPickingOrg(organizationId); setErr(null);
+    try {
+      await selectZohoOrg(orgPicker.ticket, organizationId);
+      setOrgPicker(null);
+      setBanner("Zoho Books connected — pulling your data in now.");
+      load();
+      const iv = setInterval(load, 4000);
+      setTimeout(() => clearInterval(iv), 60_000);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setPickingOrg(null);
+    }
+  }
 
   async function connect(provider: string) {
     setBusy(provider); setErr(null);
@@ -91,6 +121,46 @@ function ConnectionsPanel({ params }: { params: ReturnType<typeof useSearchParam
 
       {banner && <div className="card" style={{ padding: "10px 14px", marginBottom: 12, borderLeft: "3px solid var(--accent)" }}>{banner}</div>}
       {err && <div className="card" style={{ padding: "10px 14px", marginBottom: 12, borderLeft: "3px solid var(--red)", color: "var(--red)" }}>⚠ {err}</div>}
+
+      {orgPicker && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="zoho-org-picker-title"
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,.45)",
+            display: "grid", placeItems: "center", zIndex: 50, padding: 16,
+          }}
+        >
+          <div className="card" style={{ maxWidth: 420, width: "100%", padding: 22 }}>
+            <div id="zoho-org-picker-title" style={{ fontWeight: 700, marginBottom: 4 }}>
+              Which Zoho organization?
+            </div>
+            <p className="muted" style={{ marginTop: 0, marginBottom: 16 }}>
+              Your Zoho account has more than one organization. Pick the one Ganak
+              should sync — you can connect a different one later by disconnecting
+              and reconnecting.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {orgPicker.orgs.map((o) => (
+                <button
+                  key={o.organization_id}
+                  disabled={pickingOrg !== null}
+                  onClick={() => chooseOrg(o.organization_id)}
+                  style={{
+                    textAlign: "left", padding: "10px 14px", borderRadius: 8,
+                    border: "1px solid var(--line-strong)", background: "transparent",
+                    color: "inherit", cursor: pickingOrg ? "default" : "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  {pickingOrg === o.organization_id ? "Connecting…" : o.name || o.organization_id}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="static-list">
         {!items ? (
