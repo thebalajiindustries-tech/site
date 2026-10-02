@@ -8,13 +8,24 @@ the Anthropic bill. Counters live in memory and reset when the service restarts.
 
   GET  /ssc/health   is the feature configured?
   POST /ssc/sample   {turns, images, tier, json} -> {text}
+  POST /ssc/login    {name} + access code -> {name, progress}   (student login)
+  PUT  /ssc/progress {name, progress} + access code -> {ok}     (sync progress)
+  GET  /ssc/teacher  X-Teacher-Key header -> every student's progress
+
+Student login is "name + class code" (the access code): no passwords, chosen by
+the school so students don't have to remember anything. Progress is a small JSON
+blob per (code, name) kept in the control DB table ssc_students.
 """
+import hmac
+import json
+import re
 import threading
 import time
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from . import tenancy
 from .config import get_settings
 
 router = APIRouter(prefix="/ssc", tags=["ssc"])
@@ -110,3 +121,112 @@ def ssc_sample(req: SampleReq, request: Request):
         raise HTTPException(502, f"upstream error: {type(e).__name__}")
     text = "".join(b.text for b in r.content if getattr(b, "type", "") == "text")
     return {"text": text, "model": r.model, "stop": r.stop_reason}
+
+
+# ---------- student login + progress (control DB) ----------
+MAX_PROGRESS_BYTES = 60_000
+_table_ready = False
+
+
+def _ensure_table() -> None:
+    global _table_ready
+    if _table_ready:
+        return
+    with tenancy._cx() as conn:
+        conn.cursor().execute(
+            """
+            CREATE TABLE IF NOT EXISTS ssc_students (
+                code       TEXT NOT NULL,
+                name_key   TEXT NOT NULL,
+                name       TEXT NOT NULL,
+                progress   TEXT NOT NULL DEFAULT '{}',
+                created_at DOUBLE PRECISION NOT NULL,
+                updated_at DOUBLE PRECISION NOT NULL,
+                PRIMARY KEY (code, name_key)
+            );
+            """
+        )
+    _table_ready = True
+
+
+def _student_code(request: Request) -> str:
+    code = (request.headers.get("x-access-code") or "").strip().lower()
+    if not code or code not in _codes():
+        raise HTTPException(401, "invalid access code")
+    return code
+
+
+def _clean_name(name: str) -> tuple[str, str]:
+    name = re.sub(r"\s+", " ", (name or "").strip())[:60]
+    if len(name) < 2:
+        raise HTTPException(400, "name required")
+    return name, name.lower()
+
+
+def _get_student(code: str, key: str):
+    with tenancy._cx() as conn:
+        cur = tenancy._cur(conn)
+        cur.execute(tenancy._q("SELECT * FROM ssc_students WHERE code=? AND name_key=?"), (code, key))
+        return tenancy._row(cur.fetchone())
+
+
+class LoginReq(BaseModel):
+    name: str = Field(max_length=80)
+
+
+class ProgressReq(BaseModel):
+    name: str = Field(max_length=80)
+    progress: dict
+
+
+@router.post("/login")
+def ssc_login(req: LoginReq, request: Request):
+    code = _student_code(request)
+    name, key = _clean_name(req.name)
+    _ensure_table()
+    row = _get_student(code, key)
+    if row is None:
+        now = time.time()
+        with tenancy._cx() as conn:
+            conn.cursor().execute(
+                tenancy._q("INSERT INTO ssc_students(code,name_key,name,progress,created_at,updated_at) "
+                           "VALUES(?,?,?,?,?,?)"), (code, key, name, "{}", now, now))
+        return {"name": name, "progress": {}, "new": True}
+    return {"name": row["name"], "progress": json.loads(row["progress"] or "{}"), "new": False}
+
+
+@router.put("/progress")
+def ssc_progress(req: ProgressReq, request: Request):
+    code = _student_code(request)
+    name, key = _clean_name(req.name)
+    blob = json.dumps(req.progress, ensure_ascii=False, separators=(",", ":"))
+    if len(blob.encode()) > MAX_PROGRESS_BYTES:
+        raise HTTPException(413, "progress too large")
+    _ensure_table()
+    now = time.time()
+    with tenancy._cx() as conn:
+        cur = conn.cursor()
+        cur.execute(tenancy._q("UPDATE ssc_students SET progress=?, updated_at=? WHERE code=? AND name_key=?"),
+                    (blob, now, code, key))
+        if cur.rowcount == 0:
+            cur.execute(tenancy._q("INSERT INTO ssc_students(code,name_key,name,progress,created_at,updated_at) "
+                                   "VALUES(?,?,?,?,?,?)"), (code, key, name, blob, now, now))
+    return {"ok": True, "saved_at": now}
+
+
+@router.get("/teacher")
+def ssc_teacher(request: Request):
+    want = settings.SSC_TEACHER_KEY
+    got = request.headers.get("x-teacher-key") or ""
+    if not want:
+        raise HTTPException(503, "teacher dashboard not configured")
+    if not hmac.compare_digest(got.encode(), want.encode()):
+        raise HTTPException(401, "invalid teacher key")
+    _ensure_table()
+    with tenancy._cx() as conn:
+        cur = tenancy._cur(conn)
+        cur.execute("SELECT code, name, progress, created_at, updated_at FROM ssc_students ORDER BY code, name_key")
+        rows = [tenancy._row(r) for r in cur.fetchall()]
+    for r in rows:
+        r["progress"] = json.loads(r["progress"] or "{}")
+    return {"students": rows}
