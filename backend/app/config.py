@@ -140,6 +140,8 @@ class Settings:
     SSC_DAILY_LIMIT_TOTAL: int = int(os.environ.get("SSC_DAILY_LIMIT_TOTAL", "600"))
     SSC_MODEL_QUICK: str = os.environ.get("SSC_MODEL_QUICK", "claude-haiku-4-5-20251001")
     SSC_MODEL: str = os.environ.get("SSC_MODEL", "claude-sonnet-5")
+    # password for the teacher dashboard (blank = dashboard switched off)
+    SSC_TEACHER_KEY: str = os.environ.get("SSC_TEACHER_KEY", "")
 
     # --- environment identity (production vs staging) ---
     # A staging deploy sets GANAK_ENVIRONMENT=staging and GANAK_SCHEMA_PREFIX
