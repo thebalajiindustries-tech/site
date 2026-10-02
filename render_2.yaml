@@ -1,0 +1,31 @@
+# Render Blueprint for SSC Saathi (Std 10 study app) -- branch 'ssc' of thebalajiindustries-tech/site.
+# Separate from the 'ganak' branch and from main; nothing here touches Ganak or other sites.
+# In Render: New -> Blueprint -> repo 'site' -> branch 'ssc'. Static site, free plan.
+# AI grading/doubts are served by the Ganak backend at https://api.vidmahitech.com/ssc (see config.js).
+#
+# The site files sit flat in the branch root (uploaded via GitHub web). The build step copies
+# ONLY the study-app files into ./public in the layout the app expects (audio/, icons/), so
+# nothing else in this branch (e.g. payroll.html, data.js from main) is published.
+services:
+  - type: web
+    name: ssc-saathi
+    runtime: static
+    buildCommand: >-
+      rm -rf public && mkdir -p public/audio public/icons &&
+      cp index.html config.js sw.js manifest.webmanifest public/ &&
+      cp [abeghnps]*.mp3 public/audio/ &&
+      cp icon-192.png icon-512.png maskable-512.png apple-touch-icon.png public/icons/ &&
+      echo "files published:" && find public -type f | wc -l
+    staticPublishPath: ./public
+    domains:
+      - ssc.vidmahitech.com
+    headers:
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+      - path: /audio/*
+        name: Cache-Control
+        value: public, max-age=2592000
