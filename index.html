@@ -372,7 +372,7 @@ document.addEventListener("click", async e => {
 });
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 // Website build only: student login (name + class code), progress sync, teacher dashboard.
-const SYNC_KEYS = ["examDate", "watched", "quiz", "read", "checks", "bd", "last"];
+const SYNC_KEYS = ["examDate", "watched", "quiz", "read", "checks", "bd", "bdOpen", "last"];
 function apiBase(){ return ((window.SSC_CONFIG && SSC_CONFIG.api) || "").replace(/\/$/, ""); }
 function progressOf(st){ const p = {}; SYNC_KEYS.forEach(k => { if (st[k] !== undefined) p[k] = st[k]; }); p.checks = (p.checks || []).slice(-30); return p; }
 function mergeProgress(local, srv){
@@ -381,6 +381,7 @@ function mergeProgress(local, srv){
   out.quiz = Object.assign({}, srv.quiz); for (const [k, v] of Object.entries(local.quiz || {})) out.quiz[k] = Math.max(v, out.quiz[k] ?? 0);
   out.watched = Object.assign({}, srv.watched, local.watched);
   out.read = Object.assign({}, srv.read, local.read);
+  out.bdOpen = Object.assign({}, srv.bdOpen, local.bdOpen);
   out.bd = Object.assign({}, srv.bd); for (const [k, v] of Object.entries(local.bd || {})) out.bd[k] = [...new Set([...(out.bd[k] || []), ...v])];
   const seen = new Set(); out.checks = [...(srv.checks || []), ...(local.checks || [])].filter(c => { const k = [c.date, c.subject, c.got, c.total].join("|"); if (seen.has(k)) return false; seen.add(k); return true; }).slice(-30);
   out.examDate = local.examDate || srv.examDate || "";
@@ -405,7 +406,7 @@ async function logout(msg, skipPush){
   clearTimeout(syncTimer);
   if (!skipPush && store.student && store.code) { syncing = false; await pushProgress(); }
   store.student = ""; store.code = "";
-  Object.assign(store, {watched:{}, quiz:{}, read:{}, checks:[], bd:{}, last:null, examDate:""});
+  Object.assign(store, {watched:{}, quiz:{}, read:{}, checks:[], bd:{}, bdOpen:{}, last:null, examDate:""});
   save(); updateUserBtn(); S.view = "home"; render(); if (msg) toast(msg);
 }
 function updateUserBtn(){
@@ -2991,7 +2992,7 @@ DG.n6 = {cap:"वृत्तलेखन: 5W + 1H", svg:() => hub("News report"
 const AUDIO_T = {"a1":[0.0,6.57,21.14,27.39,38.64,46.68,52.99,61.97,68.28,73.9,88.99,92.51],"a2":[0.0,5.45,21.03,27.94,35.35,41.25,53.19,58.31,63.15,68.79,82.49,86.02],"a3":[0.0,5.69,15.7,23.21,31.93,35.44,40.87,45.95,54.28,59.9,70.73,74.26],"a4":[0.0,5.21,16.25,24.59,33.39,37.32,45.32,52.21,61.02,65.29,70.91,83.62,87.16],"a5":[0.0,5.29,14.96,25.41,32.87,37.22,43.76,52.38,60.33,65.96,75.26,78.78],"a6":[0.0,5.16,16.31,22.22,30.33,36.57,41.03,47.87,55.69,61.32,73.99,77.52],"g1":[0.0,4.93,15.95,20.4,28.62,38.41,41.74,50.22,57.35,64.42,70.04,80.24,83.77],"g2":[0.0,5.96,12.94,21.25,33.29,41.71,50.63,59.89,67.04,73.05,78.68,87.94,91.48],"g3":[0.0,4.82,16.17,23.35,26.97,32.22,38.35,46.96,52.86,59.6,65.23,74.71,78.24],"g4":[0.0,5.25,13.29,18.08,26.54,34.01,43.25,49.03,55.23,64.41,67.93],"g5":[0.0,5.58,15.14,22.75,26.78,32.95,37.42,44.87,51.58,57.05,62.67,70.74,74.28],"g6":[0.0,5.21,12.77,19.07,29.49,35.58,43.6,49.08,62.74,68.36,78.62,82.15],"g7":[0.0,5.37,17.89,23.51,29.18,35.5,41.86,49.07,54.47,60.1,69.7,73.22],"s1":[0.0,5.72,19.31,25.76,35.86,45.0,52.65,59.2,67.64,72.27,77.89,87.48,91.01],"s2":[0.0,7.31,20.53,27.65,35.07,40.1,50.05,56.62,63.36,72.01,77.63,88.03,91.56],"s3":[0.0,7.12,16.45,21.19,29.24,35.24,45.67,52.89,62.95,71.71,77.35,87.0,90.53],"s4":[0.0,6.45,17.76,23.11,31.96,42.88,50.6,57.46,64.05,70.24,75.87,88.74,92.26],"s5":[0.0,5.31,17.84,24.53,31.84,37.75,46.14,51.42,56.42,67.43,73.05,82.7,86.23],"s6":[0.0,6.5,19.49,25.63,33.99,39.57,46.66,58.2,65.11,74.69,80.3,90.33,93.87],"s7":[0.0,5.18,17.77,28.33,37.92,43.02,49.12,54.04,59.34,66.86,72.49,84.06,87.58],"s8":[0.0,5.64,17.75,22.56,29.81,43.05,51.25,59.23,67.53,74.25,82.92,88.55,99.77,103.3],"s9":[0.0,6.03,19.54,26.99,33.37,41.28,52.97,60.21,71.93,79.22,86.62,92.24,100.89,104.43],"s10":[0.0,5.88,20.47,25.71,34.7,50.56,58.79,66.09,76.08,81.98,87.6,99.08,102.61],"b1":[0.0,6.7,18.56,24.75,31.74,36.77,41.8,53.72,62.0,72.75,82.37,92.91,96.44],"b2":[0.0,8.14,21.12,25.95,30.49,37.82,43.24,50.28,63.71,74.84,80.46,89.42,92.96],"b3":[0.0,8.29,19.96,23.71,36.28,41.95,49.72,57.92,62.49,68.76,75.89,85.02,88.55],"b4":[0.0,6.54,16.73,21.78,28.0,33.6,41.7,47.8,55.69,65.12,69.67,77.3,80.84],"b5":[0.0,6.57,18.85,24.27,31.19,40.02,46.04,53.36,60.32,65.81,71.44,80.21,83.75],"b6":[0.0,6.6,19.65,23.68,36.66,42.81,50.7,55.67,64.27,72.02,82.34,85.87],"b7":[0.0,7.16,18.71,23.75,29.19,35.35,44.76,49.68,55.39,63.56,67.67,77.05,80.58],"b8":[0.0,7.35,20.35,26.63,35.21,40.28,45.6,51.39,58.21,64.6,73.37,76.9],"b9":[0.0,6.13,19.88,24.94,34.35,44.26,50.42,57.3,63.62,70.73,78.81,82.33],"b10":[0.0,6.38,19.37,23.59,34.67,41.73,50.85,58.73,64.39,72.56,83.08,86.61],"h1":[0.0,5.99,19.43,24.52,32.13,37.34,47.16,56.5,64.17,73.76,83.98,94.69,98.23],"h2":[0.0,5.88,17.99,22.92,27.32,36.42,43.35,57.93,62.84,69.58,83.43,92.73,96.26],"h3":[0.0,4.41,18.32,22.88,27.91,32.41,40.15,48.3,53.24,62.38,65.9],"h4":[0.0,4.79,18.07,22.48,28.53,36.28,43.76,52.76,58.1,65.36,74.23,77.77],"h5":[0.0,4.96,18.99,23.25,31.0,38.19,45.31,53.52,58.84,64.29,74.23,77.76],"h6":[0.0,5.74,15.62,20.23,27.12,37.5,42.21,51.64,57.51,64.03,79.26,82.79],"h7":[0.0,4.29,15.51,20.2,25.62,33.14,39.66,53.04,60.87,66.21,77.52,81.05],"h8":[0.0,4.41,15.99,19.69,28.83,37.82,46.8,53.95,59.83,68.43,71.96],"h9":[0.0,5.11,16.93,21.82,31.9,41.35,45.77,50.38,57.07,64.75,73.89,77.42],"p1":[0.0,5.06,18.13,28.3,39.71,45.35,50.99,59.46,64.31,72.0,81.75,85.29],"p2":[0.0,4.82,15.44,19.11,25.37,29.03,38.1,42.05,48.0,54.67,60.12,66.61,70.13],"p3":[0.0,4.55,14.69,18.99,26.56,35.39,43.28,48.82,53.05,56.61,64.94,68.47],"p4":[0.0,5.7,19.6,23.41,28.03,33.02,39.05,44.37,50.61,59.56,65.52,69.04],"p5":[0.0,5.88,19.5,23.17,29.06,33.44,37.65,44.46,52.09,58.27,67.31,70.85],"e1":[0.0,3.86,16.39,20.63,31.3,39.44,47.22,50.55,56.73,64.59,68.12],"e2":[0.0,4.23,16.86,21.58,35.84,52.12,58.55,67.73,73.22,78.0,88.54,92.08],"e3":[0.0,5.42,20.75,26.06,37.98,47.71,53.01,59.18,68.52,73.74,82.26,85.8],"e4":[0.0,3.79,13.2,18.07,27.34,34.15,39.47,45.05,50.58,57.17,65.28,68.81],"e5":[0.0,5.23,14.75,19.22,30.31,34.33,46.39,56.86,61.01,70.59,74.12],"e6":[0.0,4.12,14.2,20.15,30.81,36.82,41.18,48.7,54.65,60.21,68.73,72.27],"e7":[0.0,4.16,14.53,18.34,22.78,30.43,38.24,47.61,52.73,61.25,64.78],"e8":[0.0,4.97,17.74,21.58,30.08,38.2,41.85,48.3,52.92,57.28,65.03,68.57],"e9":[0.0,5.98,18.11,22.97,28.66,36.12,41.35,46.75,58.35,63.89,73.51,77.05],"n1":[0.0,5.16,17.19,21.56,25.67,29.46,34.89,42.0,48.61,52.94,63.76,67.29],"n2":[0.0,6.48,18.32,22.45,33.95,40.94,46.8,52.79,57.37,62.75,71.66,75.19],"n3":[0.0,6.64,14.57,20.85,28.49,34.61,38.84,45.46,51.32,55.15,60.78,68.38,71.91],"n4":[0.0,7.48,18.71,24.23,30.96,38.56,46.96,54.29,58.51,63.32,68.95,75.96,79.5],"n5":[0.0,7.05,19.17,23.51,35.36,41.34,48.5,54.32,60.59,63.74,73.08,76.61],"n6":[0.0,9.17,17.89,23.48,30.47,38.64,46.49,54.26,59.42,64.74,73.16,76.7]};
 // ---------- storage (per-viewer conveniences) ----------
 const KEY = "ssc10-saathi";
-let store = {examDate:"", watched:{}, quiz:{}, read:{}, last:null, checks:[], lang:"mr"};
+let store = {examDate:"", watched:{}, quiz:{}, read:{}, last:null, checks:[], lang:"mr", bdOpen:{}};
 try { const raw = localStorage.getItem(KEY); if (raw) store = Object.assign(store, JSON.parse(raw)); } catch(e) {}
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e) {} if (window.onStoreSave) window.onStoreSave(); }
 
@@ -3515,6 +3516,7 @@ function renderBoard(el, s, c){
   const x = (typeof X !== "undefined" && X[c.id]) || {w: []}, w = x.w;
   store.bd = store.bd || {}; const done = store.bd[c.id] || [];
   const tot = w.reduce((a, q) => a + q[2], 0);
+  const open = !!(store.bdOpen || {})[c.id];
   el.innerHTML = `
   <div class="note small"><b>बोर्ड पॅटर्न सराव प्रश्न:</b> SSC बोर्डाच्या मागील प्रश्नपत्रिकांतील प्रश्नप्रकार व गुणांच्या पद्धतीनुसार तयार केलेले सराव प्रश्न. हे मागील वर्षांचे मूळ (official) प्रश्न नाहीत. मूळ प्रश्नपत्रिका शाळा / बोर्डाच्या संकेतस्थळावरून मिळवा.</div>
   <div class="sheet pad" style="margin-top:12px;display:grid;gap:14px">
@@ -3523,11 +3525,11 @@ function renderBoard(el, s, c){
       <div class="row" style="gap:6px"><span class="chip">${esc(q[0].replace(/\s*\(.*\)$/, ""))}</span><span class="chip warn">${q[2]} गुण</span></div>
       <div class="qtext" style="margin:6px 0">${i + 1}. ${esc(q[1])}</div>
       <div class="row" style="justify-content:space-between">
-        <details><summary class="small">उत्तराचे मुख्य मुद्दे पहा (आधी स्वतः लिहा)</summary><div class="explain small">${esc(q[3])}</div></details>
+        ${open ? `<div class="explain small"><b>उत्तराचे मुख्य मुद्दे:</b> ${esc(q[3])}</div>` : `<span class="small muted">🔒 उत्तर उत्तरपत्रिका अपलोड केल्यावर दिसेल</span>`}
         <label class="small"><input type="checkbox" data-bd="${i}" ${done.includes(i) ? "checked" : ""}> सोडवला</label>
       </div></div>`).join("")}
     <div class="sheet pad small" style="display:grid;gap:8px;background:var(--amber-soft)">
-      <b>हे प्रश्न कागदावर सोडवा आणि फोटो अपलोड करून गुण व श्रेणी मिळवा.</b>
+      <b>${open ? "उत्तरे उघडली आहेत. पुन्हा सराव करून पुन्हा तपासू शकता." : "हे प्रश्न कागदावर सोडवा आणि उत्तरपत्रिकेचा फोटो अपलोड करा — मग गुण, श्रेणी आणि सर्व उत्तरे दिसतील."}</b>
       <div class="row">${w.length ? `<button class="btn red" id="bdCheck">उत्तरपत्रिका तपासा (${tot} गुण)</button>` : ""}${ytExplainBtn(c)}</div>
     </div>
   </div>`;
@@ -3647,6 +3649,7 @@ function drawThumbs(){
 async function runCheck(){
   if (!AI || !CK.files.length) return;
   const s = SUBJECTS.find(x => x.id === CK.subj); const ch = CK.chap ? findCh(CK.chap).c : null;
+  if (CK.key && CK.chap){ store.bdOpen = store.bdOpen || {}; store.bdOpen[CK.chap] = true; save(); }
   CK.busy = true; CK.result = null; CK.ctl = new AbortController(); renderCheck();
   $("#ckResult").innerHTML = `<div class="sheet pad"><b>Claude तुमची ${CK.files.length} पाने वाचत आहे…</b><p class="small muted" style="margin:4px 0 0">काळजीपूर्वक तपासणीला 30–90 सेकंद लागतात. हे पान उघडे ठेवा.</p></div>`;
   const prompt = `You are an experienced Maharashtra State Board SSC (Std 10) examiner and a kind, encouraging tutor.
@@ -3674,10 +3677,16 @@ If the photos are unreadable or are not an answer sheet, set "readable": false, 
   CK.busy = false; CK.ctl = null;
   if (S.view === "check" || (S.view === "chapter" && S.ctab === "check")) renderCheck();
 }
+function answerKeyHtml(){
+  if (!CK.key || !CK.chap || !(store.bdOpen || {})[CK.chap] || typeof X === "undefined" || !X[CK.chap]) return "";
+  return `<div class="sheet pad" style="margin-top:14px;display:grid;gap:10px"><div class="eyebrow">बोर्ड पॅटर्न प्रश्नांची उत्तरे</div>
+    ${X[CK.chap].w.map((q, i) => `<div class="qres"><div class="h"><b>Q${i + 1}. ${esc(q[1])}</b><span class="chip warn">${q[2]} गुण</span></div><div class="small" style="white-space:pre-wrap"><b>उत्तराचे मुद्दे:</b> ${esc(q[3])}</div></div>`).join("")}
+    <p class="small muted" style="margin:0">तुमच्या उत्तराशी तुलना करा. सोडलेले मुद्दे वहीत लिहून घ्या.</p></div>`;
+}
 function drawResult(r){
   const box = $("#ckResult");
-  if (r.error){ box.innerHTML = `<div class="note">${esc(r.error)}</div>`; return; }
-  if (r.readable === false){ box.innerHTML = `<div class="note"><b>उत्तरपत्रिका वाचता आली नाही.</b> ${esc(r.summary)}</div>`; return; }
+  if (r.error){ box.innerHTML = `<div class="note">${esc(r.error)}</div>${answerKeyHtml()}`; return; }
+  if (r.readable === false){ box.innerHTML = `<div class="note"><b>उत्तरपत्रिका वाचता आली नाही.</b> ${esc(r.summary)}</div>${answerKeyHtml()}`; return; }
   const vchip = v => ({correct:'<span class="chip ok">बरोबर</span>', partial:'<span class="chip warn">अंशतः बरोबर</span>', wrong:'<span class="chip bad">चूक</span>', not_attempted:'<span class="chip">सोडवला नाही</span>'}[v] || "");
   const qs = Array.isArray(r.questions) ? r.questions : [];
   box.innerHTML = `
@@ -3694,7 +3703,7 @@ function drawResult(r){
         ${q.question ? `<div class="small"><b>प्रश्न:</b> ${esc(q.question)}</div>` : ""}
         ${q.student_answer ? `<div class="small muted"><b>तुम्ही लिहिले:</b> ${esc(q.student_answer)}</div>` : ""}
         <div class="small"><b>अभिप्राय:</b> ${esc(q.feedback)}</div>
-        ${q.model_answer ? `<details class="small"><summary style="cursor:pointer;color:var(--blue);font-weight:600">आदर्श उत्तर पहा</summary><div style="margin-top:6px;white-space:pre-wrap">${esc(q.model_answer)}</div></details>` : ""}
+        ${q.model_answer ? `<div class="small explain" style="white-space:pre-wrap;margin-top:6px"><b>आदर्श उत्तर:</b> ${esc(q.model_answer)}</div>` : ""}
       </div>`).join("")}</div>
     <div class="cols">
       ${Array.isArray(r.strengths) && r.strengths.length ? `<div><div class="eyebrow">काय चांगले केले</div><ul class="kp">${r.strengths.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
@@ -3702,7 +3711,7 @@ function drawResult(r){
     </div>
     ${Array.isArray(r.revise) && r.revise.length ? `<div class="small"><b>पुढे उजळणी करा:</b> ${r.revise.map(esc).join(", ")}</div>` : ""}
     <div class="row"><button class="btn" id="ckNew">दुसरी उत्तरपत्रिका तपासा</button></div>
-  </div>`;
+  </div>${answerKeyHtml()}`;
   $("#ckNew").onclick = () => { CK.files.forEach(x => URL.revokeObjectURL(x.url)); CK.files = []; CK.result = null; renderCheck(); };
 }
 
