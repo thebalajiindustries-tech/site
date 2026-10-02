@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import get_settings
-from . import db, llm, tenancy, auth, seed, docstore, docai, billing, zoho_live, connectors_routes, digest, digest_routes, inbox_books, inbox_books_routes
+from . import db, llm, tenancy, auth, seed, docstore, docai, billing, zoho_live, connectors_routes, digest, digest_routes, inbox_books, inbox_books_routes, ssc_routes
 from .guardrails import sanitize, UnsafeSQLError
 
 logging.basicConfig(level=logging.INFO)
@@ -41,13 +41,14 @@ def _debit(tenant_id: int, kind: str, detail: str = ""):
 app = FastAPI(title="Ganak API", version="2.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.CORS_ORIGINS + settings.SSC_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 app.include_router(connectors_routes.router)
 app.include_router(digest_routes.router)
 app.include_router(inbox_books_routes.router)
+app.include_router(ssc_routes.router)
 
 
 @app.on_event("startup")

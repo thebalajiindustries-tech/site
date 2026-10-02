@@ -128,6 +128,19 @@ class Settings:
     ).split(",")
     ORG_NAME: str = os.environ.get("ORG_NAME", "The Balaji Industries")
 
+    # --- SSC Saathi (Std 10 study app at ssc.vidmahitech.com) ---
+    # Public study site that borrows this backend's Anthropic key for answer-sheet
+    # grading and doubt solving. Gated by access codes the owner hands to students
+    # (blank = feature off) and capped per code and in total per day.
+    SSC_ACCESS_CODES: str = os.environ.get("SSC_ACCESS_CODES", "")
+    SSC_ORIGINS: list = [o for o in os.environ.get(
+        "SSC_ORIGINS", "https://ssc.vidmahitech.com,https://ssc-saathi.onrender.com"
+    ).split(",") if o]
+    SSC_DAILY_LIMIT_PER_CODE: int = int(os.environ.get("SSC_DAILY_LIMIT_PER_CODE", "60"))
+    SSC_DAILY_LIMIT_TOTAL: int = int(os.environ.get("SSC_DAILY_LIMIT_TOTAL", "600"))
+    SSC_MODEL_QUICK: str = os.environ.get("SSC_MODEL_QUICK", "claude-haiku-4-5-20251001")
+    SSC_MODEL: str = os.environ.get("SSC_MODEL", "claude-sonnet-5")
+
     # --- environment identity (production vs staging) ---
     # A staging deploy sets GANAK_ENVIRONMENT=staging and GANAK_SCHEMA_PREFIX
     # so it shares the same Supabase project as production but every schema
