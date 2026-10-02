@@ -276,11 +276,38 @@ details summary{cursor:pointer;color:var(--blue);font-weight:600;margin-top:8px}
 .gradebox.ok{background:var(--green-soft);border-color:var(--green);color:var(--green)}
 .gradebox.warn{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
 .gradebox.bad{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+.ytframe{position:relative;aspect-ratio:16/9;width:100%;margin-top:10px;border-radius:12px;overflow:hidden;background:#000}
+.ytframe iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.ytposter{display:flex;align-items:center;gap:16px;margin-top:10px;padding:22px;border-radius:12px;background:#1b1f3a;color:#fff;text-decoration:none;min-height:120px}
+.ytplay.big{width:64px;height:44px;font-size:20px}
+.ytpick{margin-top:10px;gap:6px}.ytpick .btn{font-size:13px;padding:5px 10px}
+.ytmore{margin-top:10px}.ytmore summary,.revise summary,.bq summary{cursor:pointer}
+.revise{margin-top:14px}
+.ytx{display:inline-flex;align-items:center;gap:8px}
+.ytmodal{position:fixed;inset:0;z-index:60;background:rgba(10,12,28,.82);display:grid;place-items:center;padding:16px}
+.ytbox{width:min(920px,100%)}
+.bq{border-top:1px dashed var(--line);padding-top:12px}
+.bq:first-of-type{border-top:0;padding-top:0}
+.login{max-width:520px;margin:28px auto 0}
+.login input,.tdwrap select,#tdCls,#tdSort{border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--sheet);color:var(--ink);font:inherit;width:100%;box-sizing:border-box}
+#tdCls,#tdSort{width:auto;padding:6px 8px}
+#userBtn{padding:5px 12px;font-size:13px;white-space:nowrap}
+.tdstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.tdwrap{overflow-x:auto}
+.tdt{width:100%;border-collapse:collapse;font-size:14px;min-width:820px}
+.tdt th{text-align:left;font-size:12px;color:var(--ink-2);font-weight:600;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tdt td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tdt tr[data-row]{cursor:pointer}.tdt tr[data-row]:hover{background:var(--amber-soft)}
+.tdbar{display:inline-block;width:70px;height:7px;border-radius:4px;background:var(--line);margin-right:6px;vertical-align:middle;overflow:hidden}
+.tdbar i{display:block;height:100%;background:var(--green,#1a8f5a)}
+.tdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.tdgrid .tdbar{width:100%;display:block;margin:4px 0}
+.tdstats .score{font-size:34px}
 </style>
 </head><body>
 <header class="top"><div class="top-in">
   <button class="brand" data-go="home" aria-label="SSC Saathi home"><b>SSC Saathi</b><span>इयत्ता १० वी</span></button>
-  <button class="btn" id="installBtn" hidden style="padding:5px 12px">ॲप इंस्टॉल करा</button>
+  <button class="btn" id="installBtn" hidden style="padding:5px 12px">ॲप इंस्टॉल करा</button><button class="btn" id="userBtn" hidden></button>
   <nav class="tabs" aria-label="Main">
     <button class="tab" data-go="home">शिका</button>
     <button class="tab" data-go="check">उत्तरपत्रिका</button>
@@ -344,6 +371,194 @@ document.addEventListener("click", async e => {
   installEvt.prompt(); await installEvt.userChoice.catch(() => null); installEvt = null; e.target.closest("#installBtn").hidden = true;
 });
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+// Website build only: student login (name + class code), progress sync, teacher dashboard.
+const SYNC_KEYS = ["examDate", "watched", "quiz", "read", "checks", "bd", "last"];
+function apiBase(){ return ((window.SSC_CONFIG && SSC_CONFIG.api) || "").replace(/\/$/, ""); }
+function progressOf(st){ const p = {}; SYNC_KEYS.forEach(k => { if (st[k] !== undefined) p[k] = st[k]; }); p.checks = (p.checks || []).slice(-30); return p; }
+function mergeProgress(local, srv){
+  srv = srv || {};
+  const out = {};
+  out.quiz = Object.assign({}, srv.quiz); for (const [k, v] of Object.entries(local.quiz || {})) out.quiz[k] = Math.max(v, out.quiz[k] ?? 0);
+  out.watched = Object.assign({}, srv.watched, local.watched);
+  out.read = Object.assign({}, srv.read, local.read);
+  out.bd = Object.assign({}, srv.bd); for (const [k, v] of Object.entries(local.bd || {})) out.bd[k] = [...new Set([...(out.bd[k] || []), ...v])];
+  const seen = new Set(); out.checks = [...(srv.checks || []), ...(local.checks || [])].filter(c => { const k = [c.date, c.subject, c.got, c.total].join("|"); if (seen.has(k)) return false; seen.add(k); return true; }).slice(-30);
+  out.examDate = local.examDate || srv.examDate || "";
+  out.last = local.last || srv.last || null;
+  return out;
+}
+let syncTimer = 0, syncing = false;
+async function pushProgress(){
+  if (!store.student || !store.code || syncing) return;
+  syncing = true;
+  try {
+    const r = await fetch(apiBase() + "/progress", {method: "PUT", headers: {"Content-Type": "application/json", "X-Access-Code": store.code},
+      body: JSON.stringify({name: store.student, progress: progressOf(store)})});
+    if (r.status === 401) { syncing = false; logout("वर्ग कोड बदलला आहे. पुन्हा लॉगिन करा.", true); }
+  } catch(e) { /* offline: next save will retry */ }
+  syncing = false;
+}
+window.onStoreSave = () => { if (!store.student) return; clearTimeout(syncTimer); syncTimer = setTimeout(pushProgress, 2500); };
+window.addEventListener("pagehide", () => { if (store.student && store.code) { try { fetch(apiBase() + "/progress", {method: "PUT", keepalive: true, headers: {"Content-Type": "application/json", "X-Access-Code": store.code}, body: JSON.stringify({name: store.student, progress: progressOf(store)})}); } catch(e) {} } });
+
+async function logout(msg, skipPush){
+  clearTimeout(syncTimer);
+  if (!skipPush && store.student && store.code) { syncing = false; await pushProgress(); }
+  store.student = ""; store.code = "";
+  Object.assign(store, {watched:{}, quiz:{}, read:{}, checks:[], bd:{}, last:null, examDate:""});
+  save(); updateUserBtn(); S.view = "home"; render(); if (msg) toast(msg);
+}
+function updateUserBtn(){
+  const b = document.getElementById("userBtn"); if (!b) return;
+  b.hidden = !store.student;
+  b.textContent = store.student ? "👤 " + store.student.split(" ")[0] + " · बाहेर पडा" : "";
+}
+document.addEventListener("click", e => {
+  if (e.target.closest("#userBtn")) { if (confirmLogout()) logout("तुम्ही बाहेर पडलात. प्रगती सर्व्हरवर जतन आहे."); }
+});
+function confirmLogout(){
+  const b = document.getElementById("userBtn");
+  if (b.dataset.arm) { delete b.dataset.arm; return true; }
+  b.dataset.arm = "1"; b.textContent = "पुन्हा दाबा: बाहेर पडा?"; setTimeout(() => { delete b.dataset.arm; updateUserBtn(); }, 3000); return false;
+}
+
+// Returns true when it rendered the login or teacher screen instead of the app.
+function loginGate(){
+  updateUserBtn();
+  if (S.view === "teacher" || location.hash === "#teacher") { S.view = "teacher"; renderTeacher(); return true; }
+  if (!store.student) { renderLogin(); return true; }
+  return false;
+}
+function renderLogin(msg){
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-current", "false"));
+  app().innerHTML = `
+  <div class="login sheet pad">
+    <span class="eyebrow">विद्यार्थी लॉगिन</span>
+    <h1 style="margin:4px 0 6px">SSC Saathi मध्ये स्वागत!</h1>
+    <p class="muted small" style="margin:0 0 14px">तुमचे पूर्ण नाव आणि शिक्षकांनी दिलेला वर्ग कोड टाका. तुमची प्रगती सर्व्हरवर जतन होईल — कोणत्याही फोनवर हेच नाव व कोड टाकून पुढे चालू ठेवा.</p>
+    <form id="loginForm" style="display:grid;gap:12px">
+      <div class="field"><label for="lgName">विद्यार्थ्याचे पूर्ण नाव</label><input id="lgName" autocomplete="name" maxlength="60" placeholder="उदा. Asha Patil" value="${esc(store.lastName || "")}" required></div>
+      <div class="field"><label for="lgCode">वर्ग कोड</label><input id="lgCode" autocomplete="off" autocapitalize="characters" placeholder="उदा. SSC-2027" required></div>
+      <button class="btn red" id="lgGo" type="submit" style="justify-self:start">लॉगिन करा</button>
+      <div id="lgMsg" class="small" role="status">${msg ? esc(msg) : ""}</div>
+    </form>
+    <p class="small muted" style="margin:16px 0 0">टीप: नाव नेहमी एकाच पद्धतीने लिहा (उदा. "Asha Patil"), म्हणजे तुमची प्रगती एकत्र राहील. <a href="#teacher" id="toTeacher">शिक्षक लॉगिन →</a></p>
+  </div>`;
+  $("#toTeacher").onclick = e => { e.preventDefault(); location.hash = "teacher"; S.view = "teacher"; render(); };
+  $("#loginForm").onsubmit = async e => {
+    e.preventDefault();
+    const name = $("#lgName").value.replace(/\s+/g, " ").trim(), code = $("#lgCode").value.trim(), m = $("#lgMsg"), b = $("#lgGo");
+    if (name.length < 2) { m.textContent = "पूर्ण नाव टाका."; return; }
+    if (!code) { m.textContent = "वर्ग कोड टाका."; return; }
+    b.disabled = true; m.textContent = "लॉगिन होत आहे… (पहिल्यांदा सर्व्हर सुरू व्हायला 1 मिनिट लागू शकतो)";
+    try {
+      const r = await fetch(apiBase() + "/login", {method: "POST", headers: {"Content-Type": "application/json", "X-Access-Code": code}, body: JSON.stringify({name})});
+      if (r.status === 401) { m.textContent = "वर्ग कोड चुकीचा आहे. शिक्षकांकडून योग्य कोड घ्या."; b.disabled = false; return; }
+      if (!r.ok) { m.textContent = "सर्व्हरमध्ये अडचण (" + r.status + "). थोड्या वेळाने पुन्हा प्रयत्न करा."; b.disabled = false; return; }
+      const d = await r.json();
+      Object.assign(store, mergeProgress(store, d.progress), {student: d.name, code, lastName: d.name});
+      save(); pushProgress(); updateUserBtn();
+      toast(d.new ? `स्वागत, ${d.name}!` : `पुन्हा स्वागत, ${d.name}! प्रगती आणली.`);
+      S.view = "home"; render();
+    } catch(err) { m.textContent = "सर्व्हरशी संपर्क झाला नाही. इंटरनेट तपासा आणि पुन्हा प्रयत्न करा."; b.disabled = false; }
+  };
+}
+
+// ---------- teacher dashboard ----------
+const TD = {key: "", data: null, cls: "", open: null, sort: "name"};
+try { TD.key = sessionStorage.getItem("ssc-teacher") || ""; } catch(e) {}
+function summarize(p){
+  const all = SUBJECTS.flatMap(s => s.ch);
+  const q = p.quiz || {}, scores = Object.values(q);
+  const checks = p.checks || [], last = checks[checks.length - 1];
+  return {
+    watched: Object.keys(p.watched || {}).length, total: all.length,
+    mastered: all.filter(c => (q[c.id] ?? -1) >= 80).length,
+    tried: scores.length, avg: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
+    sheets: checks.length, lastPct: last && +last.total ? Math.round(last.got / last.total * 100) : null,
+    board: Object.values(p.bd || {}).reduce((a, v) => a + v.length, 0)
+  };
+}
+function ago(ts){ const d = (Date.now() / 1000 - ts) / 86400; return d < 1 ? "आज" : d < 2 ? "काल" : Math.floor(d) + " दिवसांपूर्वी"; }
+async function loadTeacher(){
+  const r = await fetch(apiBase() + "/teacher", {headers: {"X-Teacher-Key": TD.key}});
+  if (r.status === 401) throw new Error("शिक्षक पासवर्ड चुकीचा आहे.");
+  if (r.status === 503) throw new Error("शिक्षक डॅशबोर्ड अजून सुरू केलेला नाही (सर्व्हरवर SSC_TEACHER_KEY सेट करा).");
+  if (!r.ok) throw new Error("सर्व्हरमध्ये अडचण (" + r.status + ").");
+  TD.data = (await r.json()).students;
+}
+function renderTeacher(msg){
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-current", "false"));
+  const back = `<a href="#" id="tdBack" class="small">← विद्यार्थी ॲपकडे परत</a>`;
+  if (!TD.data){
+    app().innerHTML = `<div class="login sheet pad">${back}<span class="eyebrow" style="display:block;margin-top:10px">शिक्षक डॅशबोर्ड</span>
+      <h1 style="margin:4px 0 12px">वर्गाची प्रगती पहा</h1>
+      <form id="tdForm" style="display:grid;gap:12px"><div class="field"><label for="tdKey">शिक्षक पासवर्ड</label><input id="tdKey" type="password" autocomplete="current-password" required></div>
+      <button class="btn primary" style="justify-self:start" id="tdGo">उघडा</button><div id="tdMsg" class="small" role="status">${msg ? esc(msg) : ""}</div></form></div>`;
+    bindBack();
+    $("#tdForm").onsubmit = async e => {
+      e.preventDefault(); TD.key = $("#tdKey").value; $("#tdGo").disabled = true; $("#tdMsg").textContent = "लोड होत आहे…";
+      try { await loadTeacher(); try { sessionStorage.setItem("ssc-teacher", TD.key); } catch(e) {} renderTeacher(); }
+      catch(err) { $("#tdMsg").textContent = err.message || "सर्व्हरशी संपर्क झाला नाही."; $("#tdGo").disabled = false; }
+    };
+    if (TD.key && !msg) { loadTeacher().then(() => renderTeacher()).catch(err => { TD.key = ""; try { sessionStorage.removeItem("ssc-teacher"); } catch(e) {} renderTeacher(err.message); }); }
+    return;
+  }
+  const classes = [...new Set(TD.data.map(s => s.code))];
+  const rows = TD.data.filter(s => !TD.cls || s.code === TD.cls).map(s => Object.assign({}, s, summarize(s.progress)));
+  const by = {name: (a, b) => a.name.localeCompare(b.name), mastered: (a, b) => b.mastered - a.mastered, avg: (a, b) => (b.avg ?? -1) - (a.avg ?? -1), active: (a, b) => b.updated_at - a.updated_at}[TD.sort];
+  rows.sort(by);
+  const n = rows.length || 1;
+  const avgM = Math.round(rows.reduce((a, r) => a + r.mastered, 0) / n), avgQ = rows.filter(r => r.avg != null), act = rows.filter(r => Date.now() / 1000 - r.updated_at < 7 * 86400).length;
+  app().innerHTML = `
+  <div class="chhead" style="margin-top:14px">${back}<span class="eyebrow" style="display:block;margin-top:8px">शिक्षक डॅशबोर्ड</span><h1>वर्गाची प्रगती</h1></div>
+  <div class="row" style="gap:10px;margin:10px 0 14px">
+    <label class="small">वर्ग कोड <select id="tdCls">${["", ...classes].map(c => `<option value="${esc(c)}" ${c === TD.cls ? "selected" : ""}>${c ? esc(c.toUpperCase()) : "सर्व वर्ग"}</option>`).join("")}</select></label>
+    <label class="small">क्रम <select id="tdSort">${[["name","नाव"],["mastered","पक्की प्रकरणे"],["avg","सरासरी गुण"],["active","अलीकडे सक्रिय"]].map(([k, l]) => `<option value="${k}" ${k === TD.sort ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+    <button class="btn" id="tdRefresh">↻ ताजे करा</button><button class="btn" id="tdCsv">Excel (CSV) डाउनलोड</button><button class="btn" id="tdOut">शिक्षक लॉगआउट</button>
+  </div>
+  <div class="tdstats">
+    <div class="sheet pad"><div class="eyebrow">विद्यार्थी</div><b class="score">${rows.length}</b></div>
+    <div class="sheet pad"><div class="eyebrow">या आठवड्यात सक्रिय</div><b class="score">${act}</b></div>
+    <div class="sheet pad"><div class="eyebrow">सरासरी पक्की प्रकरणे</div><b class="score">${avgM}<span class="small muted">/62</span></b></div>
+    <div class="sheet pad"><div class="eyebrow">सरासरी MCQ गुण</div><b class="score">${avgQ.length ? Math.round(avgQ.reduce((a, r) => a + r.avg, 0) / avgQ.length) + "%" : "–"}</b></div>
+  </div>
+  ${rows.length ? `<div class="sheet tdwrap"><table class="tdt">
+    <thead><tr><th>विद्यार्थी</th><th>वर्ग</th><th>शेवटचे सक्रिय</th><th>व्हिडिओ पाहिले</th><th>पक्की प्रकरणे (MCQ ≥80%)</th><th>सरासरी MCQ</th><th>बोर्ड प्रश्न</th><th>उत्तरपत्रिका</th><th>शेवटची श्रेणी</th></tr></thead>
+    <tbody>${rows.map((r, i) => `<tr data-row="${i}" tabindex="0">
+      <td><b>${esc(r.name)}</b></td><td>${esc(r.code.toUpperCase())}</td><td>${ago(r.updated_at)}</td>
+      <td>${r.watched}/${r.total}</td>
+      <td><div class="tdbar"><i style="width:${r.mastered / r.total * 100}%"></i></div>${r.mastered}</td>
+      <td>${r.avg == null ? "–" : r.avg + "%"}</td><td>${r.board}</td><td>${r.sheets}</td>
+      <td>${r.lastPct == null ? "–" : `<span class="chip ${gradeOf(r.lastPct).cls}">${r.lastPct}% · ${gradeOf(r.lastPct).g}</span>`}</td></tr>
+      ${TD.open === r.code + "|" + r.name ? `<tr class="tddet"><td colspan="9">${detail(r)}</td></tr>` : ""}`).join("")}</tbody></table></div>`
+    : `<div class="note">अजून कोणीही लॉगिन केलेले नाही. विद्यार्थ्यांना ssc.vidmahitech.com ची लिंक आणि वर्ग कोड पाठवा.</div>`}
+  <p class="small muted">विद्यार्थ्याच्या ओळीवर टॅप करा — विषयानुसार तपशील दिसेल. विद्यार्थी फक्त नाव + वर्ग कोडने लॉगिन करतात, त्यामुळे नावे नीट तपासा.</p>`;
+  bindBack();
+  $("#tdCls").onchange = e => { TD.cls = e.target.value; renderTeacher(); };
+  $("#tdSort").onchange = e => { TD.sort = e.target.value; renderTeacher(); };
+  $("#tdRefresh").onclick = async () => { try { await loadTeacher(); renderTeacher(); toast("ताजे केले"); } catch(err) { toast(err.message); } };
+  $("#tdOut").onclick = () => { TD.key = ""; TD.data = null; try { sessionStorage.removeItem("ssc-teacher"); } catch(e) {} renderTeacher(); };
+  $("#tdCsv").onclick = () => {
+    const head = ["Name","Class code","Last active","Videos watched","Chapters mastered","Average MCQ %","Board questions done","Answer sheets checked","Last sheet %"];
+    const lines = [head, ...rows.map(r => [r.name, r.code.toUpperCase(), new Date(r.updated_at * 1000).toLocaleDateString("en-IN"), r.watched, r.mastered, r.avg ?? "", r.board, r.sheets, r.lastPct ?? ""])]
+      .map(l => l.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + lines], {type: "text/csv"})); a.download = "ssc-saathi-progress.csv"; a.click();
+  };
+  app().querySelectorAll("[data-row]").forEach(tr => { const f = () => { const r = rows[+tr.dataset.row], k = r.code + "|" + r.name; TD.open = TD.open === k ? null : k; renderTeacher(); }; tr.onclick = f; tr.onkeydown = e => { if (e.key === "Enter") f(); }; });
+}
+function detail(r){
+  const p = r.progress, q = p.quiz || {};
+  return `<div class="tdgrid">${SUBJECTS.map(s => {
+    const done = s.ch.filter(c => (q[c.id] ?? -1) >= 80).length, tried = s.ch.filter(c => q[c.id] != null);
+    const weak = tried.filter(c => q[c.id] < 50).map(c => c.t);
+    return `<div><b>${esc(s.short)}</b> <span class="small muted">${done}/${s.ch.length} पक्की</span><div class="tdbar"><i style="width:${done / s.ch.length * 100}%;background:var(--${s.hue})"></i></div>${weak.length ? `<div class="small" style="color:var(--red)">कमकुवत: ${esc(weak.slice(0, 3).join(", "))}</div>` : ""}</div>`;
+  }).join("")}</div>
+  ${(p.checks || []).length ? `<div class="small" style="margin-top:8px"><b>उत्तरपत्रिका:</b> ${(p.checks || []).slice(-5).reverse().map(c => `${esc(c.date)} ${esc(c.subject)} ${esc(c.got)}/${esc(c.total)}`).join(" · ")}</div>` : ""}
+  ${p.examDate ? `<div class="small muted">परीक्षा तारीख: ${esc(p.examDate)}</div>` : ""}`;
+}
+function bindBack(){ const b = $("#tdBack"); if (b) b.onclick = e => { e.preventDefault(); history.replaceState(null, "", location.pathname); S.view = "home"; render(); }; }
+window.addEventListener("hashchange", () => { if (location.hash === "#teacher") { S.view = "teacher"; render(); } });
 // Chapter data. C(id, title, marathi title, summary EN, summary MR, key points, formulas, exam tip, quiz)
 // quiz item: [question, [options], correctIndex, explanation]
 function C(id,t,m,s,sm,k,f,tip,q){return {id,t,m,s,sm,k,f,tip,q};}
@@ -1116,6 +1331,1120 @@ const SUBJECTS = [
  {id:"ge", name:"Geography", short:"Geography", mr:"भूगोल", marks:"Geography paper", hue:"g", ch:GEO},
  {id:"en", name:"English (Kumarbharati)", short:"English", mr:"इंग्रजी (कुमारभारती)", marks:"Skill-based paper", hue:"e", ch:ENG}
 ];
+// Extra board-pattern practice: m = more MCQs [q, options, correctIndex]; w = written [type, question, marks, answer key]
+const X = {};
+X.a1 = {m:[
+["Which is a linear equation in two variables?",["x² + y = 4","2x + 3y = 7","xy = 6","x + 1/y = 2"],1],
+["The graph of 3x + 2y = 6 cuts the Y-axis at:",["(0, 3)","(2, 0)","(0, 2)","(3, 0)"],0],
+["If 2x + y = 7 and x = 2, then y = ?",["3","5","2","1"],0],
+["For Cramer's rule, Dx for 2x + 3y = 8, 4x − y = 2 is:",["−14","14","−8","10"],0],
+["The solution of x + y = 10 and x − y = 4 is:",["(7, 3)","(3, 7)","(6, 4)","(5, 5)"],0],
+["Lines x = 2 and y = 3 intersect at:",["(3, 2)","(2, 3)","(0, 0)","(2, 0)"],1],
+["If the sum of two numbers is 25 and difference is 5, the bigger number is:",["10","15","20","12"],1]],
+w:[
+["Solve (1 mark)","Find the value of the determinant |3 −2; 4 5|.",1,"3×5 − (−2)×4 = 15 + 8 = 23"],
+["Solve (1 mark)","If x + y = 3 and 3x − 2y − 4 = 0, find D using Cramer's rule.",1,"Write as x + y = 3, 3x − 2y = 4. D = 1×(−2) − 1×3 = −5"],
+["Practice (2 marks)","Solve by substitution: x + y = 11, x − y = 3.",2,"x = 7, y = 4"],
+["Practice (2 marks)","Solve using Cramer's rule: 3x − 4y = 10, 4x + 3y = 5.",2,"D = 25, Dx = 50, Dy = −25 → x = 2, y = −1"],
+["Practice (3 marks)","Solve graphically: x + y = 6 and x − y = 4.",3,"Draw both lines using two points each; they intersect at (5, 1). x = 5, y = 1"],
+["Practice (3 marks)","Solve: 1/x + 1/y = 5 and 1/x − 1/y = 1 (put 1/x = m, 1/y = n).",3,"m + n = 5, m − n = 1 → m = 3, n = 2 → x = 1/3, y = 1/2"],
+["Word problem (4 marks)","The sum of a father's age and his son's age is 50 years. Five years ago, the father was 7 times as old as the son. Find their present ages.",4,"x + y = 50; x − 5 = 7(y − 5) → x − 7y = −30 → y = 10, x = 40. Father 40, son 10"],
+["Word problem (4 marks)","A two-digit number is 4 times the sum of its digits. The number formed by reversing the digits is 18 more than the original. Find the number.",4,"10x + y = 4(x + y) → 6x = 3y → y = 2x; 10y + x = 10x + y + 18 → y − x = 2 → x = 2, y = 4. Number = 24"]]};
+
+X.a2 = {m:[
+["The roots of x² − 5x + 6 = 0 are:",["2, 3","−2, −3","1, 6","−1, −6"],0],
+["The product of the roots of 2x² − 7x + 5 = 0 is:",["7/2","5/2","−5/2","−7/2"],1],
+["Which value of k makes x² + kx + 9 = 0 have equal roots?",["3","6","9","4"],1],
+["If one root of x² + px + 12 = 0 is 3, then p = ?",["7","−7","4","−4"],1],
+["The quadratic equation whose roots are 2 and 5 is:",["x² − 7x + 10 = 0","x² + 7x + 10 = 0","x² − 10x + 7 = 0","x² + 3x − 10 = 0"],0],
+["The value of the discriminant of 2x² + 3x + 5 = 0 is:",["−31","31","49","−49"],0],
+["Standard form of x(x + 3) = 10 is:",["x² + 3x − 10 = 0","x² + 3x + 10 = 0","x² − 3x − 10 = 0","x² + 10 = 3x"],0]],
+w:[
+["Solve (1 mark)","Find the discriminant of x² + 4x − 5 = 0.",1,"Δ = 16 + 20 = 36"],
+["Solve (1 mark)","Write the quadratic equation x(x − 2) = 3 in standard form.",1,"x² − 2x − 3 = 0"],
+["Practice (2 marks)","Solve by factorisation: x² − 7x + 12 = 0.",2,"(x − 3)(x − 4) = 0 → x = 3 or 4"],
+["Practice (2 marks)","Determine the nature of roots of 3x² − 2x + 5 = 0.",2,"Δ = 4 − 60 = −56 < 0 → roots are not real"],
+["Practice (3 marks)","Solve using the formula: x² + 6x + 5 = 0.",3,"a = 1, b = 6, c = 5; Δ = 16; x = (−6 ± 4)/2 → x = −1 or −5"],
+["Practice (3 marks)","Solve by completing the square: x² + 4x − 5 = 0.",3,"(x + 2)² = 9 → x + 2 = ±3 → x = 1 or −5"],
+["Word problem (4 marks)","The product of two consecutive natural numbers is 132. Find them.",4,"x(x + 1) = 132 → x² + x − 132 = 0 → (x + 12)(x − 11) = 0 → 11 and 12"],
+["Word problem (4 marks)","The length of a rectangle is 5 cm more than its breadth and its area is 84 cm². Find its dimensions.",4,"x(x + 5) = 84 → x² + 5x − 84 = 0 → (x + 12)(x − 7) = 0 → breadth 7 cm, length 12 cm"]]};
+
+X.a3 = {m:[
+["Which is the first term of the A.P. 10, 7, 4, …?",["7","10","−3","4"],1],
+["The common difference of the A.P. 1/2, 1, 3/2, … is:",["1","1/2","3/2","2"],1],
+["The 20th term of 5, 9, 13, … is:",["81","85","77","80"],0],
+["How many two-digit numbers are divisible by 3?",["30","29","31","33"],0],
+["Sum of first 20 odd natural numbers is:",["200","400","210","441"],1],
+["If tₙ = 3n + 2, the 5th term is:",["15","17","14","13"],1],
+["If a = 2, d = 3, then S₁₀ = ?",["155","145","165","135"],0]],
+w:[
+["Solve (1 mark)","Find d for the A.P. 2, −2, −6, −10, …",1,"d = −2 − 2 = −4"],
+["Solve (1 mark)","Write the first two terms of an A.P. with a = 6, d = −3.",1,"6, 3"],
+["Practice (2 marks)","Which term of the A.P. 3, 8, 13, … is 248?",2,"248 = 3 + (n − 1)5 → n = 50"],
+["Practice (2 marks)","Find the sum of the first 15 terms of 4, 9, 14, …",2,"S₁₅ = 15/2[8 + 14×5] = 15/2 × 78 = 585"],
+["Practice (3 marks)","The 10th term of an A.P. is 46 and the 4th term is 16. Find a and d.",3,"a + 9d = 46, a + 3d = 16 → d = 5, a = 1"],
+["Practice (3 marks)","Find the sum of all natural numbers from 1 to 140 which are divisible by 4.",3,"4, 8, …, 140: n = 35; S = 35/2 (4 + 140) = 2520"],
+["Word problem (4 marks)","Sachin saves ₹100 in the first month, ₹150 in the second, ₹200 in the third and so on. How much will he save in 12 months?",4,"a = 100, d = 50, n = 12; S = 6[200 + 550] = ₹4500"],
+["Word problem (4 marks)","Three numbers in A.P. have sum 27 and product 504. Find them.",4,"Take a − d, a, a + d: 3a = 27 → a = 9; 9(81 − d²) = 504 → d² = 25 → numbers 4, 9, 14"]]};
+
+X.a4 = {m:[
+["GST stands for:",["General Sales Tax","Goods and Services Tax","Government Service Tax","Goods and Supply Tax"],1],
+["GST rates in India include:",["0%, 5%, 12%, 18%, 28%","5%, 10%, 15%, 20%","1%, 2%, 3%","10%, 20%, 30%"],0],
+["A share of FV ₹10 is sold at MV ₹50. It is at a:",["Discount","Premium","Par","Loss"],1],
+["If FV = MV, the share is said to be at:",["Premium","Discount","Par","Brokerage"],2],
+["Tax invoice must show:",["GSTIN of the supplier","Only price","Only buyer name","Only date"],0],
+["Dividend of 10% on a share of FV ₹100 is:",["₹1","₹10","₹100","₹0.10"],1],
+["A person buys shares in the share market through a:",["Bank only","Broker","Post office","Shopkeeper"],1]],
+w:[
+["Solve (1 mark)","If GST is 12%, what are the rates of CGST and SGST?",1,"6% each"],
+["Solve (1 mark)","Find the dividend on 50 shares of FV ₹10 at 15% dividend.",1,"50 × 10 × 15/100 = ₹75"],
+["Practice (2 marks)","A shopkeeper sells an item for ₹2000 with GST 18%. Find CGST, SGST and the total bill.",2,"GST = ₹360 → CGST ₹180, SGST ₹180; bill ₹2360"],
+["Practice (2 marks)","Find the brokerage and GST on brokerage for shares worth ₹20,000 at 0.2% brokerage.",2,"Brokerage = ₹40; GST 18% = ₹7.20"],
+["Practice (3 marks)","A trader paid GST ₹2,400 on purchases and collected GST ₹3,600 on sales. Find GST payable and ITC.",3,"ITC = ₹2,400; payable = 3,600 − 2,400 = ₹1,200"],
+["Practice (3 marks)","Find the purchase value of 100 shares of MV ₹250 with brokerage 0.3% and GST 18%.",3,"Value ₹25,000; brokerage ₹75; GST ₹13.50; total ₹25,088.50"],
+["Problem (4 marks)","Smita invested ₹12,000 in shares of FV ₹100 at MV ₹120. Dividend is 15%. Find the number of shares and her rate of return.",4,"Shares = 12000/120 = 100; dividend = 100 × 15 = ₹1,500; return = 1500/12000 × 100 = 12.5%"],
+["Problem (4 marks)","A wholesaler buys goods for ₹10,000 (GST 12%) and sells them for ₹12,000 (GST 12%). Find the GST he pays to the government.",4,"Output tax ₹1,440; ITC ₹1,200; payable ₹240 (CGST ₹120 + SGST ₹120)"]]};
+
+X.a5 = {m:[
+["The probability of an impossible event is:",["1","0","1/2","−1"],1],
+["A coin is tossed. P(head) = ?",["1","0","1/2","1/4"],2],
+["Number of outcomes when a die is thrown:",["4","6","12","36"],1],
+["Two dice are thrown. P(sum = 12) = ?",["1/36","1/6","1/12","2/36"],0],
+["A card is drawn from 52 cards. P(red card) = ?",["1/4","1/2","1/13","3/4"],1],
+["From the word 'MATHS', P(vowel) = ?",["1/5","2/5","1/2","3/5"],0],
+["A number is chosen from 1 to 20. P(prime) = ?",["2/5","1/2","3/10","9/20"],0]],
+w:[
+["Solve (1 mark)","Write the sample space when a coin is tossed twice.",1,"S = {HH, HT, TH, TT}, n(S) = 4"],
+["Solve (1 mark)","If n(S) = 36 and n(A) = 6, find P(A).",1,"P(A) = 6/36 = 1/6"],
+["Practice (2 marks)","A die is thrown. Find the probability of getting a number greater than 4.",2,"A = {5, 6}; P = 2/6 = 1/3"],
+["Practice (2 marks)","A card is drawn from a well-shuffled pack of 52. Find P(king).",2,"n(A) = 4; P = 4/52 = 1/13"],
+["Practice (3 marks)","Two coins are tossed. Find the probability of (i) at least one head (ii) no head.",3,"S has 4 outcomes; (i) 3/4 (ii) 1/4"],
+["Practice (3 marks)","Two dice are thrown. Find the probability that the sum of numbers is 7.",3,"(1,6),(2,5),(3,4),(4,3),(5,2),(6,1) → 6/36 = 1/6"],
+["Problem (4 marks)","A box has 5 red, 4 blue and 3 green balls. One ball is drawn. Find P(red), P(not blue), P(green or red).",4,"n(S) = 12; P(red) = 5/12; P(not blue) = 8/12 = 2/3; P(green or red) = 8/12 = 2/3"],
+["Problem (4 marks)","Numbers 1 to 25 are written on cards. One card is drawn. Find P(multiple of 5), P(even), P(perfect square).",4,"Multiples of 5: 5 → 1/5; even: 12 → 12/25; squares 1,4,9,16,25 → 1/5"]]};
+
+X.a6 = {m:[
+["The cumulative frequency of the last class equals:",["N","N/2","Class width","0"],0],
+["In a frequency polygon, points are plotted at:",["Class limits","Class marks","Frequencies only","Cumulative frequencies"],1],
+["Class width of 20–30 is:",["20","30","10","25"],2],
+["If assumed mean A = 25 and Σfd/Σf = 2, then mean is:",["23","27","50","25"],1],
+["For a pie diagram, if an item is 25% of the total, its angle is:",["25°","90°","180°","45°"],1],
+["Which measure is used for the most frequent value?",["Mean","Median","Mode","Range"],2],
+["The lower limit of the class 40–50 is:",["50","40","45","10"],1]],
+w:[
+["Solve (1 mark)","Find the class mark of the class 25–35.",1,"(25 + 35)/2 = 30"],
+["Solve (1 mark)","Total of a pie diagram is ₹3600. The central angle for ₹900 is?",1,"(900/3600) × 360 = 90°"],
+["Practice (2 marks)","Find the mean: class 0–10, 10–20, 20–30; f = 3, 5, 2.",2,"x = 5, 15, 25; Σfx = 15 + 75 + 50 = 140; Σf = 10; mean = 14"],
+["Practice (2 marks)","Identify the modal class: 0–10 (5), 10–20 (12), 20–30 (8), 30–40 (3).",2,"Highest frequency 12 → modal class 10–20"],
+["Practice (3 marks)","Find the median: 0–10 (4), 10–20 (6), 20–30 (10), 30–40 (5), 40–50 (5).",3,"N = 30, N/2 = 15; cf: 4, 10, 20 → median class 20–30; L = 20, cf = 10, f = 10, h = 10 → median = 20 + 5 = 25"],
+["Practice (3 marks)","Find the mode: 10–20 (3), 20–30 (8), 30–40 (12), 40–50 (7).",3,"L = 30, f₁ = 12, f₀ = 8, f₂ = 7, h = 10 → mode = 30 + 4/9 × 10 = 34.44"],
+["Problem (4 marks)","Draw a histogram and frequency polygon: 0–10 (5), 10–20 (8), 20–30 (12), 30–40 (7), 40–50 (3).",4,"Rectangles on class intervals with heights = frequencies; join class marks (5, 15, 25, 35, 45) at heights; extend to 0 at both ends"],
+["Problem (4 marks)","Monthly expenses: Food ₹4000, Rent ₹3000, Education ₹2000, Others ₹3000. Draw a pie diagram.",4,"Total 12000; angles: Food 120°, Rent 90°, Education 60°, Others 90°"]]};
+
+X.g1 = {m:[
+["Ratio of areas of two triangles with equal bases is equal to the ratio of their:",["Bases","Heights","Perimeters","Angles"],1],
+["If △ABC ~ △DEF, ∠A = 50°, ∠B = 60°, then ∠F = ?",["50°","60°","70°","80°"],2],
+["In △ABC, ray AD bisects ∠A. AB = 6, AC = 8, BD = 3. Then DC = ?",["4","6","5","3"],0],
+["Areas of two similar triangles are 25 and 36. Ratio of their sides is:",["25:36","5:6","6:5","625:1296"],1],
+["If DE ∥ BC and AD/DB = 2/3, then AE/EC = ?",["3/2","2/3","2/5","5/2"],1],
+["All circles are:",["Congruent","Similar","Equal","Not similar"],1],
+["Test of similarity using three pairs of proportional sides is:",["AAA","SAS","SSS","RHS"],2]],
+w:[
+["Solve (1 mark)","If △ABC ~ △PQR and AB:PQ = 3:4, find A(△ABC):A(△PQR).",1,"9:16"],
+["Solve (1 mark)","Base of a triangle is 9 cm and height 5 cm. Base of another is 10 cm, height 6 cm. Find the ratio of their areas.",1,"(9×5):(10×6) = 45:60 = 3:4"],
+["Practice (2 marks)","In △PQR, ST ∥ QR, PS = 4, SQ = 6, PT = 6. Find TR.",2,"4/6 = 6/TR → TR = 9"],
+["Practice (2 marks)","△XYZ ~ △PQR. XY = 4, PQ = 6, A(△XYZ) = 32. Find A(△PQR).",2,"32/A = 16/36 → A = 72"],
+["Theorem (3 marks)","State and prove the Basic Proportionality Theorem.",3,"Statement; draw DE ∥ BC; join BE, CD; use areas: A(ADE)/A(BDE) = AD/DB and A(ADE)/A(CDE) = AE/EC; A(BDE) = A(CDE) (same base DE, between parallels) → AD/DB = AE/EC"],
+["Practice (3 marks)","In △ABC, PQ ∥ BC, AP = x, PB = x − 2, AQ = x + 2, QC = x − 1. Find x.",3,"x/(x − 2) = (x + 2)/(x − 1) → x² − x = x² − 4 → x = 4"],
+["Problem (4 marks)","A vertical pole 6 m high casts a shadow 4 m long. At the same time a tower casts a shadow 28 m long. Find the height of the tower.",4,"Similar triangles: 6/4 = h/28 → h = 42 m"],
+["Theorem (4 marks)","Prove that the ratio of the areas of two similar triangles is equal to the square of the ratio of their corresponding sides.",4,"Draw altitudes AD, PS; A(ABC)/A(PQR) = (BC×AD)/(QR×PS); △ABD ~ △PQS (AA) → AD/PS = AB/PQ = BC/QR → ratio = BC²/QR²"]]};
+
+X.g2 = {m:[
+["In right △ABC, ∠B = 90°, AB = 5, BC = 12. AC = ?",["13","17","15","10"],0],
+["Which triangle is right-angled?",["4, 5, 6","9, 40, 41","2, 3, 4","5, 6, 7"],1],
+["In a 30°–60°–90° triangle, if the side opposite 30° is 5, the hypotenuse is:",["10","5√3","5√2","15"],0],
+["Side of a square with diagonal 8√2 cm is:",["8 cm","16 cm","4 cm","8√2 cm"],0],
+["In right △PQR, ∠Q = 90°, QS ⟂ PR. Then QS² = ?",["PS × SR","PQ × QR","PR × QS","PS + SR"],0],
+["Height of an equilateral triangle with side 2a is:",["a√3","2a√3","a","√3/2 a"],0],
+["The converse of Pythagoras theorem helps us to check whether a triangle is:",["Isosceles","Right-angled","Equilateral","Obtuse"],1]],
+w:[
+["Solve (1 mark)","Is (7, 24, 25) a Pythagorean triplet? Why?",1,"7² + 24² = 49 + 576 = 625 = 25² → yes"],
+["Solve (1 mark)","Find the diagonal of a rectangle 6 cm × 8 cm.",1,"√(36 + 64) = 10 cm"],
+["Practice (2 marks)","In △PQR, ∠P = 30°, ∠Q = 90°, PR = 12. Find QR and PQ.",2,"QR = 6 (opposite 30°), PQ = 6√3"],
+["Practice (2 marks)","A ladder 10 m long reaches a window 8 m high. Find the distance of its foot from the wall.",2,"√(100 − 64) = 6 m"],
+["Theorem (3 marks)","State and prove the theorem of geometric mean.",3,"In right △PQR with ∠Q = 90°, QS ⟂ PR: △PSQ ~ △QSR → PS/QS = QS/SR → QS² = PS × SR"],
+["Practice (3 marks)","In △ABC, AM is a median, AB = 8, AC = 6, BC = 10. Find AM using Apollonius theorem.",3,"64 + 36 = 2AM² + 2(25) → 100 = 2AM² + 50 → AM = 5"],
+["Theorem (4 marks)","State and prove Pythagoras theorem.",4,"In right △ABC, ∠B = 90°, draw BD ⟂ AC; △ABC ~ △ADB ~ △BDC → AB² = AC × AD, BC² = AC × DC → AB² + BC² = AC(AD + DC) = AC²"],
+["Problem (4 marks)","Find the height of an equilateral triangle of side 10 cm and its area.",4,"Height = (√3/2) × 10 = 5√3 cm ≈ 8.66 cm; area = (√3/4) × 100 = 25√3 cm²"]]};
+
+X.g3 = {m:[
+["How many tangents can be drawn to a circle at a point on it?",["1","2","0","Infinite"],0],
+["Length of tangent from a point 13 cm away from the centre of a circle of radius 5 cm:",["12 cm","8 cm","18 cm","10 cm"],0],
+["Measure of a semicircular arc is:",["90°","180°","360°","270°"],1],
+["Angles inscribed in the same arc are:",["Supplementary","Congruent","Complementary","Right angles"],1],
+["Two circles touch internally. Radii 7 and 3. Distance between centres:",["10","4","21","3"],1],
+["If ∠ABC is inscribed in arc ADC with m(arc ADC) = 140°, ∠ABC = ?",["140°","70°","35°","110°"],1],
+["A line that intersects a circle in two points is called a:",["Tangent","Secant","Radius","Diameter"],1]],
+w:[
+["Solve (1 mark)","The radius of a circle is 5 cm. What is the length of its longest chord?",1,"Diameter = 10 cm"],
+["Solve (1 mark)","In a cyclic quadrilateral PQRS, ∠P = 85°. Find ∠R.",1,"95°"],
+["Practice (2 marks)","Tangent segments PA and PB are drawn from P to a circle. If ∠APB = 70°, find ∠AOB (O is centre).",2,"∠AOB = 180° − 70° = 110°"],
+["Practice (2 marks)","Chords AB and CD intersect at E inside a circle. AE = 6, EB = 4, CE = 3. Find ED.",2,"6 × 4 = 3 × ED → ED = 8"],
+["Theorem (3 marks)","Prove that tangent segments drawn from an external point to a circle are congruent.",3,"Join OA, OB, OP; △OAP ≅ △OBP (hypotenuse-side: OA = OB, OP common, right angles) → PA = PB"],
+["Practice (3 marks)","From an external point P, a tangent PT and a secant PAB are drawn. PA = 4, AB = 5. Find PT.",3,"PT² = PA × PB = 4 × 9 = 36 → PT = 6"],
+["Theorem (4 marks)","Prove that the opposite angles of a cyclic quadrilateral are supplementary.",4,"∠A = ½ m(arc BCD), ∠C = ½ m(arc BAD); sum = ½ × 360° = 180°"],
+["Problem (4 marks)","Two circles with radii 8 cm and 5 cm touch each other externally. Find the distance between their centres. If they touch internally, find the distance.",4,"Externally: 8 + 5 = 13 cm; internally: 8 − 5 = 3 cm"]]};
+
+X.g4 = {m:[
+["Which instrument is NOT needed for geometric constructions?",["Compass","Ruler","Protractor (for angles if given)","Calculator"],3],
+["To construct a triangle similar to a given one with ratio 5:3, the new triangle is:",["Smaller","Larger","Equal","Not similar"],1],
+["To draw a tangent at a point on a circle, the angle between radius and tangent is:",["45°","60°","90°","180°"],2],
+["The centre of a circle can be found by drawing perpendicular bisectors of two:",["Radii","Chords","Tangents","Arcs"],1],
+["Tangents from an external point: the circle drawn on OP as diameter cuts the given circle at:",["One point","Two points of contact","Centre","No point"],1],
+["In construction, a 'rough figure' helps to:",["Waste time","Plan the steps","Measure angles","Avoid marks"],1],
+["If ratio is 4:7, the given triangle side corresponds to how many parts of the ray?",["4","7","11","3"],1]],
+w:[
+["Construction (2 marks)","Draw a circle of radius 3 cm. Take a point P on it and draw a tangent at P.",2,"Draw radius OP; at P draw a line perpendicular to OP using a compass; that line is the tangent"],
+["Construction (2 marks)","Draw a circle of radius 3.4 cm and draw a tangent at any point without using the centre.",2,"Use the alternate segment (tangent-secant) method: draw chord PQ, take R on major arc, copy ∠PRQ at P"],
+["Construction (3 marks)","Draw a circle of radius 3.5 cm. Take a point 7 cm from the centre and draw two tangents.",3,"Join OP, find midpoint M, draw circle with MO as radius; it cuts the circle at A, B; join PA, PB"],
+["Construction (3 marks)","△ABC ~ △LMN, AB = 5.5 cm, BC = 6 cm, CA = 4.5 cm, BC/MN = 5/4. Construct △ABC and △LMN.",3,"Construct △ABC; draw ray from B, mark 5 equal parts; join 5th to C; draw parallel from 4th to meet BC at N; parallel to AC gives L"],
+["Construction (3 marks)","Construct △PQR with PQ = 4 cm, QR = 5 cm, ∠Q = 60° and a triangle similar to it with sides 3/2 times.",3,"Draw △PQR; ray from Q with 3 equal parts; join 2nd to R; parallel from 3rd meets QR extended; draw parallel to PR"],
+["Explain (2 marks)","Why do we keep construction arcs on the figure?",2,"They show the method; examiners give marks for correct steps"],
+["Construction (4 marks)","Draw a circle with centre O and radius 3 cm. Draw tangents from P where OP = 6 cm, and measure the tangents.",4,"Midpoint method; each tangent ≈ √(36 − 9) = 5.2 cm"],
+["Construction (4 marks)","Construct △ABC with BC = 6.4 cm, ∠B = 50°, ∠C = 70°, and △A'B'C' ~ △ABC with BC/B'C' = 4/3.",4,"Construct △ABC; ray from B with 4 equal parts; join 4th to C; parallel from 3rd meets BC at C'; parallel to CA gives A'"]]};
+
+X.g5 = {m:[
+["Distance between (1, 1) and (4, 5) is:", ["5", "4", "7", "3"], 0],
+["Point (−3, 0) lies on the:",["Y-axis","X-axis","Origin","First quadrant"],1],
+["Midpoint of (−2, 4) and (6, 8) is:",["(2, 6)","(4, 12)","(−4, −4)","(8, 4)"],0],
+["Slope of the line through (2, 3) and (2, 7) is:",["0","4","Not defined","1"],2],
+["If slope = 1, the angle with X-axis is:",["30°","45°","60°","90°"],1],
+["Point dividing (0, 0) and (6, 9) in ratio 1:2 is:",["(2, 3)","(3, 4.5)","(4, 6)","(1, 2)"],0],
+["Points (1, 1), (2, 2), (3, 3) are:",["Non-collinear","Collinear","Vertices of a right triangle","Equidistant"],1]],
+w:[
+["Solve (1 mark)","Find the slope of a line inclined at 60° to the X-axis.",1,"m = tan 60° = √3"],
+["Solve (1 mark)","Find the distance between (1, 2) and (4, 6).",1,"√(9 + 16) = 5"],
+["Practice (2 marks)","Find the coordinates of the midpoint of A(4, −3) and B(8, 5).",2,"(6, 1)"],
+["Practice (2 marks)","Show that (−1, −1), (0, 1), (1, 3) are collinear using slopes.",2,"Slope AB = 2/1 = 2, slope BC = 2/1 = 2 → equal, common point B → collinear"],
+["Practice (3 marks)","Find the point dividing A(−3, 5) and B(4, −9) in the ratio 2:5.",3,"x = (8 − 15)/7 = −1, y = (−18 + 25)/7 = 1 → (−1, 1)"],
+["Practice (3 marks)","Find the centroid of the triangle with vertices (−7, 6), (2, −2), (8, 5).",3,"((−7 + 2 + 8)/3, (6 − 2 + 5)/3) = (1, 3)"],
+["Problem (4 marks)","Show that A(4, 3), B(−2, 3), C(−2, −3), D(4, −3) form a square.",4,"AB = BC = CD = DA = 6; diagonals AC = BD = 6√2 → square"],
+["Problem (4 marks)","Find k if the points (k, 3), (2, 1) and (4, 5) are collinear.",4,"Slope (2,1)-(4,5) = 2; slope (k,3)-(2,1) = (1 − 3)/(2 − k) = 2 → 2 − k = −1 → k = 3"]]};
+
+X.g6 = {m:[
+["sin 90° = ?",["0","1","1/2","Not defined"],1],
+["cos 0° = ?",["0","1","−1","1/2"],1],
+["sec θ × cos θ = ?",["0","1","tan θ","sin θ"],1],
+["If sin θ = 3/5, cos θ = ?",["4/5","5/4","3/4","5/3"],0],
+["tan 30° = ?",["√3","1/√3","1","1/2"],1],
+["The angle of depression from a tower top to a car is 30°. The angle of elevation from the car to the top is:",["60°","30°","90°","45°"],1],
+["(1 − cos²θ) = ?",["sin²θ","tan²θ","cos²θ","sec²θ"],0]],
+w:[
+["Solve (1 mark)","If tan θ = 1, find θ.",1,"θ = 45°"],
+["Solve (1 mark)","Find the value of sin²30° + cos²30°.",1,"1"],
+["Practice (2 marks)","If cos θ = 5/13, find sin θ and tan θ.",2,"sin θ = 12/13, tan θ = 12/5"],
+["Practice (2 marks)","Prove: sec²θ − tan²θ = 1.",2,"Divide sin²θ + cos²θ = 1 by cos²θ → tan²θ + 1 = sec²θ"],
+["Practice (3 marks)","Prove: (1 + tan²θ)(1 − sin²θ) = 1.",3,"sec²θ × cos²θ = 1"],
+["Problem (3 marks)","From the top of a 20 m building, the angle of depression of a car is 30°. Find the distance of the car from the building.",3,"tan 30° = 20/d → d = 20√3 ≈ 34.6 m"],
+["Problem (4 marks)","A kite is flying at a height of 60 m. The string makes an angle of 60° with the ground. Find the length of the string.",4,"sin 60° = 60/l → l = 120/√3 = 40√3 ≈ 69.28 m"],
+["Problem (4 marks)","Prove: (sin θ + cos θ)² = 1 + 2 sin θ cos θ, and use it to find (sin 45° + cos 45°)².",4,"Expand; sin²+cos² = 1. At 45°: 1 + 2 × 1/2 = 2"]]};
+
+X.g7 = {m:[
+["Curved surface area of a cylinder:",["πr²h","2πrh","2πr(r + h)","πrl"],1],
+["Volume of a cone with r = 3, h = 7 (π = 22/7):",["66","198","22","132"],0],
+["Arc length for θ = 60°, r = 21 cm (π = 22/7):",["22 cm","44 cm","11 cm","66 cm"],0],
+["Surface area of a sphere of radius 7 cm (π = 22/7):",["616 cm²","154 cm²","308 cm²","1232 cm²"],0],
+["A sector with θ = 360° is a:",["Semicircle","Full circle","Quadrant","Segment"],1],
+["Volume of a hemisphere of radius 3 cm (in terms of π):",["18π","36π","9π","27π"],0],
+["How many spheres of radius 1 cm can be made by melting a sphere of radius 3 cm?",["3","9","27","81"],2]],
+w:[
+["Solve (1 mark)","Find the curved surface area of a cone with r = 7 cm, l = 10 cm (π = 22/7).",1,"πrl = 220 cm²"],
+["Solve (1 mark)","Find the area of a sector with θ = 45° and r = 14 cm (π = 22/7).",1,"(45/360) × 616 = 77 cm²"],
+["Practice (2 marks)","Find the volume of a sphere of radius 21 cm (π = 22/7).",2,"4/3 × 22/7 × 9261 = 38808 cm³"],
+["Practice (2 marks)","Radius and height of a cone are 6 cm and 8 cm. Find its slant height and curved surface area (π = 3.14).",2,"l = 10 cm; CSA = 3.14 × 6 × 10 = 188.4 cm²"],
+["Practice (3 marks)","Radii of the ends of a frustum are 14 cm and 6 cm, height 6 cm. Find its slant height and curved surface area (π = 22/7).",3,"l = √(36 + 64) = 10; CSA = 22/7 × 10 × 20 = 628.57 cm²"],
+["Practice (3 marks)","In a circle of radius 10 cm, a chord subtends 90° at the centre. Find the area of the minor segment (π = 3.14).",3,"Sector 78.5 − triangle 50 = 28.5 cm²"],
+["Problem (4 marks)","A metal sphere of radius 6 cm is melted and recast into a cylinder of radius 4 cm. Find the height of the cylinder.",4,"4/3 π × 216 = π × 16 × h → h = 18 cm"],
+["Problem (4 marks)","A toy is a cone mounted on a hemisphere of radius 3.5 cm. Total height of the toy is 15.5 cm. Find its total surface area (π = 22/7).",4,"Cone h = 12, l = 12.5; CSA cone = 22/7 × 3.5 × 12.5 = 137.5; hemisphere 2πr² = 77; total 214.5 cm²"]]};
+X.s1 = {m:[
+["SI unit of force is:",["Joule","Newton","Watt","Pascal"],1],
+["The value of g on the surface of the Earth is about:",["9.8 m/s²","6.67 m/s²","1.6 m/s²","3 × 10⁸ m/s"],0],
+["Kepler's third law states:",["T ∝ r","T² ∝ r³","T³ ∝ r²","T ∝ 1/r"],1],
+["An object is dropped from a height. Its initial velocity is:",["9.8 m/s","0","1 m/s","Infinite"],1],
+["The force that keeps the Moon revolving around the Earth is:",["Magnetic force","Gravitational force","Friction","Electrostatic force"],1],
+["Weight of a 50 kg person on Earth (g = 9.8 m/s²):",["50 N","490 N","5 N","4900 N"],1],
+["Value of g at the centre of the Earth is:",["Maximum","Zero","9.8 m/s²","Infinite"],1]],
+w:[
+["Define (1 mark)","State Newton's universal law of gravitation.",1,"Every object attracts every other object with a force directly proportional to the product of their masses and inversely proportional to the square of the distance between them"],
+["Give reasons (2 marks)","Why is the value of g greater at the poles than at the equator?",2,"Earth is not a perfect sphere; radius at poles is smaller, and g = GM/R², so g is more at the poles"],
+["Distinguish (2 marks)","Distinguish between mass and weight.",2,"Mass: amount of matter, scalar, kg, constant everywhere. Weight: force of gravity on it (mg), vector, newton, changes with g"],
+["Numerical (3 marks)","A stone is dropped from a 19.6 m high building. Find the time taken to reach the ground (g = 9.8 m/s²).",3,"s = ½gt² → 19.6 = 4.9t² → t = 2 s"],
+["Numerical (3 marks)","Find the gravitational force between two masses of 100 kg each placed 1 m apart (G = 6.67 × 10⁻¹¹).",3,"F = 6.67 × 10⁻¹¹ × 10⁴ / 1 = 6.67 × 10⁻⁷ N"],
+["Answer (3 marks)","State Kepler's three laws.",3,"1) Orbits are ellipses with the Sun at one focus; 2) the line joining planet and Sun sweeps equal areas in equal times; 3) T² ∝ r³"],
+["Numerical (3 marks)","A ball is thrown up with 19.6 m/s. Find the maximum height reached (g = 9.8 m/s²).",3,"v² = u² − 2gs → 0 = 384.16 − 19.6s → s = 19.6 m"],
+["Explain (5 marks)","What is free fall? Explain why all objects fall at the same rate in vacuum. Give one example.",5,"Motion only under gravity; acceleration g is independent of mass (F = mg, a = F/m = g); no air resistance in vacuum; e.g. feather and coin in a vacuum tube fall together"]]};
+
+X.s2 = {m:[
+["The number of elements in Mendeleev's periodic table was about:",["63","118","92","100"],0],
+["Elements of group 18 are called:",["Alkali metals","Halogens","Noble gases","Transition elements"],2],
+["Elements in the same group have the same:",["Atomic mass","Valency","Number of shells","Atomic number"],1],
+["The element with electronic configuration 2, 8, 1 is:",["Mg","Na","K","Al"],1],
+["Lanthanides and actinides belong to the:",["s-block","p-block","d-block","f-block"],3],
+["Going down a group, the number of shells:",["Decreases","Increases","Stays the same","Becomes zero"],1],
+["Which is a halogen?",["Neon","Chlorine","Sodium","Calcium"],1]],
+w:[
+["Define (1 mark)","State the modern periodic law.",1,"Properties of elements are a periodic function of their atomic numbers"],
+["Give reasons (2 marks)","Why did Mendeleev leave gaps in his periodic table?",2,"He predicted undiscovered elements with properties fitting those positions (e.g. eka-aluminium = gallium)"],
+["Answer (2 marks)","Write two merits and one demerit of Mendeleev's periodic table.",2,"Merits: predicted new elements, corrected atomic masses. Demerit: no fixed place for hydrogen / isotopes"],
+["Complete (3 marks)","Write the electronic configuration and find the period and group of an element with atomic number 12.",3,"2, 8, 2 → period 3, group 2 (magnesium)"],
+["Give reasons (3 marks)","Atomic radius decreases from left to right in a period. Explain.",3,"Atomic number increases, nuclear charge increases, electrons are added in the same shell and pulled closer, so radius decreases"],
+["Answer (3 marks)","What are Döbereiner's triads? Give one example.",3,"Groups of three elements with similar properties where the middle element's atomic mass ≈ average of the others; e.g. Li (7), Na (23), K (39)"],
+["Explain (3 marks)","Explain the position of hydrogen in the modern periodic table.",3,"Electronic configuration 1 like alkali metals but forms H₂ molecule and gains electron like halogens; placed in group 1 but position is debated"],
+["Explain (5 marks)","Describe the main features of the modern periodic table.",5,"Based on atomic number; 7 periods and 18 groups; s, p, d, f blocks; metals on left, non-metals on right, metalloids along zig-zag line; lanthanides and actinides at bottom"]]};
+
+X.s3 = {m:[
+["When magnesium ribbon burns in air, the product is:",["MgO","MgCl₂","Mg(OH)₂","MgCO₃"],0],
+["Rancidity can be prevented by:",["Adding antioxidants","Keeping in open air","Heating","Adding water"],0],
+["The reaction between an acid and a base is called:",["Combination","Neutralisation","Decomposition","Displacement"],1],
+["White precipitate formed in NaCl + AgNO₃ is:",["NaNO₃","AgCl","NaCl","AgNO₃"],1],
+["Decomposition of water by electricity is called:",["Electrolysis","Photolysis","Thermolysis","Hydrolysis"],0],
+["Reduction means:",["Gain of oxygen","Loss of hydrogen","Gain of hydrogen","Loss of electrons"],2],
+["Burning of natural gas is a(n):",["Endothermic reaction","Exothermic reaction","Displacement reaction","Double displacement reaction"],1]],
+w:[
+["Define (1 mark)","What is a balanced chemical equation?",1,"An equation with equal numbers of atoms of each element on both sides"],
+["Balance (2 marks)","Balance: Fe + H₂O → Fe₃O₄ + H₂",2,"3Fe + 4H₂O → Fe₃O₄ + 4H₂"],
+["Give reasons (2 marks)","Why should iron articles be painted?",2,"Paint prevents contact of iron with oxygen and moisture, so rusting (corrosion) is prevented"],
+["Identify (2 marks)","Identify oxidised and reduced substances: ZnO + C → Zn + CO",2,"C is oxidised (gains oxygen), ZnO is reduced (loses oxygen)"],
+["Distinguish (3 marks)","Distinguish between exothermic and endothermic reactions with one example each.",3,"Exothermic: heat given out, e.g. burning of coal. Endothermic: heat absorbed, e.g. dissolving NH₄Cl in water / decomposition of CaCO₃"],
+["Answer (3 marks)","What is corrosion? Write two ways to prevent it.",3,"Slow destruction of metals by air, moisture, chemicals; prevented by painting, galvanizing, oiling, alloying"],
+["Explain (3 marks)","What happens when an iron nail is placed in copper sulphate solution? Write the equation.",3,"Blue colour fades to green, brown copper deposits on nail; Fe + CuSO₄ → FeSO₄ + Cu (displacement)"],
+["Explain (5 marks)","Explain the types of chemical reactions with one balanced equation each: combination, decomposition, displacement, double displacement.",5,"2Mg + O₂ → 2MgO; CaCO₃ → CaO + CO₂; Zn + CuSO₄ → ZnSO₄ + Cu; BaCl₂ + Na₂SO₄ → BaSO₄ + 2NaCl"]]};
+
+X.s4 = {m:[
+["SI unit of electric power is:",["Joule","Watt","Ampere","Volt"],1],
+["A fuse wire has:",["High melting point","Low melting point","No resistance","Very high resistance only"],1],
+["Device that converts electrical energy into mechanical energy:",["Generator","Electric motor","Transformer","Fuse"],1],
+["Field lines inside a long current-carrying solenoid are:",["Circular","Parallel straight lines","Zero","Random"],1],
+["The phenomenon of producing current by changing magnetic field is:",["Electrolysis","Electromagnetic induction","Joule heating","Magnetism"],1],
+["Current that changes direction periodically is:",["DC","AC","Static","Constant"],1],
+["Galvanometer is used to detect:",["Voltage only","Small currents","Resistance","Power"],1]],
+w:[
+["Define (1 mark)","State Joule's law of heating.",1,"Heat produced in a conductor H = I²Rt"],
+["Numerical (2 marks)","An electric iron of 1000 W is used for 2 hours daily. Find energy used in 30 days in units.",2,"1 kW × 2 h × 30 = 60 kWh = 60 units"],
+["Give reasons (2 marks)","Why is tungsten used in electric bulbs?",2,"Very high melting point (about 3400 °C) and gives light when hot; does not melt"],
+["Distinguish (2 marks)","Distinguish between electric motor and electric generator.",2,"Motor: electrical → mechanical, Fleming's left hand rule. Generator: mechanical → electrical, Fleming's right hand rule"],
+["Numerical (3 marks)","A current of 2 A flows through a 10 Ω resistor for 5 minutes. Find the heat produced.",3,"H = 4 × 10 × 300 = 12000 J"],
+["Draw (3 marks)","Draw a labelled diagram of an electric motor.",3,"Rectangular coil between N-S magnets, split ring commutator, brushes, battery; labels"],
+["Explain (3 marks)","State Fleming's right hand rule and its use.",3,"Stretch thumb, first and middle fingers perpendicular: first finger → field, thumb → motion, middle finger → induced current; used in generator"],
+["Explain (5 marks)","Explain the working of an AC generator with a diagram.",5,"Coil rotated in magnetic field → flux changes → induced current; slip rings give alternating current; direction reverses every half rotation; Fleming's right hand rule"]]};
+
+X.s5 = {m:[
+["SI unit of heat is:",["Calorie","Joule","Kelvin","Watt"],1],
+["Specific latent heat of fusion of ice is about:",["80 cal/g","540 cal/g","1 cal/g","4.2 J/g"],0],
+["At dew point, relative humidity is:",["0%","50%","100%","25%"],2],
+["Specific heat capacity of water is:",["1 cal/g°C","0.5 cal/g°C","4.2 cal/g°C","80 cal/g°C"],0],
+["The instrument used to measure heat exchanged is:",["Thermometer","Calorimeter","Barometer","Hygrometer"],1],
+["When water cools from 4 °C to 0 °C, its volume:",["Decreases","Increases","Remains same","Becomes zero"],1],
+["Latent heat of vaporisation of water is about:",["80 cal/g","540 cal/g","100 cal/g","4 cal/g"],1]],
+w:[
+["Define (1 mark)","Define specific heat capacity.",1,"Heat required to raise the temperature of unit mass of a substance by 1 °C"],
+["Give reasons (2 marks)","Why do water pipes burst in very cold regions?",2,"Water expands on cooling below 4 °C and on freezing; the increased volume exerts pressure and bursts the pipes"],
+["Give reasons (2 marks)","Why do we feel cool after sweating?",2,"Sweat evaporates by absorbing latent heat from the body, so the body cools"],
+["Numerical (3 marks)","How much heat is needed to raise the temperature of 2 kg of water from 20 °C to 70 °C? (c = 4200 J/kg°C)",3,"Q = 2 × 4200 × 50 = 420000 J"],
+["Numerical (3 marks)","How much heat is required to melt 500 g of ice at 0 °C? (L = 80 cal/g)",3,"Q = 500 × 80 = 40000 cal"],
+["Answer (3 marks)","What is regelation? Give one example.",3,"Melting of ice under pressure and refreezing when pressure is removed; e.g. a wire passing through an ice block, ice-skating"],
+["Draw (3 marks)","Draw a labelled diagram of Hope's apparatus.",3,"Metal cylinder with water, freezing mixture around middle, two thermometers at top and bottom"],
+["Explain (5 marks)","Explain the anomalous behaviour of water and its importance for aquatic life.",5,"Water contracts till 4 °C, then expands down to 0 °C; maximum density at 4 °C; in cold weather water at 4 °C stays at the bottom, ice forms on top and insulates, so aquatic animals survive"]]};
+
+X.s6 = {m:[
+["Refraction is caused by a change in the light's:",["Colour","Speed","Frequency","Source"],1],
+["Absolute refractive index of a medium is always:",["Less than 1","Greater than 1","Zero","Negative"],1],
+["The bending of light by the atmosphere makes the Sun visible:",["After actual sunrise","Before actual sunrise","Never","Only at noon"],1],
+["Splitting of white light into colours is called:",["Reflection","Dispersion","Scattering","Refraction"],1],
+["Critical angle depends on:",["Colour of object","Refractive indices of the two media","Size of object","Time"],1],
+["A pencil in water appears bent because of:",["Reflection","Refraction","Dispersion","Interference"],1],
+["Refractive index of water is about:",["1.33","1.5","2.42","1"],0]],
+w:[
+["Define (1 mark)","State Snell's law.",1,"sin i / sin r = constant (refractive index) for a given pair of media"],
+["Numerical (2 marks)","Speed of light in glass is 2 × 10⁸ m/s. Find the refractive index of glass.",2,"n = 3 × 10⁸ / 2 × 10⁸ = 1.5"],
+["Give reasons (2 marks)","Why do stars twinkle but planets do not?",2,"Stars are point sources; atmospheric refraction keeps changing their light; planets are extended sources, so changes average out"],
+["Answer (2 marks)","What is total internal reflection? Give one example.",2,"When light goes from denser to rarer medium at an angle greater than the critical angle, it is fully reflected; e.g. sparkling diamond, optical fibre"],
+["Draw (3 marks)","Draw a ray diagram showing refraction through a glass slab and label i, r, e.",3,"Incident ray, normal, refracted ray bends toward normal, emergent ray parallel to incident ray; lateral shift"],
+["Explain (3 marks)","How is a rainbow formed?",3,"Sunlight enters raindrops, refracts and disperses, undergoes total internal reflection, and refracts again while leaving; seen opposite to the Sun"],
+["Numerical (3 marks)","Refractive index of glass w.r.t. air is 3/2 and of water w.r.t. air is 4/3. Find refractive index of glass w.r.t. water.",3,"(3/2)/(4/3) = 9/8 = 1.125"],
+["Explain (5 marks)","Explain dispersion of light through a prism with a diagram. Why does violet bend the most?",5,"White light refracts on entering prism; different colours have different speeds in glass so bend by different amounts; spectrum VIBGYOR; violet has smallest wavelength, slowest in glass, deviates most"]]};
+
+X.s7 = {m:[
+["The point through which light passes without deviation is the:",["Focus","Optical centre","Centre of curvature","Principal axis"],1],
+["A convex lens forms a virtual image when the object is:",["At infinity","Between F and O","At 2F","Beyond 2F"],1],
+["Image formed by a concave lens is always:",["Real and inverted","Virtual, erect and diminished","Real and enlarged","Virtual and enlarged"],1],
+["Power of a concave lens of focal length 25 cm:",["+4 D","−4 D","−0.25 D","+0.25 D"],1],
+["The part of the eye that controls the amount of light entering is:",["Retina","Iris/pupil","Cornea","Lens"],1],
+["Image on the retina is:",["Virtual and erect","Real and inverted","Virtual and inverted","Real and erect"],1],
+["Persistence of vision lasts about:",["1/16 second","1 second","10 seconds","1/100 second"],0]],
+w:[
+["Define (1 mark)","Define power of a lens.",1,"Reciprocal of focal length in metres; P = 1/f; unit dioptre"],
+["Give reasons (2 marks)","Why does a person with myopia use a concave lens?",2,"Image forms in front of the retina; concave lens diverges rays so the image forms on the retina"],
+["Distinguish (2 marks)","Distinguish between convex and concave lens.",2,"Convex: thick at centre, converging, real/virtual images, f positive. Concave: thin at centre, diverging, always virtual erect diminished, f negative"],
+["Numerical (3 marks)","An object is placed 30 cm from a convex lens of focal length 20 cm. Find the image distance and magnification.",3,"1/v = 1/20 − 1/30 = 1/60 → v = 60 cm; m = v/u = 60/−30 = −2 (real, inverted, enlarged)"],
+["Numerical (3 marks)","Find the combined power of lenses of +2 D and −0.5 D, and the focal length.",3,"P = 1.5 D; f = 1/1.5 = 0.67 m = 66.7 cm"],
+["Draw (3 marks)","Draw a ray diagram for an object placed at 2F₁ of a convex lens.",3,"Image at 2F₂, real, inverted, same size; two rays: parallel → through F₂; through optical centre undeviated"],
+["Answer (3 marks)","What is presbyopia? How is it corrected?",3,"Ageing reduces flexibility of the eye lens and weakens ciliary muscles; near and far vision affected; corrected by bifocal lenses"],
+["Explain (5 marks)","Explain the structure and working of the human eye with a labelled diagram.",5,"Cornea, iris, pupil, lens, ciliary muscles, retina, optic nerve; light refracts at cornea and lens, real inverted image on retina, optic nerve sends signals to brain, brain interprets it erect; accommodation changes focal length"]]};
+
+X.s8 = {m:[
+["Which non-metal is a liquid at room temperature?",["Bromine","Iodine","Carbon","Sulphur"],0],
+["Metals react with acids to give:",["Oxygen","Hydrogen","Nitrogen","Chlorine"],1],
+["The process of coating iron with tin is:",["Galvanizing","Tinning","Anodizing","Alloying"],1],
+["Bauxite is an ore of:",["Iron","Aluminium","Copper","Zinc"],1],
+["Stainless steel is an alloy of iron with:",["Copper and zinc","Chromium and nickel","Tin and lead","Silver"],1],
+["Which metal is kept in kerosene?",["Iron","Sodium","Copper","Gold"],1],
+["Brass is an alloy of:",["Copper and tin","Copper and zinc","Iron and carbon","Lead and tin"],1]],
+w:[
+["Define (1 mark)","What is an alloy?",1,"A homogeneous mixture of a metal with other metals or non-metals"],
+["Give reasons (2 marks)","Why is sodium kept in kerosene?",2,"Sodium is highly reactive and reacts vigorously with air and moisture, catching fire; kerosene prevents contact"],
+["Give reasons (2 marks)","Why are silver and gold used for making ornaments?",2,"They are lustrous, malleable, ductile and do not corrode easily (low reactivity)"],
+["Distinguish (2 marks)","Distinguish between roasting and calcination.",2,"Roasting: sulphide ores heated in excess air (SO₂ released). Calcination: carbonate ores heated in limited/no air (CO₂ released)"],
+["Answer (3 marks)","Write three physical properties of metals and non-metals each.",3,"Metals: lustrous, malleable, good conductors. Non-metals: dull, brittle, poor conductors (except graphite)"],
+["Draw (3 marks)","Draw a labelled diagram of the froth floatation process.",3,"Tank with water + pine oil, powdered ore, air pipe/stirrer, froth with ore particles, gangue settling"],
+["Explain (3 marks)","Explain electrolytic refining of copper.",3,"Impure copper anode, pure copper cathode, CuSO₄ electrolyte; on passing current copper dissolves from anode and deposits on cathode; impurities form anode mud"],
+["Explain (5 marks)","Explain the extraction of aluminium from bauxite (Bayer's process and Hall–Héroult process).",5,"Bauxite + NaOH → sodium aluminate; impurities removed; precipitate Al(OH)₃, heat to get alumina; electrolysis of alumina dissolved in cryolite with carbon electrodes gives aluminium at cathode"]]};
+
+X.s9 = {m:[
+["The first member of the alkane series is:",["Ethane","Methane","Propane","Butane"],1],
+["Ethanoic acid is commonly called:",["Vinegar","Alcohol","Ester","Soap"],0],
+["Number of covalent bonds in methane:",["2","4","3","6"],1],
+["Compounds with the same molecular formula but different structures are:",["Isotopes","Isomers","Polymers","Homologues"],1],
+["The functional group in propanone is:",["–OH","–CHO",">C=O","–COOH"],2],
+["Polythene is a polymer of:",["Methane","Ethene","Ethyne","Propane"],1],
+["Esters have a:",["Sweet smell","Bad smell","No smell","Burning smell"],0]],
+w:[
+["Define (1 mark)","What is a homologous series?",1,"A series of compounds with the same functional group where consecutive members differ by –CH₂–"],
+["Give reasons (2 marks)","Why does carbon form a large number of compounds?",2,"Tetravalency, catenation (forms chains, branches, rings), multiple bonds, isomerism"],
+["Write (2 marks)","Write the structural formula and IUPAC name of CH₃–CH₂–CH₂–OH.",2,"Propanol (propan-1-ol); three carbons in a chain with –OH on the end carbon"],
+["Distinguish (2 marks)","Distinguish between saturated and unsaturated hydrocarbons.",2,"Saturated: only single bonds, alkanes, less reactive. Unsaturated: double/triple bonds, alkenes/alkynes, more reactive, show addition reactions"],
+["Answer (3 marks)","What is esterification? Write the reaction.",3,"Carboxylic acid + alcohol with conc. H₂SO₄ → ester + water; CH₃COOH + C₂H₅OH → CH₃COOC₂H₅ + H₂O"],
+["Answer (3 marks)","Write three uses of ethanol.",3,"Solvent, fuel (with petrol), in medicines and sanitizers, in alcoholic beverages"],
+["Draw (3 marks)","Draw the electron dot structures of methane and ethene.",3,"Methane: C sharing 4 pairs with 4 H. Ethene: two C sharing two pairs (double bond), each C shares one pair with two H"],
+["Explain (5 marks)","Explain the cleansing action of soap with a diagram.",5,"Soap molecule has hydrophobic hydrocarbon tail and hydrophilic ionic head; tails attach to oil/dirt, heads face water; micelles form; dirt is washed away"]]};
+
+X.s10 = {m:[
+["The first Indian satellite was:",["Bhaskara","Aryabhata","INSAT","Rohini"],1],
+["PSLV is mainly used to launch satellites into:",["Geostationary orbit","Polar sun-synchronous orbit","Moon orbit","Mars orbit"],1],
+["The velocity needed to escape Earth's gravity is about:",["11.2 km/s","7.9 km/s","3 km/s","30 km/s"],0],
+["Navigation satellites help in:",["Weather forecasting","Finding location (GPS)","Broadcasting TV only","Spying only"],1],
+["India's launch centre is at:",["Sriharikota","Mumbai","Delhi","Pune"],0],
+["A satellite in low Earth orbit moves:",["Slower than a geostationary satellite","Faster than a geostationary satellite","At zero speed","At the speed of light"],1],
+["Chandrayaan-1 was launched in:",["2008","2013","2019","2023"],0]],
+w:[
+["Define (1 mark)","What is an artificial satellite?",1,"A man-made object placed in orbit around the Earth or another celestial body"],
+["Give reasons (2 marks)","Why do geostationary satellites appear stationary?",2,"Their period is 24 hours, same as Earth's rotation, and they move in the same direction above the equator"],
+["Numerical (2 marks)","Write the formula for critical velocity of a satellite at height h and state how it changes with h.",2,"v = √[GM/(R + h)]; it decreases as h increases"],
+["Answer (2 marks)","Write two uses each of weather and communication satellites.",2,"Weather: forecasting, cyclone warning. Communication: TV/telephone, internet, distance education"],
+["Answer (3 marks)","What is space debris? Why is it dangerous?",3,"Old satellites, rocket parts in orbit; can collide with working satellites and spacecraft and damage them"],
+["Answer (3 marks)","Write a note on India's Mangalyaan mission.",3,"Mars Orbiter Mission by ISRO, launched 2013 with PSLV, reached Mars orbit in 2014 on first attempt, low cost, studies Mars surface and atmosphere"],
+["Answer (3 marks)","What are the types of satellite orbits based on height? Give one use of each.",3,"Low (180–2000 km): earth observation; Medium (2000–35780 km): navigation; High/geostationary (~35780 km): communication, weather"],
+["Explain (5 marks)","Explain the need for space missions and India's contribution to space research.",5,"Study of universe, weather, communication, resources, navigation; ISRO: Aryabhata, PSLV, GSLV, Chandrayaan, Mangalyaan, Aditya-L1, low-cost missions"]]};
+X.b1 = {m:[
+["The basic unit of heredity is:",["Cell","Gene","Chromosome","Nucleus"],1],
+["Human body cells contain how many chromosomes?",["23","44","46","48"],2],
+["Down syndrome is caused by trisomy of chromosome number:",["13","18","21","23"],2],
+["'Inheritance of acquired characters' theory was given by:", ["Darwin", "Lamarck", "Mendel", "Hugo de Vries"], 1],
+["Wings of a bat and wings of a bird are examples of:",["Homologous organs","Analogous organs","Vestigial organs","Connecting links"],1],
+["Archaeopteryx is a connecting link between:",["Fish and amphibians","Reptiles and birds","Reptiles and mammals","Birds and mammals"],1],
+["Process of protein formation from mRNA is called:", ["Transcription", "Translation", "Replication", "Mutation"], 1]],
+w:[
+["Define (1 mark)","What is a mutation?",1,"A sudden, heritable change in the genetic material (DNA/genes/chromosomes) of an organism"],
+["Give reasons (2 marks)","The appendix in humans is called a vestigial organ.",2,"It is functional in herbivores (digestion of cellulose) but has no clear function in humans; it is a remnant of an ancestral organ – evidence of evolution"],
+["Distinguish (2 marks)","Distinguish between homologous and analogous organs.",2,"Homologous: same origin/structure, different functions (forelimbs of man, whale, bat). Analogous: different origin/structure, same function (wings of insect and bird)"],
+["Explain (2 marks)","Explain the central dogma of molecular biology.",2,"DNA → (transcription) → mRNA → (translation) → protein; genetic information flows from DNA to RNA to protein"],
+["Short answer (3 marks)","Explain Lamarck's theory of inheritance of acquired characters with an example.",3,"Use and disuse of organs; characters acquired in a lifetime are passed on; e.g. long neck of giraffe by stretching; theory rejected because acquired characters are not inherited (Weismann)"],
+["Short answer (3 marks)","How is sex determined in human beings?",3,"Female XX, male XY; egg always carries X; sperm carries X or Y; X sperm + egg → girl (XX), Y sperm + egg → boy (XY); father's sperm decides sex"],
+["Short answer (3 marks)","How does paleontological evidence (fossils) support evolution?",3,"Fossils show organisms of past ages; older layers have simpler forms, newer layers complex; carbon dating gives age; connecting links like Archaeopteryx show transition"],
+["Long answer (5 marks)","Explain Darwin's theory of natural selection. Write its main points and one limitation.",5,"Overproduction, struggle for existence, variation, survival of the fittest, natural selection, origin of new species over generations; limitation: could not explain origin/inheritance of variations"]]};
+
+X.b2 = {m:[
+["Energy currency of the cell is:",["ADP","ATP","DNA","NADP"],1],
+["End product of glycolysis is:", ["Pyruvic acid", "Citric acid", "Lactose", "Glycogen"], 0],
+["How many ATP are formed from complete oxidation of one glucose molecule (aerobic)?",["2","18","38","56"],2],
+["Anaerobic respiration in muscles produces:",["Ethanol","Lactic acid","Acetic acid","Citric acid"],1],
+["Final electron acceptor in aerobic respiration is:", ["Carbon dioxide", "Oxygen", "Water", "Glucose"], 1],
+["Mitosis produces how many daughter cells?",["1","2","4","8"],1],
+["Meiosis is also called:",["Equational division","Reductional division","Budding","Fission"],1]],
+w:[
+["Define (1 mark)","What is cellular respiration?",1,"Oxidation of food (glucose) inside cells to release energy in the form of ATP"],
+["Give reasons (2 marks)","Mitochondria are called the powerhouse of the cell.",2,"Kreb's cycle and electron transport chain occur in mitochondria; most ATP (energy) of the cell is produced there"],
+["Distinguish (2 marks)","Distinguish between aerobic and anaerobic respiration.",2,"Aerobic: needs oxygen, complete oxidation, CO₂ + H₂O, 38 ATP. Anaerobic: no oxygen, incomplete oxidation, lactic acid/ethanol, 2 ATP"],
+["Distinguish (2 marks)","Distinguish between mitosis and meiosis.",2,"Mitosis: somatic cells, 2 identical diploid cells, one division. Meiosis: reproductive cells, 4 haploid cells, two divisions, crossing over"],
+["Short answer (3 marks)","Explain glycolysis in brief.",3,"Occurs in cytoplasm; one glucose broken into 2 pyruvic acid molecules; net 2 ATP and 2 NADH₂ formed; first step of both aerobic and anaerobic respiration"],
+["Short answer (3 marks)","Why are carbohydrates, fats and proteins needed by the body? Write one function of each.",3,"Carbohydrates: main source of energy. Fats: stored energy, insulation. Proteins: growth, repair, enzymes and hormones"],
+["Short answer (3 marks)","Write the stages of mitosis (karyokinesis) with one event of each.",3,"Prophase: chromosomes condense. Metaphase: chromosomes at equator. Anaphase: chromatids move to poles. Telophase: nuclear membrane reforms"],
+["Long answer (5 marks)","Explain the importance of meiosis and describe crossing over.",5,"Maintains chromosome number across generations, forms haploid gametes, produces variations; crossing over in prophase I – exchange of segments between non-sister chromatids of homologous chromosomes → new combinations"]]};
+
+X.b3 = {m:[
+["Fusion of male and female gametes is called:",["Fertilization","Pollination","Germination","Budding"],0],
+["Binary fission is seen in:",["Hydra","Amoeba","Yeast","Spirogyra"],1],
+["Budding is seen in:",["Amoeba","Hydra","Planaria","Bryophyllum"],1],
+["In flowers, pollen grains are produced in the:",["Ovary","Stigma","Anther","Petal"],2],
+["Implantation of embryo occurs in the:", ["Ovary", "Uterus", "Fallopian tube", "Cervix"], 1],
+["The male hormone is:",["Estrogen","Progesterone","Testosterone","Insulin"],2],
+["Vegetative propagation through leaves is seen in:",["Potato","Bryophyllum","Rose","Ginger"],1]],
+w:[
+["Define (1 mark)","What is pollination?",1,"Transfer of pollen grains from the anther to the stigma of a flower"],
+["Give reasons (2 marks)","Sexual reproduction leads to variation.",2,"Gametes from two parents combine; meiosis and crossing over mix genes; offspring differ from parents and each other"],
+["Distinguish (2 marks)","Distinguish between asexual and sexual reproduction.",2,"Asexual: one parent, no gametes, offspring identical, fast. Sexual: two parents, gametes fuse, variations, slower"],
+["Distinguish (2 marks)","Distinguish between self-pollination and cross-pollination.",2,"Self: pollen to stigma of same flower/plant, no agent needed. Cross: pollen to another plant of same species, needs agents like wind, insects, water"],
+["Short answer (3 marks)","Describe the menstrual cycle in brief.",3,"About 28 days; regulated by hormones; endometrium thickens to receive embryo; ovulation around 14th day; if no fertilization, lining breaks down – menstruation for 3–5 days"],
+["Short answer (3 marks)","What is double fertilization in flowering plants?",3,"One male gamete fuses with egg → zygote (embryo); other fuses with two polar nuclei → endosperm (triploid); two fusions in one embryo sac"],
+["Short answer (3 marks)","Write any three methods of family planning / reproductive health awareness.",3,"Barrier methods (condom), hormonal pills, surgical methods (vasectomy/tubectomy), IUD (Copper-T); helps spacing and controls population; prevents STDs"],
+["Long answer (5 marks)","Explain the human male reproductive system with functions of its parts.",5,"Testes: sperm and testosterone; scrotum keeps testes cooler; epididymis stores sperm; vas deferens carries sperm; seminal vesicle and prostate add fluid; urethra – common passage"]]};
+
+X.b4 = {m:[
+["Ozone layer protects us from:",["Infrared rays","UV rays","Radio waves","X-rays only"],1],
+["Which gas is mainly responsible for the greenhouse effect?",["Oxygen","Nitrogen","Carbon dioxide","Helium"],2],
+["Tadoba-Andhari is a famous:", ["Tiger reserve", "Bird sanctuary", "Marine park", "Desert park"], 0],
+["Animals on the verge of extinction are listed in the:",["Green Data Book","Red Data Book","Blue Book","White Paper"],1],
+["Which is a non-biodegradable waste?",["Vegetable peel","Paper","Plastic","Cow dung"],2],
+["Ex-situ conservation includes:",["National parks","Sanctuaries","Zoos and seed banks","Biosphere reserves"],2],
+["World Environment Day is observed on:",["5 June","22 April","16 September","21 March"],0]],
+w:[
+["Define (1 mark)","What is an ecosystem?",1,"A functional unit consisting of living organisms (biotic) and their non-living surroundings (abiotic) interacting together"],
+["Give reasons (2 marks)","Biodiversity hotspots must be conserved.",2,"They have very high biodiversity with many endemic species; they are under threat; loss causes permanent extinction and ecological imbalance"],
+["Distinguish (2 marks)","Distinguish between in-situ and ex-situ conservation.",2,"In-situ: in natural habitat – national parks, sanctuaries. Ex-situ: outside habitat – zoos, botanical gardens, seed/gene banks"],
+["Explain (2 marks)","Explain the relation between environment and ecosystem.",2,"Environment is the surroundings; ecosystem is the interaction of organisms with it; changes in environment affect the ecosystem balance"],
+["Short answer (3 marks)","Write three causes and three effects of environmental pollution.",3,"Causes: industrial waste, vehicle emissions, plastic, pesticides. Effects: respiratory diseases, global warming, water-borne diseases, loss of species"],
+["Short answer (3 marks)","What are the types of biodiversity? Explain.",3,"Genetic diversity (within species), species diversity (number of species), ecosystem diversity (variety of habitats)"],
+["Short answer (3 marks)","Write any three ways in which you can contribute to environmental conservation.",3,"Reduce–reuse–recycle; save water and electricity; plant trees; avoid plastic; use public transport; segregate waste"],
+["Long answer (5 marks)","What is the Red Data Book? Explain the categories of species in it with examples.",5,"Record of threatened species kept by IUCN; categories: extinct, endangered (tiger), vulnerable, rare, critically endangered (Great Indian Bustard); helps conservation planning"]]};
+
+X.b5 = {m:[
+["Which is a renewable source of energy?",["Coal","Petroleum","Solar","Natural gas"],2],
+["In a thermal power plant, the fuel used is mainly:",["Uranium","Coal","Water","Wind"],1],
+["Nuclear power plants use which process?",["Fusion","Fission","Combustion","Photosynthesis"],1],
+["Solar cells convert sunlight into:",["Heat","Electrical energy","Chemical energy","Sound"],1],
+["Hydroelectric energy converts:",["Kinetic energy of water into electrical energy","Heat into electricity","Light into electricity","Wind into heat"],0],
+["Generator works on the principle of:",["Electromagnetic induction","Ohm's law","Reflection","Refraction"],0],
+["Biogas is produced from:", ["Animal dung and organic waste", "Coal", "Uranium", "Petrol"], 0]],
+w:[
+["Define (1 mark)","What is green energy?",1,"Energy obtained from sources that do not harm the environment, e.g. solar, wind, hydro"],
+["Give reasons (2 marks)","Thermal power is not environment-friendly.",2,"Burning coal releases CO₂, SO₂, NOₓ and fly ash; causes air pollution, acid rain and global warming"],
+["Distinguish (2 marks)","Distinguish between conventional and non-conventional energy sources.",2,"Conventional: coal, petroleum – limited, polluting. Non-conventional: solar, wind, tidal – renewable, clean"],
+["Explain (2 marks)","Write two advantages and two limitations of solar energy.",2,"Advantages: renewable, no pollution. Limitations: not available at night/cloudy days, high initial cost, needs large area"],
+["Short answer (3 marks)","Explain energy conversion in a hydroelectric power plant.",3,"Water stored in dam (potential energy) → flows down (kinetic) → turns turbine (mechanical) → generator produces electrical energy"],
+["Short answer (3 marks)","Explain how electricity is generated in a nuclear power plant.",3,"Fission of uranium releases heat → water converted to steam → steam rotates turbine → generator produces electricity"],
+["Short answer (3 marks)","Write three problems related to nuclear power plants.",3,"Radioactive waste disposal, risk of accidents/radiation leaks, very high cost and safety needs"],
+["Long answer (5 marks)","Draw a flow chart/explain the working of a wind power plant and its advantages.",5,"Wind (kinetic energy) rotates blades → shaft → gearbox → generator → electrical energy; advantages: renewable, no pollution, low running cost; needs windy sites (e.g. Satara, Sangli)"]]};
+
+X.b6 = {m:[
+["Animals with a notochord at some stage are called:",["Non-chordates","Chordates","Protozoa","Porifera"],1],
+["Body of sponges has many pores called:",["Ostia","Cnidocytes","Nephridia","Stomata"],0],
+["Stinging cells (cnidoblasts) are found in:", ["Sponges", "Cnidarians", "Annelids", "Molluscs"], 1],
+["Animals with soft body and a shell belong to:", ["Mollusca", "Annelida", "Porifera", "Echinodermata"], 0],
+["Exoskeleton of arthropods is made of:", ["Calcium", "Chitin", "Keratin", "Cellulose"], 1],
+["Starfish shows which kind of symmetry (adult)?",["Bilateral","Radial (pentamerous)","No symmetry","Spherical"],1],
+["Which is a mammal that lays eggs?",["Bat","Whale","Platypus","Kangaroo"],2]],
+w:[
+["Define (1 mark)","What is a coelom?",1,"A fluid-filled body cavity between the body wall and the digestive tract"],
+["Give reasons (2 marks)","Bat is a mammal, not a bird.",2,"It has hair on body, external ears, gives birth to young ones and feeds them milk (mammary glands)"],
+["Distinguish (2 marks)","Distinguish between chordates and non-chordates.",2,"Chordates: notochord, dorsal hollow nerve cord, pharyngeal gill slits. Non-chordates: no notochord, ventral solid nerve cord, no gill slits"],
+["Classify (2 marks)","Classify: frog, earthworm, cockroach, pigeon.",2,"Chordates: frog (amphibia), pigeon (aves). Non-chordates: earthworm (annelida), cockroach (arthropoda)"],
+["Short answer (3 marks)","Write three characteristics of phylum Arthropoda with examples.",3,"Jointed appendages, chitinous exoskeleton, segmented body; open circulatory system; e.g. cockroach, crab, spider, butterfly"],
+["Short answer (3 marks)","Write three characteristics of class Mammalia.",3,"Hair on body, mammary glands, external ears (pinna), warm-blooded, four-chambered heart; e.g. human, cow, whale"],
+["Short answer (3 marks)","What are the bases of the new system of animal classification?",3,"Body organization, symmetry, germ layers (diploblastic/triploblastic), body cavity (coelom), segmentation, notochord"],
+["Long answer (5 marks)","Explain the characteristics of class Amphibia and class Reptilia with one example each.",5,"Amphibia: live on land and in water, moist skin, cold-blooded, external fertilization, 3-chambered heart – frog. Reptilia: dry scaly skin, cold-blooded, lay shelled eggs on land – lizard, snake"]]};
+
+X.b7 = {m:[
+["Curd is formed by:",["Yeast","Lactobacillus","Penicillium","Rhizobium"],1],
+["The antibiotic penicillin is obtained from:",["Bacteria","Fungus","Virus","Algae"],1],
+["Nitrogen-fixing bacteria in root nodules of legumes:",["Rhizobium","Lactobacillus","E. coli","Clostridium"],0],
+["Yeast is used in bread making because it produces:",["O₂","CO₂","N₂","H₂"],1],
+["Vinegar is produced with the help of:", ["Acetobacter", "Rhizobium", "Penicillium", "Plasmodium"], 0],
+["Microbes that cause disease are called:",["Pathogens","Decomposers","Producers","Symbionts"],0],
+["Malaria is caused by:", ["Bacteria", "Virus", "Protozoan (Plasmodium)", "Fungus"], 2]],
+w:[
+["Define (1 mark)","What is an antibiotic?",1,"A substance produced by microorganisms that kills or stops the growth of other harmful microorganisms (bacteria)"],
+["Give reasons (2 marks)","Antibiotics should not be taken without a doctor's advice.",2,"Misuse leads to antibiotic resistance in bacteria and side effects; they do not work on viral diseases"],
+["Distinguish (2 marks)","Distinguish between useful and harmful microbes with examples.",2,"Useful: Lactobacillus (curd), Rhizobium (N₂ fixation), yeast (bread). Harmful: Salmonella (food poisoning), Plasmodium (malaria), Clostridium (food spoilage)"],
+["Explain (2 marks)","Explain the role of microbes in cleaning the environment.",2,"Decomposers break down dead matter and waste; used in sewage treatment and biodegradation of oil spills (bioremediation)"],
+["Short answer (3 marks)","Explain the industrial uses of microbes (any three).",3,"Production of alcohol (yeast fermentation), vinegar (Acetobacter), antibiotics, enzymes, vitamins, biogas"],
+["Short answer (3 marks)","What is probiotic food? Give its importance.",3,"Food containing live useful bacteria like Lactobacillus (curd, yoghurt); improves digestion, controls harmful bacteria in intestine, increases immunity"],
+["Short answer (3 marks)","Write three ways to prevent food spoilage by microbes.",3,"Refrigeration, drying, salting/sugaring, pasteurization, airtight packing, adding preservatives"],
+["Long answer (5 marks)","Explain the process of making curd and bread with the role of microbes.",5,"Curd: Lactobacillus converts lactose to lactic acid, milk protein coagulates. Bread: yeast ferments sugar → CO₂ + alcohol, CO₂ makes dough rise and spongy; alcohol evaporates on baking"]]};
+
+X.b8 = {m:[
+["Stem cells are:",["Fully differentiated cells","Undifferentiated cells","Dead cells","Only plant cells"],1],
+["Insulin for diabetics is now produced using:",["Recombinant DNA technology","Vaccination","Tissue culture only","Grafting"],0],
+["Bt cotton is resistant to:",["Drought","Insect pests (bollworm)","Salinity","Frost"],1],
+["Growing plant cells in a nutrient medium in a lab is called:",["Grafting","Tissue culture","Cloning only","Hybridization"],1],
+["The first cloned mammal was:",["Cow","Dolly the sheep","Mouse","Monkey"],1],
+["Organ donation can be done after:",["Brain death","Fever","Fracture","Vaccination"],0],
+["Vaccines help the body by:",["Killing all bacteria","Producing immunity","Increasing blood","Reducing sugar"],1]],
+w:[
+["Define (1 mark)","What is biotechnology?",1,"Use of living organisms or their parts/processes to make useful products for human welfare"],
+["Give reasons (2 marks)","Stem cells are important in medical treatment.",2,"They are undifferentiated and can form any type of cell; used to repair damaged tissues and organs"],
+["Distinguish (2 marks)","Distinguish between organ donation and body donation.",2,"Organ donation: specific organs (kidney, eye, heart) given to needy patients. Body donation: whole body given to medical colleges for study and research"],
+["Explain (2 marks)","What is gene therapy?",2,"Replacing a defective gene with a normal gene to treat genetic disorders"],
+["Short answer (3 marks)","Explain the uses of biotechnology in agriculture.",3,"Genetically modified crops (Bt cotton), tissue culture for disease-free plants, bio-fertilizers and bio-pesticides, higher yield"],
+["Short answer (3 marks)","Explain the steps of producing insulin by recombinant DNA technology.",3,"Human insulin gene cut using restriction enzyme → inserted into bacterial plasmid → bacteria multiply → produce insulin → purified and used"],
+["Short answer (3 marks)","What is the importance of vaccines? Name any two vaccines.",3,"Create immunity before infection, prevent epidemics, eradicated smallpox; e.g. BCG, Polio, MMR, DPT"],
+["Long answer (5 marks)","Explain the applications of biotechnology in medicine.",5,"Vaccines, insulin and growth hormone production, gene therapy, stem cell therapy, monoclonal antibodies, diagnostic kits, DNA fingerprinting"]]};
+
+X.b9 = {m:[
+["Social health means:",["Only physical fitness","Ability to have good relations with others","Having money","Being alone"],1],
+["Cyberbullying means:", ["Harassing someone using digital media", "Playing outdoor games", "Reading books", "Helping friends online"], 0],
+["Tobacco contains a harmful substance called:",["Caffeine","Nicotine","Insulin","Vitamin C"],1],
+["Cybercrime involves misuse of:",["Computers and internet","Bicycles","Books","Plants"],0],
+["Which helps reduce stress?",["Yoga and meditation","Overeating","Addiction","Isolation"],0],
+["Which organization defined health as physical, mental and social well-being?",["UNICEF","WHO","UNESCO","WTO"],1],
+["Alcoholism mainly damages the:",["Liver","Lungs only","Bones","Hair"],0]],
+w:[
+["Define (1 mark)","What is social health?",1,"The ability of a person to make good relationships, adapt to and behave well in society"],
+["Give reasons (2 marks)","Social health is necessary for mental health.",2,"Good relations give support and reduce loneliness and stress; isolation leads to depression and anxiety"],
+["Explain (2 marks)","Write two harmful effects of tobacco.",2,"Mouth and lung cancer, heart disease, breathing problems, addiction"],
+["Explain (2 marks)","What precautions should we take while using the internet?",2,"Don't share passwords/personal info, avoid unknown links, limit screen time, report cyberbullying"],
+["Short answer (3 marks)","What are the factors that affect social health?",3,"Family environment, friends/peer group, social media, addiction, stress, poverty, discrimination"],
+["Short answer (3 marks)","How can stress be managed by students?",3,"Time management, regular exercise and yoga, hobbies, enough sleep, talking to parents/teachers/counsellor"],
+["Short answer (3 marks)","Explain the harmful effects of addiction on society.",3,"Health problems, family conflict, financial loss, crimes and accidents, loss of productivity"],
+["Long answer (5 marks)","Suggest ways to keep social health good in today's digital age.",5,"Balanced use of gadgets, spend time with family and friends, take part in group activities and sports, help others, avoid addictions, seek counselling when needed"]]};
+
+X.b10 = {m:[
+["Which is a natural disaster?",["Fire due to short circuit","Earthquake","Bomb blast","Road accident"],1],
+["Instrument used to record earthquakes:",["Barometer","Seismograph","Thermometer","Hygrometer"],1],
+["In an earthquake, the safest place indoors is:",["Near windows","Under a strong table","In the lift","On the staircase"],1],
+["First aid for burns:",["Apply oil","Pour cold water","Apply toothpaste","Break blisters"],1],
+["Toll-free emergency number in India (integrated):", ["112", "100 only", "911", "999"], 0],
+["Tsunami is caused mainly by:", ["Undersea earthquakes", "Heavy rain", "Forest fire", "Cyclone"], 0],
+["Mock drills are done to:",["Waste time","Practise response to disasters","Make noise","Stop work"],1]],
+w:[
+["Define (1 mark)","What is a disaster?",1,"A sudden event that causes large-scale loss of life, property and environment, beyond the coping capacity of the community"],
+["Give reasons (2 marks)","First aid is important in disaster management.",2,"It gives immediate help before medical aid arrives; saves life, prevents condition from becoming worse"],
+["Distinguish (2 marks)","Distinguish between natural and man-made disasters.",2,"Natural: caused by nature – earthquake, flood, cyclone. Man-made: caused by human activity – fire, gas leak, terrorism, accidents"],
+["Explain (2 marks)","What is the disaster management cycle?",2,"Mitigation → preparedness → response → recovery/rehabilitation; continuous process before, during and after a disaster"],
+["Short answer (3 marks)","What precautions should be taken during floods?",3,"Move to higher place, switch off electricity, drink boiled water, keep emergency kit, follow warnings, don't walk in flowing water"],
+["Short answer (3 marks)","Write the contents of an emergency (disaster) kit.",3,"Torch, battery, first aid box, dry food, drinking water, important documents, radio, medicines, whistle"],
+["Short answer (3 marks)","Explain methods of carrying an injured person (any three).",3,"One-person carry (cradle), two-person (four-hand seat), stretcher, fireman's lift; support head and neck"],
+["Long answer (5 marks)","Explain the role of students and school in disaster management.",5,"Disaster management plan for school, mock drills, first-aid training, awareness rallies, helping in relief work, following safety rules, informing authorities"]]};
+X.h1 = {m:[
+["Who is called the father of history (Western)?",["Voltaire","Herodotus","Hegel","Ranke"],1],
+["Voltaire is considered the founder of:", ["Modern historiography", "Marxist history", "Annales school", "Feminist history"], 0],
+["Who stressed critical study of original documents for writing history?",["Leopold von Ranke","Herodotus","Voltaire","Hegel"],0],
+["Founders of the Annales school were:", ["Lucien Febvre and Marc Bloch", "Marx and Engels", "Hegel and Ranke", "Voltaire and Descartes"], 0],
+["'Das Kapital' was written by:",["Hegel","Karl Marx","Ranke","Foucault"],1],
+["Feminist historiography focuses on:",["Kings","Women's role in history","Wars only","Religion only"],1],
+["René Descartes insisted that historical sources must be:",["Accepted without question","Critically examined","Ignored","Memorized"],1]],
+w:[
+["Define (1 mark)","What is historiography?",1,"The study of how history has been written – methods, sources and approaches of historians"],
+["Give reasons (2 marks)","Herodotus is called the father of history.",2,"He wrote 'The Histories' on the Greco-Persian wars, asked questions and used enquiry; first systematic history writing"],
+["Explain (2 marks)","Write two features of the Annales school.",2,"Studied history along with geography, economics, society; focused on common people, climate, agriculture, not only political events"],
+["Explain (2 marks)","Explain Hegel's view of history (dialectics).",2,"History progresses through thesis–antithesis–synthesis; truth found through logical reasoning"],
+["Short answer (3 marks)","Explain Karl Marx's contribution to historiography.",3,"History is a history of class struggle; economic relations (means of production) shape society; 'Das Kapital'; gave importance to common workers"],
+["Short answer (3 marks)","What is feminist historiography?",3,"History written from women's perspective; restudy of women's role; Simone de Beauvoir; women's issues in employment, trade unions, family"],
+["Short answer (3 marks)","Write the contribution of Leopold von Ranke.",3,"Emphasized original documents and critical analysis of sources; history should be written as it actually happened; objectivity"],
+["Long answer (5 marks)","Explain the important features of modern historiography.",5,"Logical, scientific method; asks questions; human-centred; based on evidence; objectivity; uses sources critically; covers all aspects of human life"]]};
+
+X.h2 = {m:[
+["'Rajatarangini' was written by:",["Kalhan","Banabhatta","Ziauddin Barani","Grant Duff"],0],
+["'Who were the Shudras?' was written by:", ["Dr. B.R. Ambedkar", "Mahatma Phule", "Rajwade", "Kosambi"], 0],
+["Rajwade compiled sources of Maratha history in:",["22 volumes","5 volumes","10 volumes","50 volumes"],0],
+["'Harshacharita' was written by:",["Kalhan","Banabhatta","Kautilya","Kalidasa"],1],
+["Marxist historian who wrote on Indian history:",["D.D. Kosambi","Grant Duff","Rajwade","Herodotus"],0],
+["'Bakhar' is a form of:",["Maratha historical prose writing","Poetry","Drama","Folk dance"],0],
+["Subaltern history focuses on:",["Rulers","Common, marginalized people","Wars","Religions"],1]],
+w:[
+["Define (1 mark)","What is a 'Bakhar'?",1,"A form of historical prose writing in Marathi describing events and lives of kings/warriors"],
+["Give reasons (2 marks)","Kalhan's Rajatarangini is important.",2,"It is an important source for the history of Kashmir; Kalhan used critical analysis of sources and an impartial approach"],
+["Explain (2 marks)","Write two features of colonial historiography.",2,"Written by British officers; justified British rule; showed Indian history as stagnant and divided; e.g. James Mill, Grant Duff"],
+["Explain (2 marks)","What is nationalist historiography?",2,"Indian historians highlighted India's glorious past to create national pride and oppose colonial views; e.g. Rajwade, R.G. Bhandarkar"],
+["Short answer (3 marks)","Explain the contribution of V.K. Rajwade.",3,"Collected and published original documents of Maratha history in 22 volumes; emphasized original sources; founded Bharat Itihas Samshodhak Mandal"],
+["Short answer (3 marks)","What is subaltern historiography?",3,"History from the perspective of common, marginalized people; Antonio Gramsci's idea; Ranajit Guha in India; neglected groups given importance"],
+["Short answer (3 marks)","Write the contribution of Mahatma Phule/Dr. Ambedkar to Indian historiography.",3,"Phule ('Gulamgiri') and Ambedkar ('Who were the Shudras?') wrote history from the viewpoint of oppressed classes; questioned caste-based narratives"],
+["Long answer (5 marks)","Explain the different trends of Indian historiography.",5,"Ancient (inscriptions, Rajatarangini), medieval (court chronicles, bakhars), colonial, nationalist, Marxist (Kosambi), subaltern, feminist; each with focus and examples"]]};
+
+X.h3 = {m:[
+["Which subject helps to understand old inscriptions?", ["Epigraphy", "Zoology", "Astronomy", "Geology"], 0],
+["UNESCO stands for:",["United Nations Educational, Scientific and Cultural Organization","United Nations Economic Committee","United Nation School Committee","None"],0],
+["Heritage includes:",["Only buildings","Natural and cultural heritage","Only songs","Only forests"],1],
+["Archives preserve:",["Historical documents","Food","Animals","Medicines"],0],
+["Museum is a place to:",["Preserve and display historical objects","Play sports","Sell goods","Watch films"],0],
+["Elephanta caves are near:", ["Mumbai", "Nagpur", "Kolhapur", "Solapur"], 0],
+["Applied history connects past knowledge with:",["Present and future","Only past","Only mythology","Only literature"],0]],
+w:[
+["Define (1 mark)","What is applied history?",1,"Use of historical knowledge to solve present problems and plan for the future"],
+["Give reasons (2 marks)","Applied history is useful for common people.",2,"It makes history interesting and practical; helps understand present issues, heritage, tourism and creates employment"],
+["Explain (2 marks)","Write two uses of museums.",2,"Preserve historical objects, educate people, research, create interest in the past and heritage"],
+["Explain (2 marks)","What is meant by cultural heritage?",2,"Tangible (monuments, artefacts) and intangible (traditions, songs, festivals) things passed down from earlier generations"],
+["Short answer (3 marks)","Explain the importance of applied history in different fields.",3,"Science and technology history, industry, tourism, heritage management, entertainment, archives and libraries"],
+["Short answer (3 marks)","Which career opportunities are available in applied history?",3,"Museums, archives, tourism, heritage conservation, journalism, film research, teaching, archaeology"],
+["Short answer (3 marks)","Why should we preserve heritage?",3,"It shows our identity and history; source of knowledge; promotes tourism and employment; once lost cannot be recreated"],
+["Long answer (5 marks)","Explain the role of UNESCO and the public in heritage conservation.",5,"UNESCO declares world heritage sites, gives funds and guidelines; public should avoid damaging/scribbling, spread awareness, support conservation and follow rules"]]};
+
+X.h4 = {m:[
+["Ajanta caves are famous for:",["Paintings","Forts","Temples only","Stepwells"],0],
+["Kailas temple at Ellora was built by:",["Rashtrakutas","Mauryas","Mughals","Cholas"],0],
+["Warli painting is a folk art of:",["Maharashtra","Kerala","Punjab","Bengal"],0],
+["Sanchi Stupa is in:",["Maharashtra","Madhya Pradesh","Gujarat","Bihar"],1],
+["The two types of art are:",["Visual and performing arts","Old and new","Big and small","Rural and urban only"],0],
+["Kathak is a:",["Folk song","Classical dance","Painting","Sculpture"],1],
+["Indo-Islamic architecture example:",["Gol Gumbaz","Ajanta","Sanchi","Konark"],0]],
+w:[
+["Define (1 mark)","What is visual art?",1,"Art that can be seen – painting, sculpture, architecture, craft"],
+["Give reasons (2 marks)","Folk arts are important.",2,"They express life, traditions and beliefs of common people; preserve culture; give livelihood"],
+["Distinguish (2 marks)","Distinguish between classical and folk arts.",2,"Classical: based on strict rules/texts, long training (Bharatanatyam). Folk: spontaneous, part of community life (Lavani, Warli)"],
+["Explain (2 marks)","Write two features of Indo-Islamic architecture.",2,"Domes, arches, minarets, calligraphy, geometrical designs; e.g. Qutub Minar, Gol Gumbaz"],
+["Short answer (3 marks)","Explain the features of Ajanta paintings.",3,"Painted on cave walls with natural colours; Jataka stories of Buddha; expressive human figures; World Heritage Site"],
+["Short answer (3 marks)","What career opportunities exist in the field of arts?",3,"Artist, museum curator, art critic, conservationist, designer, archaeologist, art teacher, tourism guide"],
+["Short answer (3 marks)","Write about the Kailas temple at Ellora.",3,"Carved from a single rock from top to bottom; built by Rashtrakuta king Krishna I; wonderful sculpture; World Heritage Site"],
+["Long answer (5 marks)","Explain the tradition of Indian performing arts with examples.",5,"Music (classical, folk), dance (Bharatanatyam, Kathak, Lavani), drama (Sanskrit plays, Tamasha, Dashavatar); Bharata's Natyashastra as base"]]};
+
+X.h5 = {m:[
+["The first newspaper in India was:",["Bengal Gazette","Kesari","Darpan","The Hindu"],0],
+["'Kesari' was published in which language?", ["Marathi", "English", "Hindi", "Gujarati"], 0],
+["Kesari and Maratha newspapers were started by:",["Lokmanya Tilak and Agarkar","Gandhiji","Nehru","Phule"],0],
+["Prasar Bharati is related to:",["Doordarshan and Akashvani","Newspapers","Cinema","Internet"],0],
+["Radio broadcasting in India started in:",["1927","1959","1880","1975"],0],
+["Akashvani is the name of:", ["All India Radio", "A newspaper", "A TV serial", "A film"], 0],
+["Mass media must be:",["Biased","Objective and responsible","Secret","Political only"],1]],
+w:[
+["Define (1 mark)","What is mass media?",1,"Means of communication that reach a large number of people at the same time – newspapers, radio, TV, internet"],
+["Give reasons (2 marks)","Newspapers are an important source of history.",2,"They record daily events, opinions and social conditions of the time; give contemporary information"],
+["Explain (2 marks)","Write two features of the Bengal Gazette.",2,"Started by James Augustus Hickey in 1780; first Indian newspaper; criticized British officials"],
+["Explain (2 marks)","Why should we critically examine news in mass media?",2,"News can be biased, incomplete or fake; must verify facts before accepting or forwarding"],
+["Short answer (3 marks)","Explain the role of newspapers in the Indian freedom struggle.",3,"Spread nationalism, criticized British policies, created awareness; Kesari, Maratha, Young India, Harijan"],
+["Short answer (3 marks)","Write the importance of radio (Akashvani).",3,"Reaches remote areas cheaply, news, education, entertainment, agriculture programmes, disaster warnings"],
+["Short answer (3 marks)","How is television useful for students?",3,"Educational channels, documentaries, news, science and history programmes, quiz shows"],
+["Long answer (5 marks)","Explain the relation between mass media and history.",5,"Media records events (source of history), shapes public opinion, needs objectivity; historians use newspapers, recordings and films; careers in media need history knowledge"]]};
+
+X.h6 = {m:[
+["First Indian feature film 'Raja Harishchandra' was made by:",["Dadasaheb Phalke","Raj Kapoor","Satyajit Ray","V. Shantaram"],0],
+["Tamasha is a folk art form of:",["Maharashtra","Gujarat","Punjab","Kerala"],0],
+["Dashavatar is a folk drama of:",["Konkan","Vidarbha","Marathwada","Khandesh"],0],
+["The highest award in Indian cinema is the:",["Dadasaheb Phalke Award","Bharat Ratna","Arjuna Award","Padma Shri"],0],
+["Puppetry is a form of:",["Entertainment","Agriculture","Trade","War"],0],
+["Kirtan is mainly a form of:",["Devotional performance","Sport","Painting","Business"],0],
+["'Sangeet Shakuntal' is associated with:",["Annasaheb Kirloskar","Phalke","Tilak","Rajwade"],0]],
+w:[
+["Define (1 mark)","What is entertainment?",1,"Activities that give joy and relaxation to the mind and body"],
+["Give reasons (2 marks)","Entertainment is necessary in human life.",2,"Relieves stress, refreshes mind, increases creativity and social bonding"],
+["Explain (2 marks)","Write two features of Marathi musical plays (Sangeet Natak).",2,"Combination of drama and classical music; started by Annasaheb Kirloskar; e.g. Sangeet Shakuntal, Sangeet Saubhadra"],
+["Explain (2 marks)","How did Dadasaheb Phalke contribute to Indian cinema?",2,"Made first full-length Indian feature film Raja Harishchandra (1913); father of Indian cinema"],
+["Short answer (3 marks)","Explain the importance of folk theatre/folk entertainment.",3,"Preserves traditions, social awareness, entertainment for rural people; Tamasha, Bharud, Dashavatar, Lalit"],
+["Short answer (3 marks)","Explain the relation between cinema and history.",3,"Historical films need research of costumes, language, events; films are sources of social history; careers for historians"],
+["Short answer (3 marks)","What are the career opportunities in the entertainment field?",3,"Acting, direction, script writing, costume design, set design, research, music, editing"],
+["Long answer (5 marks)","Explain the changing forms of entertainment from traditional to modern times.",5,"Earlier: folk arts, kirtan, puppetry, games, fairs; later: theatre, cinema, radio, TV; now: internet, OTT, mobile games; nature changed from community to individual"]]};
+
+X.h7 = {m:[
+["Olympic games originated in:",["Greece","Rome","India","China"],0],
+["Kabaddi and Kho-kho are:",["Indian traditional games","European games","Water sports","Board games"],0],
+["Major Dhyan Chand is associated with:",["Hockey","Cricket","Football","Kabaddi"],0],
+["The Asian Games were first held in (1951):", ["New Delhi", "Tokyo", "Beijing", "Jakarta"], 0],
+["Arjuna Award is given for:",["Excellence in sports","Literature","Science","Cinema"],0],
+["The highest sports award in India (now) is:",["Major Dhyan Chand Khel Ratna","Arjuna","Dronacharya","Padma Bhushan"],0],
+["Dronacharya Award is given to:",["Coaches","Players","Writers","Actors"],0]],
+w:[
+["Define (1 mark)","What are indoor games?",1,"Games played inside a room/hall, e.g. chess, carrom, table tennis"],
+["Give reasons (2 marks)","Sports are important for students.",2,"Improve physical and mental health, teamwork, discipline and sportsmanship"],
+["Explain (2 marks)","Write two features of the game Mallakhamb.",2,"Traditional Indian sport of Maharashtra; gymnastic exercises on a wooden pole or rope; increases flexibility and strength"],
+["Explain (2 marks)","How are sports related to history?",2,"Sports have origin and development; history of players, rules, equipment and tournaments is studied"],
+["Short answer (3 marks)","Write the career opportunities in sports.",3,"Player, coach, umpire/referee, sports journalist, physiotherapist, sports equipment industry, commentator"],
+["Short answer (3 marks)","Explain the importance of traditional Indian games.",3,"Need little equipment, build physical fitness, teamwork; preserve culture; e.g. kabaddi, kho-kho, lagori"],
+["Short answer (3 marks)","How do sports promote national integration?",3,"Players from all regions play for one country; people unite to support the national team; promote friendship and pride"],
+["Long answer (5 marks)","Explain the history and importance of the Olympic games.",5,"Ancient Greece (Olympia, 776 BCE), revived by Pierre de Coubertin in 1896; held every 4 years; promotes peace, friendship and excellence; India's achievements"]]};
+
+X.h8 = {m:[
+["Tourism related to religious places is called:",["Pilgrimage tourism","Medical tourism","Agro tourism","Sports tourism"],0],
+["Agro-tourism means visiting:",["Farms and villages","Hospitals","Forts only","Malls"],0],
+["Ajanta and Ellora caves are in district:",["Aurangabad (Chh. Sambhajinagar)","Pune","Nagpur","Kolhapur"],0],
+["Medical tourism means travelling for:",["Treatment","Picnic","Sports","Shopping"],0],
+["MTDC stands for:",["Maharashtra Tourism Development Corporation","Maharashtra Trade Department","Main Tourism Data Centre","None"],0],
+["Raigad fort is associated with:",["Chhatrapati Shivaji Maharaj","Akbar","Ashoka","Tipu Sultan"],0],
+["Tourism helps the economy by:",["Creating employment","Reducing jobs","Polluting rivers","Stopping trade"],0]],
+w:[
+["Define (1 mark)","What is tourism?",1,"Travelling to places outside one's usual environment for pleasure, study, religion, business or health"],
+["Give reasons (2 marks)","Tourism should be developed in Maharashtra.",2,"Maharashtra has forts, caves, beaches, hill stations and pilgrim places; tourism creates jobs and income and spreads culture"],
+["Explain (2 marks)","Write two features of agro-tourism.",2,"City people experience village life and farming; farmers get extra income; promotes rural culture"],
+["Explain (2 marks)","Explain the relation between history and tourism.",2,"Historical places attract tourists; guides need historical knowledge; tourism preserves heritage"],
+["Short answer (3 marks)","Write the types of tourism.",3,"Historical, religious (pilgrimage), medical, agro, eco, adventure, sports, cultural tourism"],
+["Short answer (3 marks)","What care should tourists take while visiting historical places?",3,"Do not damage or scribble on monuments, avoid littering, follow rules, respect local culture"],
+["Short answer (3 marks)","What are the employment opportunities in tourism?",3,"Guide, hotel industry, transport, travel agency, handicraft sale, food stalls, tourism management"],
+["Long answer (5 marks)","Explain the importance of tourism with reference to Maharashtra.",5,"Rich heritage (Ajanta–Ellora, forts), beaches, hill stations; employment, foreign exchange, infrastructure, cultural exchange, preservation of heritage"]]};
+
+X.h9 = {m:[
+["Archaeological Survey of India (ASI) was founded in:",["1861","1947","1901","1857"],0],
+["First director of ASI was:",["Alexander Cunningham","Mortimer Wheeler","John Marshall","James Prinsep"],0],
+["The National Museum is in:",["New Delhi","Mumbai","Kolkata","Chennai"],0],
+["Chhatrapati Shivaji Maharaj Vastu Sangrahalaya is in:",["Mumbai","Pune","Nashik","Nagpur"],0],
+["Maharashtra State Archives (main) is in:", ["Mumbai", "Nagpur", "Aurangabad", "Solapur"], 0],
+["A library preserves:",["Books and manuscripts","Animals","Coins only","Weapons only"],0],
+["Heritage management requires knowledge of:",["History, conservation and science","Only cooking","Only sports","Only music"],0]],
+w:[
+["Define (1 mark)","What is heritage management?",1,"Planning and activities for preserving, conserving and presenting heritage for present and future generations"],
+["Give reasons (2 marks)","Archives are important for historians.",2,"They preserve original government records, letters and documents which are reliable sources of history"],
+["Explain (2 marks)","Write two functions of museums.",2,"Collect, preserve and display objects; educate and conduct research; organize exhibitions"],
+["Explain (2 marks)","Write two contributions of the Archaeological Survey of India.",2,"Excavation of sites (Harappa, Mohenjo-daro), conservation of monuments, publications and research"],
+["Short answer (3 marks)","What are the steps in conservation of historical objects?",3,"Scientific cleaning, chemical treatment, controlled temperature/humidity, proper storage and display, documentation"],
+["Short answer (3 marks)","Write the importance of libraries.",3,"Store books, manuscripts and documents; useful for research and education; preserve knowledge for future"],
+["Short answer (3 marks)","What are the career opportunities in heritage management?",3,"Archaeologist, museum curator, archivist, conservator, librarian, heritage guide, researcher"],
+["Long answer (5 marks)","Explain the role of museums, archives and libraries in preserving history.",5,"Museums: objects and exhibitions; archives: official records; libraries: books and manuscripts; all help research, education, national identity; need trained staff and scientific methods"]]};
+
+X.p1 = {m:[
+["The Constitution of India came into force on:",["26 January 1950","15 August 1947","26 November 1949","2 October 1950"],0],
+["Reservation of seats for women in local self-government is:",["50% in Maharashtra","10%","5%","None"],0],
+["Fundamental Rights are protected by:", ["Judiciary", "Election Commission", "Police", "Gram Sabha"], 0],
+["Who is called the chief architect of the Indian Constitution?",["Dr. B.R. Ambedkar","Jawaharlal Nehru","Sardar Patel","Rajendra Prasad"],0],
+["The Constitution of India declares India as a:",["Sovereign, socialist, secular, democratic republic","Monarchy","Dictatorship","Federation of kings"],0],
+["Right to Education Act (2009) gives free education for ages:",["6–14","3–10","10–18","5–15"],0],
+["Which body interprets the Constitution?",["Judiciary","Police","Election Commission","Army"],0]],
+w:[
+["Define (1 mark)","What is democracy?",1,"Government of the people, by the people and for the people, in which people elect their representatives"],
+["Give reasons (2 marks)","India is called a secular state.",2,"State has no official religion; all religions are treated equally; citizens are free to follow any religion"],
+["Explain (2 marks)","How does the Right to Information strengthen democracy?",2,"Citizens can get information about government work; increases transparency and accountability; reduces corruption"],
+["Explain (2 marks)","Write two provisions for women's empowerment in the Constitution/laws.",2,"Reservation in local bodies, equal pay, laws against domestic violence and dowry, right to property"],
+["Short answer (3 marks)","How has the judiciary played an important role in strengthening democracy?",3,"Protects fundamental rights, judicial review, Public Interest Litigation (PIL), gives justice to the weak"],
+["Short answer (3 marks)","Explain the concept of social justice.",3,"Removing discrimination based on caste, religion, gender; reservation for SC/ST/OBC; equal opportunity for all"],
+["Short answer (3 marks)","How has the Constitution been working for the last 75 years? Give three achievements.",3,"Regular free elections, peaceful transfer of power, expansion of rights (RTI, RTE), decentralization, social justice measures"],
+["Long answer (5 marks)","Explain the major changes/expansion of democracy in India after independence.",5,"Universal adult franchise, 73rd/74th amendments – local self-government, women's reservation, RTI, RTE, food security, judicial activism; deepening of democracy"]]};
+
+X.p2 = {m:[
+["The Election Commission of India is:",["An independent body","A political party","A court","A ministry"],0],
+["Minimum voting age in India is:",["18","21","25","16"],0],
+["NOTA option was introduced in:",["2013","2000","1990","2019"],0],
+["A constituency is:",["An area from which a representative is elected","A party","A court","A ministry"],0],
+["Who appoints the Chief Election Commissioner?",["President","Prime Minister","Chief Justice","Parliament speaker"],0],
+["EVM stands for:",["Electronic Voting Machine","Election Verification Method","Electric Vote Meter","None"],0],
+["Code of conduct during elections is applied by:",["Election Commission","Police","Supreme Court","President"],0]],
+w:[
+["Define (1 mark)","What is a by-election?",1,"An election held in a constituency when a seat falls vacant due to death or resignation of the representative before term ends"],
+["Give reasons (2 marks)","The Election Commission is independent.",2,"To conduct free and fair elections without pressure from government or parties; CEC cannot be removed easily"],
+["Explain (2 marks)","Write two functions of the Election Commission.",2,"Preparing voter lists, conducting elections, giving recognition and symbols to parties, enforcing code of conduct"],
+["Explain (2 marks)","What is meant by reserved constituencies?",2,"Constituencies reserved for SC/ST candidates so that weaker sections get representation"],
+["Short answer (3 marks)","Explain the steps of the election process.",3,"Announcement, nomination, scrutiny, withdrawal, campaign, polling, counting and declaration of results"],
+["Short answer (3 marks)","What is the importance of the code of conduct?",3,"Ensures fair campaign, stops misuse of government power, bans use of religion/caste for votes and bribes"],
+["Short answer (3 marks)","Suggest measures for electoral reforms.",3,"Control money and muscle power, criminal candidates banned, state funding, voter awareness, VVPAT"],
+["Long answer (5 marks)","Explain the role and functions of the Election Commission of India.",5,"Delimitation of constituencies, voter lists, conducting elections, recognizing parties, code of conduct, appointing observers, deciding disputes before results, use of EVMs"]]};
+
+X.p3 = {m:[
+["The Indian National Congress was founded in:",["1885","1905","1947","1920"],0],
+["A party recognized in at least four states is a:",["National party","Regional party","Local party","Independent"],0],
+["Shiv Sena is a party mainly in:",["Maharashtra","Tamil Nadu","Punjab","Kerala"],0],
+["Party in power forms the:",["Government","Opposition","Election Commission","Judiciary"],0],
+["DMK is a regional party of:",["Tamil Nadu","Kerala","Maharashtra","Bihar"],0],
+["Parties not in power play the role of:",["Opposition","Election Commission","Judiciary","President"],0],
+["Political parties contest elections to:",["Gain power","Make films","Run schools only","Avoid people"],0]],
+w:[
+["Define (1 mark)","What is a political party?",1,"A group of people with common ideology who contest elections to gain power and implement their policies"],
+["Give reasons (2 marks)","Political parties are necessary for democracy.",2,"They contest elections, form government or opposition, connect people and government, educate public opinion"],
+["Distinguish (2 marks)","Distinguish between national and regional parties.",2,"National: recognized in four or more states, national issues (BJP, INC). Regional: in one or few states, regional issues (DMK, Shiv Sena)"],
+["Explain (2 marks)","Write two functions of the opposition party.",2,"Criticize wrong policies, keep government accountable, offer alternatives, raise people's issues"],
+["Short answer (3 marks)","Write three features of political parties.",3,"Common ideology, aim to gain power, organization and leadership, contest elections, manifesto"],
+["Short answer (3 marks)","Explain the reasons for the rise of regional parties.",3,"Regional identity and language, local problems neglected, uneven development, coalition era"],
+["Short answer (3 marks)","What is a coalition government?",3,"Government formed by two or more parties together when no party gets a clear majority"],
+["Long answer (5 marks)","Explain the role of political parties in Indian democracy.",5,"Contest elections, form government/opposition, policy making, link between people and government, political education, recruitment of leaders"]]};
+
+X.p4 = {m:[
+["Anna Hazare is known for the movement against:", ["Corruption", "Dams", "Deforestation", "Plastic"], 0],
+["Narmada Bachao Andolan was led by:",["Medha Patkar","Sunderlal Bahuguna","Baba Amte","Anna Hazare"],0],
+["Chipko movement leader:",["Sunderlal Bahuguna","Medha Patkar","Tilak","Phule"],0],
+["National Consumer Day is observed on:", ["24 December", "15 March", "5 June", "2 October"], 0],
+["Shetkari Sanghatana is associated with:",["Sharad Joshi","Baba Amte","Medha Patkar","Gandhiji"],0],
+["Movements related to tribals mainly demand:",["Rights over forests and land","Industries","Cinema","Sports"],0],
+["Consumer movement aims to:",["Protect consumers from exploitation","Increase prices","Stop trade","Help only shopkeepers"],0]],
+w:[
+["Define (1 mark)","What is a social movement?",1,"Collective efforts of people to bring about change in society or solve a common problem"],
+["Give reasons (2 marks)","Movements are important in democracy.",2,"They raise people's problems, make government aware, bring policy changes and increase participation"],
+["Explain (2 marks)","Write two demands of the farmers' movement.",2,"Fair price for produce, loan waiver, cheap electricity/irrigation, removal of trade restrictions"],
+["Explain (2 marks)","What are the rights of consumers?",2,"Right to safety, information, choice, to be heard, to seek redressal, consumer education"],
+["Short answer (3 marks)","Explain the environmental movement in India.",3,"Chipko (save trees), Narmada Bachao Andolan (displacement and environment), Silent Valley; aim sustainable development"],
+["Short answer (3 marks)","Explain the women's movement in India.",3,"Fought for equality, education, against dowry and violence, for reservation and equal pay"],
+["Short answer (3 marks)","Explain the workers' (labour) movement.",3,"Demands: fair wages, working hours, safety, social security; trade unions; Narayan Meghaji Lokhande"],
+["Long answer (5 marks)","Explain the features of tribal movements and their demands.",5,"Tribals depend on forest; displaced by projects; demands – rights over forest land and produce, protection of culture; Forest Rights Act 2006"]]};
+
+X.p5 = {m:[
+["Which is a challenge to Indian democracy?",["Terrorism","Free elections","Rule of law","Equality"],0],
+["Naxalism is mainly related to:",["Left-wing extremism","Sports","Tourism","Cinema"],0],
+["Regionalism means:", ["Excessive loyalty to one's region", "Love for the nation", "Respect for all", "Federalism"], 0],
+["Communalism means:",["Hatred based on religion","Respect for all","Secularism","Unity"],0],
+["Corruption weakens:",["Trust in democracy","Rule of law strengthening","Transparency","Development"],0],
+["Lokpal is an institution to fight:",["Corruption","Floods","Diseases","Pollution"],0],
+["Terrorism means:", ["Use of violence to spread fear for political aims", "Peaceful protest", "Free elections", "Social reform"], 0]],
+w:[
+["Define (1 mark)","What is communalism?",1,"Narrow loyalty to one's own religion leading to hatred and conflict with other religious groups"],
+["Give reasons (2 marks)","Terrorism is a threat to democracy.",2,"It spreads fear, kills innocent people, damages unity and economy, and disturbs the rule of law"],
+["Explain (2 marks)","Write two effects of corruption.",2,"Development funds misused, poor services, loss of people's trust, injustice to poor"],
+["Explain (2 marks)","What is meant by criminalization of politics?",2,"People with criminal backgrounds contesting elections and gaining power; using money and muscle power"],
+["Short answer (3 marks)","Suggest measures to make Indian democracy stronger.",3,"Voter awareness, electoral reforms, transparency (RTI), strong judiciary, removal of social inequality, active citizens"],
+["Short answer (3 marks)","How is Naxalism a challenge to India?",3,"Violence in tribal/rural areas; attacks on police and development; arises from inequality and exploitation"],
+["Short answer (3 marks)","Explain the challenge of casteism in politics.",3,"Votes based on caste, divides society, merit ignored, tensions; need education and awareness"],
+["Long answer (5 marks)","Explain the major challenges faced by Indian democracy and solutions.",5,"Terrorism, communalism, Naxalism, corruption, criminalization, casteism, regionalism; solutions – education, reforms, rule of law, inclusive development, participation"]]};
+X.e1 = {m:[
+["A field visit is done to study:",["Geographical features directly","Only books","Only maps","Only TV"],0],
+["Before a field visit, we should prepare a:",["Questionnaire","Movie","Song","Game"],0],
+["Which is NOT needed for a field visit?",["Notebook","Camera","Map","Video game"],3],
+["A field visit report should include:",["Observations and conclusions","Only photos","Only names","Nothing"],0],
+["Field visit gives:",["First-hand information","Second-hand only","Imaginary data","No data"],0],
+["Which place is suitable for a field visit on industries?",["A factory","A cinema hall","A mall","A park"],0],
+["During a field visit, students should:",["Follow instructions and safety","Litter the place","Disturb people","Go alone anywhere"],0]],
+w:[
+["Define (1 mark)","What is a field visit?",1,"A planned visit to a place to observe and study geographical features and human activities directly"],
+["Give reasons (2 marks)","Field visits are important in geography.",2,"Give first-hand information, connect theory with real life, develop observation and interviewing skills"],
+["Explain (2 marks)","Write any four materials needed for a field visit.",2,"Notebook, pen, map, camera, compass, binoculars, questionnaire, first-aid kit"],
+["Explain (2 marks)","What care should be taken during a field visit?",2,"Follow teacher's instructions, don't litter or damage, take permission before photos, stay with the group"],
+["Short answer (3 marks)","Prepare a questionnaire (any six questions) for a visit to a sugar factory.",3,"Raw material source, production process, number of workers, by-products, waste management, market for sugar"],
+["Short answer (3 marks)","Explain the steps of planning a field visit.",3,"Select place, take permission, decide objectives, prepare questionnaire and materials, arrange transport, visit and record, write report"],
+["Short answer (3 marks)","Write the format of a field visit report.",3,"Introduction (place, date), objectives, observations, information collected, photos/maps, conclusion, acknowledgement"],
+["Long answer (5 marks)","Write a field visit report on a visit to a riverside/coastal area.",5,"Location, landforms (bank, delta/beach), vegetation, human activities (fishing, farming), pollution problems, conclusion and suggestions"]]};
+
+X.e2 = {m:[
+["India lies mainly in the:",["Northern and Eastern hemispheres","Southern and Western hemispheres","Southern and Eastern hemispheres","Northern and Western hemispheres"],0],
+["Brazil's coastline is along the:", ["Atlantic Ocean", "Pacific Ocean", "Indian Ocean", "Arctic Ocean"], 0],
+["Capital of Brazil is:",["Rio de Janeiro","Brasilia","Sao Paulo","Manaus"],1],
+["The Tropic of Cancer passes through:",["India","Brazil only","Neither","Only Australia"],0],
+["Equator passes through:",["Brazil","India","Both","Neither"],0],
+["Standard meridian of India is:",["82°30′ E","0°","90° E","75° E"],0],
+["India's southernmost point (Indira Point) is in:",["Andaman & Nicobar Islands","Kanyakumari","Lakshadweep","Kerala"],0]],
+w:[
+["Define (1 mark)","What is the location of a place?",1,"The position of a place on the Earth described by latitude and longitude"],
+["Give reasons (2 marks)","India has a long coastline which is useful.",2,"Helps trade through ports, fishing, tourism, naval security and access to Indian Ocean routes"],
+["Compare (2 marks)","Compare the location of India and Brazil.",2,"India: northern and eastern hemispheres, ~8°N–37°N. Brazil: mostly southern and western hemispheres, ~5°N–34°S; equator passes through Brazil"],
+["Explain (2 marks)","Name the neighbouring countries of Brazil (any four).",2,"Argentina, Paraguay, Uruguay, Bolivia, Peru, Colombia, Venezuela, Guyana, Suriname, French Guiana"],
+["Short answer (3 marks)","Write about the extent of India.",3,"Latitude ~8°4′N to 37°6′N, longitude ~68°7′E to 97°25′E; area about 32.8 lakh sq km; 7th largest country"],
+["Short answer (3 marks)","Write three similarities between India and Brazil.",3,"Both are large developing countries, democratic republics, have long coastlines, rich biodiversity and federal systems"],
+["Short answer (3 marks)","Why is the standard time of India based on 82°30′ E?",3,"India's longitudinal extent is about 30°, giving ~2 hr difference; 82°30′ E is near the middle; one standard time for the whole country"],
+["Long answer (5 marks)","Compare India and Brazil on location, extent, neighbours and boundaries.",5,"Hemispheres, latitudes/longitudes, area (Brazil larger, 5th; India 7th), neighbours (India – Pakistan, China, Nepal etc.; Brazil – 10 countries), coasts (Indian Ocean vs Atlantic)"]]};
+
+X.e3 = {m:[
+["The Great Escarpment in Brazil is along the:", ["Eastern coast", "Amazon basin", "Western border", "Pantanal"], 0],
+["The highest peak in Brazil:",["Pico da Neblina","Mount Everest","K2","Kanchenjunga"],0],
+["The Brazilian Highlands are also called:",["Planalto","Himalaya","Deccan","Thar"],0],
+["The Ganga rises from:",["Gangotri glacier","Amarkantak","Mahabaleshwar","Nashik"],0],
+["Iguazu Falls lies on the border of Brazil and:", ["Argentina", "Peru", "Chile", "Colombia"], 0],
+["The Deccan plateau is made of:",["Basalt (lava) rock","Sand","Ice","Coral"],0],
+["Amazon river flows into the:",["Atlantic Ocean","Pacific Ocean","Indian Ocean","Arctic Ocean"],0]],
+w:[
+["Define (1 mark)","What is a drainage basin?",1,"The area drained by a river and its tributaries"],
+["Give reasons (2 marks)","Rivers of Brazil are not useful for navigation in many parts, except the Amazon.",2,"Many rivers flow across plateaus with waterfalls and rapids; the Amazon is wide and deep so it is navigable"],
+["Compare (2 marks)","Compare the drainage of India and Brazil.",2,"India: Himalayan perennial rivers and peninsular rivers, many flow to Bay of Bengal. Brazil: Amazon (largest), Parana, Sao Francisco; most flow to Atlantic"],
+["Explain (2 marks)","Write two features of the Himalayas.",2,"Young fold mountains, highest peaks (Everest), source of perennial rivers, barrier to cold winds"],
+["Short answer (3 marks)","Write the physiographic divisions of India.",3,"Himalayas, North Indian plains, Peninsular plateau, Thar desert, coastal plains, islands"],
+["Short answer (3 marks)","Write the physiographic divisions of Brazil.",3,"Brazilian highlands (plateau), coastal region, plains (Amazon and Pantanal), islands, Great Escarpment"],
+["Short answer (3 marks)","Explain the importance of the Ganga river.",3,"Fertile plains, irrigation, drinking water, transport, religious importance, dense population"],
+["Long answer (5 marks)","Compare the physiography of India and Brazil.",5,"India – Himalayas (young fold mountains), plains, plateau, desert; Brazil – no high fold mountains, old plateau (highlands), Amazon lowland, Great Escarpment; coasts in both"]]};
+
+X.e4 = {m:[
+["India's climate is mainly:",["Monsoon type","Polar","Mediterranean","Desert"],0],
+["Tamil Nadu gets rain in winter from the:", ["North-east (retreating) monsoon", "South-west monsoon", "Western disturbances", "Trade winds"], 0],
+["Brazil's climate in most parts is:",["Tropical","Polar","Cold desert","Tundra"],0],
+["Rain-shadow region of Brazil:",["North-eastern Brazil","Amazon basin","Southern Brazil","Rio de Janeiro"],0],
+["Highest rainfall in India is at:",["Mawsynram","Jaisalmer","Delhi","Pune"],0],
+["Amazon basin receives:",["Heavy rainfall throughout the year","Very little rain","Snow","No rain"],0],
+["El Niño affects:",["Monsoon rainfall","Earthquakes","Volcanoes","Tides only"],0]],
+w:[
+["Define (1 mark)","What is climate?",1,"The average weather conditions of a place over a long period (about 30 years)"],
+["Give reasons (2 marks)","North-eastern Brazil receives less rainfall.",2,"It lies in the rain-shadow of the Brazilian highlands; south-east trade winds lose moisture before reaching it – 'drought quadrilateral'"],
+["Compare (2 marks)","Compare the climate of India and Brazil.",2,"India: monsoon, seasonal rain, extreme temperatures in north. Brazil: mostly tropical, equatorial in Amazon, rain throughout year in Amazon, milder winters"],
+["Explain (2 marks)","Write two effects of the Himalayas on India's climate.",2,"Block cold winds from Central Asia; stop monsoon winds causing rain in north India"],
+["Short answer (3 marks)","Explain the seasons of India.",3,"Winter (Dec–Feb), summer (Mar–May), rainy SW monsoon (Jun–Sep), retreating monsoon (Oct–Nov)"],
+["Short answer (3 marks)","Why does the Amazon basin have hot and humid climate?",3,"Near the equator, high temperature throughout year, convectional rain daily, dense forest – high humidity"],
+["Short answer (3 marks)","How does climate affect agriculture in India?",3,"Monsoon decides kharif crops, rabi depends on winter; drought or floods damage crops; irrigation needed"],
+["Long answer (5 marks)","Explain the factors affecting the climate of India and Brazil.",5,"Latitude, distance from sea, altitude, winds (monsoon/trade winds), relief (Himalayas, Brazilian highlands), ocean currents, El Niño"]]};
+
+X.e5 = {m:[
+["Rosewood and mahogany are trees of:", ["Evergreen forests", "Desert", "Tundra", "Grasslands"], 0],
+["Gir forest is famous for:", ["Asiatic lions", "Rhinos", "Tigers only", "Snow leopards"], 0],
+["Anaconda is found in:", ["Amazon forests", "Thar desert", "Himalayas", "Deccan"], 0],
+["Sal and teak are trees of:",["Tropical deciduous forests","Desert","Alpine","Mangrove"],0],
+["Thorny bushes are found in:",["Dry regions","Heavy rain regions","Snowy regions","Swamps"],0],
+["India's national animal:",["Tiger","Lion","Peacock","Elephant"],0],
+["Golden lion tamarin is found in:",["Brazil","India","Africa","Australia"],0]],
+w:[
+["Define (1 mark)","What is natural vegetation?",1,"Plants that grow naturally without human help"],
+["Give reasons (2 marks)","Amazon forests are dense and evergreen.",2,"Heavy rainfall and high temperature throughout the year; trees do not shed leaves together"],
+["Compare (2 marks)","Compare the natural vegetation of India and Brazil.",2,"India: tropical deciduous (most), evergreen, thorny, mangrove, Himalayan. Brazil: tropical evergreen (Amazon), savanna (Campos), thorny scrub (Caatinga), mangroves"],
+["Explain (2 marks)","Write two causes of deforestation.",2,"Agriculture expansion, mining, roads/dams, timber logging, forest fires"],
+["Short answer (3 marks)","Explain the types of forests in India (any three).",3,"Tropical evergreen (Western Ghats, NE), deciduous (central India), thorny (Rajasthan), mangrove (Sundarbans), Himalayan (coniferous)"],
+["Short answer (3 marks)","Why are forests important?",3,"Produce oxygen, control soil erosion, rainfall, habitat for wildlife, timber and medicines"],
+["Short answer (3 marks)","What measures are taken to conserve wildlife in India?",3,"National parks, sanctuaries, Project Tiger, ban on hunting, Wildlife Protection Act 1972, biosphere reserves"],
+["Long answer (5 marks)","Explain the problems of deforestation in the Amazon and their effects.",5,"Cattle ranching, soybean farming, mining, roads; effects – loss of biodiversity, global warming, soil erosion, change in rainfall, displacement of tribes"]]};
+
+X.e6 = {m:[
+["India's population (2011) was about:",["121 crore","100 crore","140 crore","80 crore"],0],
+["Population density of Brazil is:",["Low","Very high","Same as India","Highest in world"],0],
+["Most populated region of Brazil:",["South-east coastal region","Amazon basin","North-west","Central plateau"],0],
+["Sex ratio means:",["Number of females per 1000 males","Number of children","Literacy","Birth rate"],0],
+["Population density of India (2011) was about:", ["382 per sq km", "23 per sq km", "1000 per sq km", "100 per sq km"], 0],
+["Population census in India is held every:",["10 years","5 years","15 years","2 years"],0],
+["Least populated part of India:",["Ladakh/Arunachal regions","Uttar Pradesh","West Bengal","Bihar"],0]],
+w:[
+["Define (1 mark)","What is population density?",1,"Number of people living per square kilometre of area"],
+["Give reasons (2 marks)","The Amazon basin is sparsely populated.",2,"Dense forests, hot humid climate, heavy rain, diseases, poor transport – unfavourable for living"],
+["Compare (2 marks)","Compare population distribution of India and Brazil.",2,"India: high density, dense in plains and coasts, sparse in mountains/desert. Brazil: low density, dense in south-east coast, sparse in Amazon"],
+["Explain (2 marks)","Write two effects of rapid population growth.",2,"Unemployment, pressure on resources, housing problems, pollution, poverty"],
+["Short answer (3 marks)","What factors affect the distribution of population?",3,"Relief, climate, water availability, soil fertility, industries, transport, employment"],
+["Short answer (3 marks)","Why is sex ratio low in India?",3,"Preference for male child, female foeticide, neglect of girls' health; measures – education, laws, Beti Bachao Beti Padhao"],
+["Short answer (3 marks)","Explain the importance of literacy for a country.",3,"Better jobs, awareness, health, economic development, reduces poverty, strengthens democracy"],
+["Long answer (5 marks)","Compare population characteristics of India and Brazil (size, density, sex ratio, literacy, urbanization).",5,"India – large population, high density, low sex ratio, ~74% literacy, low urbanization; Brazil – smaller population, low density, higher sex ratio (more females), higher literacy and urbanization"]]};
+
+X.e7 = {m:[
+["Settlement in which houses are close together is:",["Compact (nucleated) settlement","Dispersed","Linear only","Isolated"],0],
+["Dispersed settlements are found in:",["Hilly and forest areas","Fertile plains only","Cities","Industrial areas"],0],
+["Linear settlements develop along:",["Roads, rivers, coasts","Mountains tops","Deserts only","Forests only"],0],
+["Brazil is more urbanized than India:",["True","False","Equal","Cannot say"],0],
+["Largest city of Brazil:",["Sao Paulo","Brasilia","Manaus","Recife"],0],
+["Urbanization means:",["Increase in proportion of people living in cities","Increase in villages","Decrease of cities","Farming"],0],
+["Most Indians live in:",["Rural areas","Cities","Forests","Islands"],0]],
+w:[
+["Define (1 mark)","What is a settlement?",1,"A place where people live and carry out their activities, e.g. a village or a town"],
+["Give reasons (2 marks)","Compact settlements are found in plains.",2,"Fertile soil, water availability, level land and farming encourage people to live close together"],
+["Distinguish (2 marks)","Distinguish between rural and urban settlements.",2,"Rural: mainly primary activities (farming), fewer people, less facilities. Urban: secondary/tertiary activities, dense population, more facilities"],
+["Explain (2 marks)","Write two problems of urbanization.",2,"Slums, traffic congestion, pollution, water shortage, crime"],
+["Short answer (3 marks)","Explain the types of settlements with examples.",3,"Compact (Ganga plains), dispersed (hilly/forest areas – Konkan, Amazon), linear (along roads/rivers/coast)"],
+["Short answer (3 marks)","Why is urbanization higher in Brazil than in India?",3,"Industrialization in south-east, poor living conditions in interior, migration to cities, services sector growth"],
+["Short answer (3 marks)","What factors influence the location of settlements?",3,"Water, fertile land, relief, climate, transport, security, resources, employment"],
+["Long answer (5 marks)","Compare human settlements and urbanization in India and Brazil.",5,"India – mostly rural, compact settlements in plains, dispersed in hills, slow urbanization (~31%). Brazil – highly urbanized (~85%+), cities on south-east coast, sparse in Amazon"]]};
+
+X.e8 = {m:[
+["Economy of India is:",["Mixed economy","Pure capitalist","Pure socialist","Barter"],0],
+["Large-scale cattle ranching is an important occupation in:", ["Brazil", "Japan", "Singapore", "Maldives"], 0],
+["Primary activity example:",["Agriculture","Banking","Manufacturing","Teaching"],0],
+["Tertiary activity example:",["Transport and banking","Fishing","Mining","Farming"],0],
+["GDP means:",["Gross Domestic Product","General Development Plan","Gross Development Price","None"],0],
+["Which sector contributes most to India's GDP?",["Tertiary (services)","Primary","Secondary","Quaternary only"],0],
+["Fazendas in Brazil are:",["Large coffee farms/estates","Small huts","Rivers","Mountains"],0]],
+w:[
+["Define (1 mark)","What is a mixed economy?",1,"An economy where both public (government) and private sectors exist together"],
+["Give reasons (2 marks)","Agriculture is important in India's economy.",2,"Large share of population depends on it; provides food and raw materials to industries; contributes to exports"],
+["Compare (2 marks)","Compare the agriculture of India and Brazil.",2,"India: subsistence and commercial, rice, wheat, sugarcane, cotton. Brazil: commercial, large farms, coffee, sugarcane, soybean, cattle ranching"],
+["Explain (2 marks)","Write two features of the tertiary sector.",2,"Provides services (transport, banking, IT, trade), largest contributor to GDP, needs skilled workers"],
+["Short answer (3 marks)","Explain the types of economic activities.",3,"Primary – farming, fishing, mining; secondary – manufacturing; tertiary – services; quaternary – knowledge-based"],
+["Short answer (3 marks)","Write three features of mining in Brazil and India.",3,"Brazil – iron ore (Carajas), manganese, gold; India – coal (Jharkhand), iron ore (Odisha), bauxite; minerals support industries"],
+["Short answer (3 marks)","What is per capita income? Why is it important?",3,"National income divided by population; indicates standard of living and development level"],
+["Long answer (5 marks)","Compare the economy and occupations of India and Brazil.",5,"Both developing, mixed economies; services largest sector; India – more people in agriculture; Brazil – commercial farming, mining, more industrialization; trade, GDP and per capita comparison"]]};
+
+X.e9 = {m:[
+["Which is the cheapest mode of transport for bulky goods?",["Waterways","Airways","Roadways","Pipelines only"],0],
+["Konkan Railway connects:",["Maharashtra–Goa–Karnataka (Roha to Thokur)","Delhi–Kolkata","Mumbai–Delhi","Chennai–Kolkata"],0],
+["The longest national highway route in India runs from:", ["Srinagar to Kanyakumari (NH 44)", "Mumbai to Pune", "Delhi to Agra", "Goa to Mumbai"], 0],
+["Golden Quadrilateral connects:",["Delhi, Mumbai, Chennai, Kolkata","Pune, Nagpur, Goa, Nashik","Brasilia, Rio, Sao Paulo, Manaus","None"],0],
+["Trans-Amazonian highway is in:",["Brazil","India","Peru","Chile"],0],
+["Communication through satellites helps in:",["TV, internet, weather forecasting","Only roads","Only farming","Nothing"],0],
+["Eco-tourism focuses on:",["Nature conservation with tourism","Shopping","Factories","Cinema"],0]],
+w:[
+["Define (1 mark)","What is communication?",1,"Exchange of information, messages and ideas through means like post, phone, internet, media"],
+["Give reasons (2 marks)","Transport is the lifeline of an economy.",2,"Moves raw materials, goods and people; connects markets; helps trade, industry and tourism"],
+["Compare (2 marks)","Compare transport in India and Brazil.",2,"India: railways and roads both important, dense network in plains. Brazil: roadways dominant, railways less developed, dense in south-east, sparse in Amazon"],
+["Explain (2 marks)","Write two advantages of tourism for Brazil and India.",2,"Foreign exchange, employment, cultural exchange, infrastructure development"],
+["Short answer (3 marks)","Why is the transport network less developed in the Amazon basin?",3,"Dense forest, heavy rain, marshy land, many rivers, sparse population; rivers used as main routes"],
+["Short answer (3 marks)","Explain the importance of the internet in modern communication.",3,"Fast exchange of information, e-commerce, online education, banking, social media, governance"],
+["Short answer (3 marks)","Write three tourist attractions each in India and Brazil.",3,"India – Taj Mahal, Ajanta–Ellora, Kerala backwaters. Brazil – Amazon, Rio carnival, Iguazu Falls, Christ the Redeemer"],
+["Long answer (5 marks)","Explain the role of transport, communication and tourism in the development of India and Brazil.",5,"Transport connects regions; communication spreads information, IT services; tourism brings income and jobs; both countries developing networks (Golden Quadrilateral, Trans-Amazonian highway)"]]};
+
+X.n1 = {m:[
+["The central idea of a passage means:",["Its main message","Its title only","Its first word","Its author's address"],0],
+["A synonym of 'brave' is:",["Courageous","Cowardly","Weak","Timid"],0],
+["Synonym of 'enormous':", ["Huge", "Tiny", "Weak", "Quick"], 0],
+["'He is as busy as a bee' is an example of:",["Simile","Metaphor","Personification","Alliteration"],0],
+["Which is a compound word?",["Sunflower","Beautiful","Quickly","Running"],0],
+["The prefix in 'unhappy' is:",["un","happy","py","hap"],0],
+["Noun form of 'decide':",["Decision","Decisive","Decided","Decidedly"],0]],
+w:[
+["Vocabulary (1 mark)","Give the opposite of 'success' and 'polite'.",1,"failure, impolite/rude"],
+["Vocabulary (1 mark)","Make a sentence using the phrase 'look forward to'.",1,"e.g. I look forward to meeting my grandparents this summer."],
+["Personal response (2 marks)","Write two qualities you admire in a good friend and why.",2,"e.g. honesty – trust; helpfulness – support in difficulty (any two with reason)"],
+["Global understanding (2 marks)","How do you find the central idea of an unseen passage?",2,"Read the whole passage, find repeated ideas and topic sentences, ask 'what does the writer want to say?', summarise in one or two lines"],
+["Summary (3 marks)","What points should be kept in mind while writing a summary?",3,"One-third length, main points only, own words, no examples/repetition, give a suitable title"],
+["Mind mapping (3 marks)","Prepare a mind map/web on the benefits of reading books.",3,"Knowledge, vocabulary, imagination, concentration, stress relief, better writing"],
+["Grammar in context (3 marks)","Identify the tense and change into passive: 'The students planted trees.'",3,"Simple past; Passive: Trees were planted by the students."],
+["Writing (5 marks)","Write a summary (about 60 words) of a passage on 'importance of water conservation' with a title.",5,"Title; water is precious, limited fresh water, misuse and pollution, methods: rainwater harvesting, fixing leaks, awareness; concise, own words"]]};
+
+X.n2 = {m:[
+["The rhyme scheme of 'The cat sat / on the mat' lines ending cat, mat, dog, log is:",["aabb","abab","abba","abcd"],0],
+["'O Death, where is thy sting?' is an example of:", ["Apostrophe", "Simile", "Alliteration", "Metaphor"], 0],
+["'I have told you a million times' is:", ["Hyperbole", "Simile", "Onomatopoeia", "Alliteration"], 0],
+["Repetition of the first consonant sound is called:",["Alliteration","Rhyme","Simile","Irony"],0],
+["Words like 'buzz', 'hiss' show:",["Onomatopoeia","Metaphor","Inversion","Apostrophe"],0],
+["Poetic appreciation includes:",["Title, poet, theme, rhyme scheme, figures of speech","Only title","Only summary","Only poet's age"],0],
+["'Twinkle, twinkle little star' uses:",["Repetition","Hyperbole","Irony","Pun"],0]],
+w:[
+["Figures of speech (1 mark)","Identify the figure of speech: 'The stars danced in the sky.'",1,"Personification"],
+["Figures of speech (1 mark)","Identify: 'She is as gentle as a lamb.'",1,"Simile"],
+["Poetic device (2 marks)","What is the difference between simile and metaphor? Give examples.",2,"Simile compares using 'like/as' (brave as a lion); metaphor compares directly (He is a lion in battle)"],
+["Poetic device (2 marks)","Write two lines of your own with alliteration.",2,"e.g. Busy bees buzz by the blue bushes. (any original with repeated initial consonant)"],
+["Appreciation (3 marks)","What points must be covered in a poetry appreciation?",3,"Title, poet, rhyme scheme, figures of speech, theme/central idea, favourite line, special features, why you like/dislike it"],
+["Central idea (3 marks)","Write the central idea of a poem about mother's love (in 3–4 lines).",3,"Mother's love is selfless, constant and protective; she sacrifices for children; nothing can repay it"],
+["Rhyme (3 marks)","Explain rhyme scheme with an example of four lines.",3,"Pattern of rhyming end words labelled a, b...; e.g. day/play/night/light = aabb"],
+["Appreciation (5 marks)","Write an appreciation of any poem from your textbook in the board format.",5,"Title, poet, rhyme scheme, figures of speech, theme, language/style, message, favourite lines – in a paragraph"]]};
+
+X.n3 = {m:[
+["'She has finished her work.' Tense:",["Present perfect","Simple past","Past perfect","Present continuous"],0],
+["'They will be playing.' Tense:",["Future continuous","Simple future","Future perfect","Present continuous"],0],
+["Passive of 'He writes a letter':",["A letter is written by him.","A letter was written by him.","A letter has been written.","A letter writes him."],0],
+["'I had eaten before he came.' Tense of first part:",["Past perfect","Simple past","Present perfect","Past continuous"],0],
+["Passive of 'Open the door':",["Let the door be opened.","The door opened.","The door is open.","Open door by you."],0],
+["'Water boils at 100°C' is in:",["Simple present","Present continuous","Simple past","Future"],0],
+["Passive of 'They are building a house':",["A house is being built by them.","A house was built by them.","A house has built.","A house is built them."],0]],
+w:[
+["Do as directed (1 mark)","Change into simple past: 'She sings a song.'",1,"She sang a song."],
+["Do as directed (1 mark)","Change into passive: 'Ravi painted the wall.'",1,"The wall was painted by Ravi."],
+["Do as directed (2 marks)","Change into present perfect continuous: 'I study English.' and give its use.",2,"I have been studying English. – action begun in past and continuing now"],
+["Do as directed (2 marks)","Change into active: 'The match was won by our team.' 'The cake is being baked by Mother.'",2,"Our team won the match. Mother is baking the cake."],
+["Spot the error (3 marks)","Correct: 'He go to school daily.' 'She have written a letter.' 'They was playing.'",3,"He goes to school daily. She has written a letter. They were playing."],
+["Tenses (3 marks)","Write the 12 tense forms of the verb 'play' with subject 'I' (any six).",3,"I play / am playing / have played / have been playing / played / was playing / had played / will play / will be playing / will have played ..."],
+["Voice (3 marks)","Change into passive: 'Who wrote this book?' 'Do not touch the wire.' 'People speak English all over the world.'",3,"By whom was this book written? Let the wire not be touched. English is spoken all over the world."],
+["Grammar (5 marks)","Fill in with correct tense forms in a short paragraph: 'Yesterday I (go) to the market. I (meet) my friend who (wait) for the bus. We (talk) and then I (return) home.'",5,"went, met, was waiting, talked, returned"]]};
+
+X.n4 = {m:[
+["Indirect of: He said, \"I am happy.\"",["He said that he was happy.","He said that I am happy.","He says he is happy.","He told I was happy."],0],
+["Indirect of: She said, \"Where do you live?\"",["She asked where I lived.","She said where do I live.","She asked where do you live.","She told me where I live."],0],
+["Choose the correct question tag: 'You are coming, ___?'",["aren't you","are you","don't you","isn't it"],0],
+["Remove 'too': 'He is too weak to walk.'",["He is so weak that he cannot walk.","He is very weak to walk.","He is not weak to walk.","He walks weakly."],0],
+["Make it negative: 'She always comes on time.'",["She never comes late.","She doesn't comes on time.","She always not comes.","She come not on time."],0],
+["Exclamatory of 'It is a very beautiful flower.'",["What a beautiful flower it is!","How beautiful flower!","It is so beautiful!","What beautiful!"],0],
+["Comparative of 'Ravi is the tallest boy in the class.'",["Ravi is taller than any other boy in the class.","Ravi is tall than others.","No boy is tallest.","Ravi is more tall."],0]],
+w:[
+["Do as directed (1 mark)","Add a question tag: 'Let's go for a walk.'",1,"Let's go for a walk, shall we?"],
+["Do as directed (1 mark)","Change into indirect speech: The teacher said, \"Sit down.\"",1,"The teacher ordered/told us to sit down."],
+["Do as directed (2 marks)","Change into indirect speech: She said, \"I will come tomorrow.\" / He said, \"Alas! I have failed.\"",2,"She said that she would come the next day. He exclaimed with sorrow that he had failed."],
+["Do as directed (2 marks)","Use 'not only... but also': 'He is intelligent. He is hardworking.'",2,"He is not only intelligent but also hardworking."],
+["Do as directed (3 marks)","Change into positive and superlative: 'Mumbai is bigger than any other city in Maharashtra.'",3,"Positive: No other city in Maharashtra is as big as Mumbai. Superlative: Mumbai is the biggest city in Maharashtra."],
+["Do as directed (3 marks)","Make Wh-questions to get underlined parts: 'Sita reads (a novel) (in the evening) (in her room).'",3,"What does Sita read? When does Sita read a novel? Where does Sita read a novel?"],
+["Do as directed (3 marks)","Combine using relative pronoun: 'This is the boy. He won the prize.' / 'I met a man. His car was stolen.' / 'This is the house. I was born here.'",3,"This is the boy who won the prize. I met a man whose car was stolen. This is the house where I was born."],
+["Grammar (5 marks)","Convert the dialogue into indirect speech: Mother: \"Have you finished your homework?\" Raju: \"Yes, I finished it an hour ago.\" Mother: \"Then go and play.\"",5,"Mother asked Raju if he had finished his homework. Raju replied that he had finished it an hour before. Mother then told him to go and play."]]};
+
+X.n5 = {m:[
+["A formal letter is written to:",["Officials, editors, companies","Friends","Relatives","Family only"],0],
+["Subject line is necessary in:",["Formal letters and emails","Informal letters","Poems","Stories"],0],
+["In an informal letter to a friend we write:", ["Yours lovingly", "Yours faithfully", "Yours obediently", "Sir"], 0],
+["Which is NOT part of an email?",["Stamp","To","Subject","Body"],0],
+["CC in email means:",["Carbon copy","Computer code","Confidential content","Close copy"],0],
+["Letter of complaint is a:",["Formal letter","Informal letter","Poem","Diary"],0],
+["Informal letters are written to:",["Friends and relatives","Principal","Collector","Manager"],0]],
+w:[
+["Format (1 mark)","Write the correct salutation and ending for a letter to the Principal.",1,"Respected Sir/Madam, ... Yours obediently/faithfully"],
+["Format (1 mark)","Write a suitable subject line for an email requesting leave.",1,"Subject: Request for leave for two days (any relevant)"],
+["Format (2 marks)","Write the format (parts) of a formal letter.",2,"Sender's address, date, receiver's address, subject, salutation, body, complimentary close, signature/name"],
+["Format (2 marks)","Write the parts of an email.",2,"To, CC/BCC, Subject, Salutation, Body, Closing, Sender's name/signature, attachments"],
+["Letter (3 marks)","Write the body (about 60 words) of a letter to your friend congratulating him on his success in a competition.",3,"Congratulations, praise of effort, how you felt, wish for future success, invite/share plans"],
+["Email (3 marks)","Write an email to the Municipal Commissioner about irregular garbage collection (body only).",3,"Problem description, location, duration, effect on health, request for action; polite formal tone"],
+["Letter (3 marks)","Write a letter to a shopkeeper ordering books for your school library (body).",3,"List of books with quantity, request for discount, delivery date, payment mode"],
+["Letter writing (5 marks)","Write a formal letter to the Editor of a newspaper about the problem of noise pollution in your area.",5,"Full format – addresses, date, subject, salutation, problem (loudspeakers, traffic), effects on students/patients, suggestions, closing"]]};
+
+X.n6 = {m:[
+["A dialogue should be written in:", ["Speaker: words format", "Letter format", "Table", "Poem form"], 0],
+["A report is written in:",["Past tense, third person","Future tense","First person only","Poetic form"],0],
+["A news report has a:",["Headline, dateline, body","Rhyme scheme","Salutation","Stamp"],0],
+["Dialogue writing shows:",["Conversation between people","A letter","A poem","A table"],0],
+["A story must have a:",["Title and moral/ending","Rhyme scheme","Subject line","Stamp"],0],
+["Expansion of ideas means:",["Explaining a proverb/thought in detail","Writing a letter","Writing a poem","Making a list"],0],
+["Ending of a speech:",["Thank you","Yours faithfully","Dear sir","Regards only"],0]],
+w:[
+["Format (1 mark)","Write a suitable headline for a report on the Annual Day of your school.",1,"e.g. 'Annual Day Celebrated with Grandeur at XYZ School'"],
+["Format (1 mark)","Write a suitable title for a story with the moral 'Unity is strength'.",1,"e.g. 'The Bundle of Sticks'"],
+["Speech (2 marks)","Write the opening lines (greeting and introduction) of a speech on 'Importance of Trees'.",2,"Respected chief guest, teachers and dear friends, today I am going to speak on the importance of trees..."],
+["Dialogue (2 marks)","Write a dialogue of 4 exchanges between a shopkeeper and a customer buying a pen.",2,"Natural greeting, asking product, price, payment and thanks (four exchanges)"],
+["Report (3 marks)","Write a short report on 'Tree Plantation Drive' in your school.",3,"Headline, place/date, chief guest, number of trees, participation, message, conclusion; past tense"],
+["Story (3 marks)","Develop a story from the beginning: 'One rainy evening, Raju found a small puppy shivering...'",3,"Logical development, characters, conflict, ending, moral, title"],
+["Expansion (3 marks)","Expand the idea: 'Health is wealth.'",3,"Meaning, healthy person can work/enjoy life, wealth useless without health, ways to stay healthy, conclusion"],
+["Speech (5 marks)","Write a speech on 'The role of youth in nation building' (about 120 words).",5,"Greeting, introduction, roles: education, honesty, social service, environment, voting, technology; conclusion and thanks"]]};
+const YTV = {"a1": [{"k": "v", "id": "WS0X1xIMVgA", "t": "दोन चलांतील रेषीय समीकरणे"}, {"k": "p", "id": "PLzXBQrXIm-tDwVmKMVKxXywpc54VY3sqJ", "t": "Chapter 1 - Linear Equation In Two Variables (playlist)"}], "a2": [{"k": "v", "id": "JrSYaNPM40M", "t": "वर्ग समीकरणे"}, {"k": "v", "id": "A-CrGsNiKNA", "t": "Quadratic Equations - Maharashtra Board New Syllabus"}], "a3": [{"k": "v", "id": "eh6rh0UwW9o", "t": "Class 10th Algebra Chapter 3 Arithmetic Progression"}, {"k": "p", "id": "PLgnbiIJ2vlFGYNtLfLXSqjFDzRbyBVrlp", "t": "Chapter 3 Arithmetic progression (playlist)"}], "a4": [{"k": "v", "id": "4KVanuOaC6g", "t": "अर्थनियोजन - Financial Planning (Marathi)"}, {"k": "p", "id": "PLgnbiIJ2vlFHOwC2Szn6cbSHETFhk_kmW", "t": "Chapter 4 Financial Planning (playlist)"}], "a5": [{"k": "v", "id": "U2hfOhzQN-s", "t": "Probability problem set 5 - Maharashtra board"}, {"k": "v", "id": "KnUU4PIl6gk", "t": "Class 10 Practice Set 5.4"}], "a6": [{"k": "v", "id": "a-BbScv9LpI", "t": "सांख्यिकी - माध्य, मध्यक, बहुलक"}, {"k": "v", "id": "4jNHJAicG40", "t": "Statistics in One Shot"}], "g1": [{"k": "v", "id": "DumetkNOTvk", "t": "समरूपता"}, {"k": "v", "id": "vkyPot5u2Uk", "t": "Similarity Practice Set 1.1 - Maharashtra Board"}], "g2": [{"k": "v", "id": "U286Xp56rAs", "t": "पायथागोरसचे प्रमेय इयत्ता १० वी"}, {"k": "v", "id": "kEuTDwh8Pos", "t": "Pythagoras Theorem - Maharashtra Board New Syllabus"}], "g3": [{"k": "v", "id": "ygSF_as_qdQ", "t": "Class 10th Question Bank Solutions - Circle - Geometry"}, {"k": "v", "id": "OSIBK2ZG1hY", "t": "Class 10th - Tangent to a Circle"}], "g4": [{"k": "v", "id": "21tTI_Xhs1c", "t": "Geometric Construction - भौमितिक रचना - Marathi"}, {"k": "v", "id": "Zbuz1tNdn3Q", "t": "Geometric Constructions - Maharashtra Board New Syllabus"}], "g5": [{"k": "v", "id": "l0VnuzOTLak", "t": "Practice Set 5.1 Class 10th maths 2"}, {"k": "v", "id": "ObXRSqMEPj0", "t": "Practice Set 5.3 Co-ordinate Geometry"}], "g6": [{"k": "p", "id": "PLZU_UiDqNk011q0z1c8neynWz6DINUlzZ", "t": "Trigonometry - त्रिकोणमिती - all exercises (playlist)"}, {"k": "v", "id": "pn1vH9NdxAw", "t": "Trigonometry Practice Set 6.1 - Maharashtra Board"}], "g7": [{"k": "v", "id": "lJ5mLd_jawg", "t": "Mensuration Class 10 Geometry One Shot"}, {"k": "p", "id": "PLC7fQGEMlqie7I-SoOkpzkgZep2eA1aZG", "t": "Geometry practice set solutions (playlist)"}], "s1": [{"k": "v", "id": "znh-e7jAEwQ", "t": "Gravitation - Maharashtra SSC Science 1 Chapter 1"}, {"k": "v", "id": "Ni9R5MNRKgs", "t": "Gravitation Numericals - Maharashtra Board"}], "s2": [{"k": "v", "id": "VcKgEpAfw10", "t": "मूलद्रव्यांचे आवर्ती वर्गीकरण - revision"}, {"k": "v", "id": "xmg_GTx5yM8", "t": "Periodic Classification of Elements - SSC One Shot"}], "s4": [{"k": "v", "id": "e5ghaf5Ueso", "t": "Effects of Electric Current SSC Lecture 1 - Maharashtra board"}, {"k": "v", "id": "489qATkcB6E", "t": "Effects of electric currents - Maharashtra Board New Syllabus"}], "s5": [{"k": "v", "id": "0d8zh2swxwo", "t": "HEAT SSC Lecture 1 - Latent Heat and Regelation"}, {"k": "v", "id": "i155b7Dy3QA", "t": "HEAT ONE SHOT - SSC Class 10 Science"}], "s6": [{"k": "v", "id": "SOkPIouP6pM", "t": "Refraction of Light (प्रकाशाचे अपवर्तन) Part-1"}, {"k": "v", "id": "9km4BUJbbY4", "t": "Refraction of light class 10 SSC Maharashtra board"}], "s7": [{"k": "v", "id": "wNdpcGTp8F4", "t": "LENSES SSC Lecture 1 - Convex and Concave lens"}, {"k": "v", "id": "JpF7vrvk2iQ", "t": "LENSES Lecture 3 - All numericals"}], "s8": [{"k": "v", "id": "TrfjMQRWcbw", "t": "Metallurgy - SSC Class 10 ONE SHOT"}, {"k": "v", "id": "ohWnOcb_e2M", "t": "Metallurgy Class 10th Maharashtra Board Part 1"}], "s9": [{"k": "v", "id": "pt-Ebl0e9oU", "t": "Science 1 Chapter 9 Carbon Compounds Lecture 1"}, {"k": "v", "id": "IZGZZznj87w", "t": "Carbon Compounds - Maharashtra Board New Syllabus Part 1"}], "s10": [{"k": "v", "id": "xBxr5zeWeUU", "t": "Space Mission Part 1 - Maharashtra Board New Syllabus"}, {"k": "v", "id": "kK1cm7DVuPQ", "t": "Space missions - textbook questions answers"}], "s3": [{"k": "v", "id": "9J9Rm-Pnj44", "t": "Chapter 3 Chemical Reactions and Equations Lecture 1 - 10th Science 1"}, {"k": "v", "id": "CQ6UmybX_Ao", "t": "Chemical Reactions and Equations - SSC ONE SHOT"}], "b1": [{"k": "v", "id": "hcpvBsShAmE", "t": "Heredity and Evolution - Science 2 Lecture 1 - Maharashtra Board"}, {"k": "v", "id": "H-3_PZg9EBg", "t": "Heredity and Evolution Exercise Solutions"}], "b2": [{"k": "v", "id": "CB9oS-g4ANA", "t": "Life Processes in Living Organisms Part 1 - Class 10th"}, {"k": "v", "id": "2Rjlhh0td_c", "t": "Life Processes Part 1 - SSC Maharashtra Board"}], "b3": [{"k": "v", "id": "WihUzk2nAZ8", "t": "Life Processes in Living Organisms - 2 SSC ONE SHOT"}, {"k": "v", "id": "BG8zcVkHR7Y", "t": "Life Processes in Living Organisms Part 2 Class 10th"}], "b4": [{"k": "v", "id": "ojVH4HOU43E", "t": "४.पर्यावरणीय व्यवस्थापन part 1 - दहावी विज्ञान"}, {"k": "v", "id": "tvwqerpkwwI", "t": "Environmental Management Lecture 1 - SSC Maharashtra"}], "b5": [{"k": "v", "id": "SyFRYm7VSDo", "t": "Towards Green Energy Lecture 1 - Thermal Power Plant"}, {"k": "v", "id": "GY4vCE4xu4Y", "t": "हरित ऊर्जेच्या दिशेने स्वाध्याय"}], "b6": [{"k": "v", "id": "3wlPV_m5reg", "t": "प्राण्यांचे वर्गीकरण"}, {"k": "v", "id": "9Tf-tmxglrA", "t": "Animal Classification Class 10th Science 2 Part 1"}], "b7": [{"k": "v", "id": "hbWUIrO6_kE", "t": "Introduction to Microbiology SSC Lecture 1 - Maharashtra"}, {"k": "v", "id": "PcMp63f3vLs", "t": "Introduction to Microbiology ONE SHOT"}], "b8": [{"k": "v", "id": "MICwBOqPvZI", "t": "Cell Biology and Biotechnology Class 10th Science 2 Part 1"}, {"k": "v", "id": "GTgwDacVnZg", "t": "Biotechnology (जैवतंत्रज्ञान) - Marathi, Science Part 2"}], "b9": [{"k": "v", "id": "nAeRwvKL2CI", "t": "Social health - Science & Technology 2 - MH State Board (animated)"}, {"k": "v", "id": "uYNoT0R5kWw", "t": "Social Health Class 10th Science 2 Part 1"}], "b10": [{"k": "v", "id": "Bien8dBzjMY", "t": "Disaster Management Pt 1 - 10th Science 2 Maharashtra Board"}, {"k": "v", "id": "hchh_yIfkX4", "t": "Disaster Management questions and answers"}], "h1": [{"k": "v", "id": "QYrqnfnDn7s", "t": "Historiography Development in the West"}, {"k": "v", "id": "SRQeJMWr2-g", "t": "Historiography: Development in the West - Q&A"}], "h2": [{"k": "v", "id": "JXTK1z43hvk", "t": "Historiography: Indian Tradition, Lecture 1"}, {"k": "v", "id": "pxTgSOaP2Eo", "t": "Historiography: Indian Tradition - exercise"}], "h3": [{"k": "v", "id": "bNrRfOp7Vd8", "t": "उपयोजित इतिहास (Part 1) Marathi Medium"}, {"k": "v", "id": "PBo9SCntlw0", "t": "Class 10 History Chapter 3 Applied History"}], "h4": [{"k": "v", "id": "nN5wnb-yAuo", "t": "भारतीय कलांचा इतिहास - इ. 10 वी इतिहास"}, {"k": "v", "id": "32ze32XYYoM", "t": "History of Indian Arts, Lecture 1"}], "h5": [{"k": "v", "id": "4tUn4oJNhY0", "t": "5. प्रसारमाध्यमे आणि इतिहास"}, {"k": "v", "id": "BfcFv7FdYOw", "t": "Chapter 5 - Mass Media and History"}], "h6": [{"k": "v", "id": "qAz01RS3Hvk", "t": "Entertainment and History"}, {"k": "v", "id": "C5RMGKKVlJw", "t": "मनोरंजनाची माध्यमे आणि इतिहास स्वाध्याय"}], "h7": [{"k": "v", "id": "1WQ1g79gmtY", "t": "Sports and History"}, {"k": "v", "id": "SVCW1Wai6Gc", "t": "खेळ आणि इतिहास 10 वी स्वाध्याय"}], "h8": [{"k": "v", "id": "pvoJKtZkK0E", "t": "Tourism and History Class 10"}, {"k": "p", "id": "PLgnbiIJ2vlFFIxBsBy-THkUKdqN1SeKYD", "t": "10th History Maharashtra State Board (playlist)"}], "h9": [{"k": "v", "id": "Go9FeVZ9vbw", "t": "HERITAGE MANAGEMENT - 10th Maharashtra Board History Chapter 9"}, {"k": "v", "id": "_b0U1I6lPLc", "t": "Heritage management - exercise"}], "p1": [{"k": "v", "id": "cyNz6vtnptY", "t": "Working of The Constitution - Political Science Maharashtra State Board"}, {"k": "v", "id": "bgHbtqFxfuU", "t": "संविधानाची वाटचाल स्वाध्याय"}], "p2": [{"k": "v", "id": "4ytT0fEBm7A", "t": "Political Science Chapter 2 The Electoral Process - Q&A"}, {"k": "v", "id": "kMFNj4SvOrc", "t": "The electoral process - Question & answers"}], "p4": [{"k": "v", "id": "-pHEVQ5-Aks", "t": "Social and Political Movements - 10th Maharashtra"}, {"k": "v", "id": "zXUU-0G66Rs", "t": "सामाजिक व राजकीय चळवळी स्वाध्याय"}], "p3": [{"k": "v", "id": "uqYeQdFoAEc", "t": "स्वाध्याय इयत्ता दहावी राज्यशास्त्र पाठ तिसरा राजकीय पक्ष"}, {"k": "v", "id": "1-04Wv-StSg", "t": "स्वाध्याय पाठ तिसरा राजकीय पक्ष"}], "p5": [{"k": "v", "id": "SFEb0xdD-S8", "t": "Challenges Faced by Indian Democracy (Part 1) - 10th Maharashtra Board"}, {"k": "v", "id": "tC6wJ4ug5aM", "t": "Challenges Faced by Indian Democracy (Part 2)"}], "e1": [{"k": "v", "id": "RAksX1JI8BQ", "t": "FIELD VISIT (Chapter 1) - 10th Maharashtra Board Geography"}, {"k": "v", "id": "JC_pZUir3kg", "t": "Field Visit Pt 1 - 10th Geography Maharashtra Board"}], "e2": [{"k": "v", "id": "aJBdDNbiKg8", "t": "Location and extent - Std 10 Maharashtra board Geography"}, {"k": "v", "id": "NI3XOUKnL2Q", "t": "Location and extent (exercise) - 10th Geography"}], "e3": [{"k": "v", "id": "EoGDihJ5b-w", "t": "Physiography and Drainage part 1 (Maharashtra Board)"}, {"k": "v", "id": "Qte3mkmzxnM", "t": "Physiography and Drainage, Lecture 1"}], "e4": [{"k": "v", "id": "S3m3iJvU56Q", "t": "CLIMATE (Part 1) - 10th Maharashtra Board Geography Chapter 4"}, {"k": "v", "id": "Zx17n5xw4uo", "t": "Geography chapter 04 - Climate, Maharashtra Board"}], "e5": [{"k": "v", "id": "9Wtuhedu21A", "t": "Natural Vegetation And Wildlife (Part 1) - 10th Maharashtra Board"}, {"k": "v", "id": "aV_V4X8Goy0", "t": "नैसर्गिक वनस्पती व प्राणी स्वाध्याय"}], "e6": [{"k": "v", "id": "konHZX95P-s", "t": "Chap-6 Population"}, {"k": "v", "id": "otNILOEzGS4", "t": "Population questions and answers - Geography Chapter 6"}], "e7": [{"k": "v", "id": "ETlLKgCB7ks", "t": "Human Settlement (Part 1) - Class 10 Maharashtra Board Geography"}, {"k": "v", "id": "iTLR8_tHaV8", "t": "Class 10 Geography chapter 7 Human Settlements"}], "e8": [{"k": "v", "id": "_ZZvSl_ve0c", "t": "अर्थव्यवस्था आणि व्यवसाय (भाग १) - दहावी भूगोल Lesson 8"}, {"k": "v", "id": "Q4Xff2G9HN0", "t": "8. अर्थव्यवस्था आणि व्यवसाय स्वाध्याय"}], "e9": [{"k": "v", "id": "1FHcOcRmXQQ", "t": "Chapter 9 Tourism Transport and Communication One shot - Maharashtra Board"}, {"k": "v", "id": "1qHFio3fcKU", "t": "भूगोल पाठ 9 पर्यटन वाहतूक आणि संदेशवहन"}], "n1": [{"k": "v", "id": "XPfgH0JHQVU", "t": "10th English Kumarbharati Workbook - Chapter 1.2 The Thief's Story"}, {"k": "v", "id": "Lj1XdysdTuM", "t": "10th English Kumarbharati Workbook - Chapter 2.2 Three Questions"}], "n2": [{"k": "v", "id": "hGzV5Ug3kwE", "t": "10 SSC Maharashtra Board English - All poems appreciation"}, {"k": "v", "id": "I9Shj0OyKVs", "t": "Class 10 English - All poems appreciation"}], "n3": [{"k": "v", "id": "bEVfAGEEUsc", "t": "Active Passive Voice for SSC Exams"}, {"k": "v", "id": "3wch8ufXxO8", "t": "Active Passive Voice"}], "n4": [{"k": "v", "id": "PPZ4y0WZ_Rw", "t": "Direct and Indirect Speech - SSC Class 10 Maharashtra State Board"}, {"k": "v", "id": "XxK0OfWe1cg", "t": "9th & 10th Do as directed - most important topics"}], "n5": [{"k": "v", "id": "dpPZKHXeoJw", "t": "English Letter Writing Class 10 SSC New Format - Formal Informal"}, {"k": "v", "id": "i4qhoGuhPik", "t": "Email Writing"}], "n6": [{"k": "v", "id": "73Ry8_fGP5o", "t": "Complete Writing Skills Class 10 - MH Board"}, {"k": "v", "id": "ZoKD_TJ8J_I", "t": "News report writing - Class 10 Maharashtra state board"}]};
 // Marathi explanations: k = key points, tip = exam tip, e = quiz explanations (same order as English quiz)
 const MR = {};
 MR.a1 = {k:["समीकरणे सोडवण्याच्या पद्धती: आलेख पद्धत, आदेश (substitution) पद्धत, विलोपन (elimination) पद्धत आणि क्रेमरची पद्धत.","रेषीय समीकरणाचा आलेख ही सरळ रेषा असते; दोन रेषा जिथे छेदतात तो बिंदू म्हणजे उकल.","जर D = 0 असेल तर रेषा समांतर असतात (एकमेव उकल मिळत नाही).","1/x, 1/y असलेली समीकरणे 1/x = m, 1/y = n घेऊन रेषीय रूपात आणता येतात.","शाब्दिक उदाहरणे: वय, संख्येचे अंक, अपूर्णांक, वेग आणि पैसे."],
@@ -1664,7 +2993,7 @@ const AUDIO_T = {"a1":[0.0,6.57,21.14,27.39,38.64,46.68,52.99,61.97,68.28,73.9,8
 const KEY = "ssc10-saathi";
 let store = {examDate:"", watched:{}, quiz:{}, read:{}, last:null, checks:[], lang:"mr"};
 try { const raw = localStorage.getItem(KEY); if (raw) store = Object.assign(store, JSON.parse(raw)); } catch(e) {}
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e) {} }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e) {} if (window.onStoreSave) window.onStoreSave(); }
 
 // ---------- AI (sample capability) ----------
 let AI = null, AI_IMG = null, aiChecked = false;
@@ -1690,7 +3019,7 @@ function aiErr(e){
   if (c === "prompt_too_large") return "That was too much text at once. Shorten it and try again.";
   if (c === "cancelled") return "थांबवले.";
   if (c === "need_code") return "AI वापरण्यासाठी आधी प्रवेश कोड टाका.";
-  if (c === "bad_code") { store.code = ""; save(); return "प्रवेश कोड चुकीचा आहे. शिक्षकांकडून योग्य कोड घ्या आणि पुन्हा टाका."; }
+  if (c === "bad_code") { store.code = ""; store.student = ""; save(); return "प्रवेश कोड चुकीचा आहे. शिक्षकांकडून योग्य कोड घ्या आणि पुन्हा टाका."; }
   if (c === "quota") return "आजची AI वापराची मर्यादा संपली. उद्या पुन्हा प्रयत्न करा.";
   if (c === "network") return "सर्व्हरशी संपर्क झाला नाही. इंटरनेट तपासा आणि पुन्हा प्रयत्न करा (पहिल्यांदा सर्व्हर सुरू व्हायला 1 मिनिट लागू शकतो).";
   return "Something went wrong (" + (c || "error") + "). Try again in a moment.";
@@ -1769,6 +3098,7 @@ function setTabs(){
 }
 function devFix(){ document.querySelectorAll(".eyebrow,.stage .tag").forEach(e => { if (/[\u0900-\u097F]/.test(e.textContent)) e.classList.add("dev"); }); }
 function render(){
+  if (window.SSC_WEB && typeof loginGate === "function" && loginGate()) { setTimeout(devFix, 0); return; }
   setTabs(); setTimeout(devFix, 0);
   const v = S.view;
   if (v === "home") renderHome();
@@ -1851,7 +3181,7 @@ function renderSubject(){
 // ---------- chapter ----------
 function renderChapter(){
   const {s, c, n} = findCh(S.chap);
-  const tabs = [["video","व्हिडिओ धडा"],["notes","नोट्स व आकृती"],["quiz","सराव प्रश्न"],["check","उत्तरपत्रिका तपासा"],["ask","शंका विचारा"]];
+  const tabs = [["video","व्हिडिओ धडा"],["notes","नोट्स व आकृती"],["quiz","MCQ सराव"],["board","बोर्ड पॅटर्न प्रश्न"],["check","उत्तरपत्रिका तपासा"],["ask","शंका विचारा"]];
   const idx = s.ch.indexOf(c);
   const prev = s.ch[idx-1], next = s.ch[idx+1];
   app().innerHTML = `
@@ -1873,8 +3203,9 @@ function renderChapter(){
   if (S.ctab === "video") renderVideo(p, s, c, n);
   else if (S.ctab === "notes") renderNotes(p, s, c);
   else if (S.ctab === "quiz") renderQuiz(p, s, c);
+  else if (S.ctab === "board") renderBoard(p, s, c);
   else if (S.ctab === "ask") renderChat(p, {s, c});
-  else if (S.ctab === "check"){ if (CK.chap !== c.id){ CK.subj = s.id; CK.chap = c.id; CK.result = null; } CK.inline = true; renderCheck(); }
+  else if (S.ctab === "check"){ if (CK.chap !== c.id){ CK.subj = s.id; CK.chap = c.id; CK.result = null; CK.qtext = ""; CK.key = ""; CK.total = ""; } CK.inline = true; renderCheck(); }
 }
 
 // ---------- video lesson player ----------
@@ -1888,7 +3219,7 @@ function buildScenes(s, c, n){
   ks.forEach((k, i) => sc.push({tag: mr ? `मुद्दा ${i+1} / ${ks.length}` : `Key point ${i+1} of ${ks.length}`, html:`<div class="big reveal">${i+1}</div><p class="reveal">${esc(k)}</p>${mr ? `<div class="mrline reveal" style="font-size:14px;opacity:.85">${esc(c.k[i] || "")}</div>` : ""}`, say:k}));
   if (c.f.length) sc.push({tag: mr ? "महत्त्वाची सूत्रे" : "Formulas to remember", html:`<div class="fxs">${c.f.map(f => `<span class="fx reveal">${esc(f)}</span>`).join("")}</div>`, say: mr ? "ही सूत्रे लक्षात ठेवा. धडा थांबवून ती वहीत लिहून घ्या." : "Here are the formulas and key equations for this chapter. Pause the lesson and copy them into your notebook.", min:9});
   sc.push({tag: mr ? "परीक्षा टीप" : "Exam tip", html:`<h2 class="reveal" style="color:var(--chalk)">${mr ? "परीक्षा टीप" : "Exam tip"}</h2><p class="reveal">${esc(mr ? m.tip : c.tip)}</p>`, say: (mr ? "परीक्षा टीप. " + m.tip : "Exam tip. " + c.tip)});
-  sc.push({tag: mr ? "आता तुमची पाळी" : "Your turn", html:`<h2 class="reveal">${mr ? "आता स्वतःची चाचणी घ्या" : "Now test yourself"}</h2><p class="reveal">${mr ? `या प्रकरणावरील ${c.q.length} प्रश्न सोडवा. 80% किंवा जास्त गुण मिळाले की प्रकरण पक्के झाले.` : `Take the ${c.q.length}-question quiz on this chapter. Score 80% or more to master it.`}</p><div class="reveal"><button class="btn red" data-ctab="quiz">${mr ? "सराव प्रश्न सुरू करा" : "Start the quiz"}</button></div>`, say: mr ? "छान! आता सराव प्रश्न सोडवा." : "Well done. Now take the quiz to test yourself.", end:true});
+  sc.push({tag: mr ? "आता तुमची पाळी" : "Your turn", html:`<h2 class="reveal">${mr ? "आता स्वतःची चाचणी घ्या" : "Now test yourself"}</h2><p class="reveal">${mr ? `या प्रकरणावरील ${quizItems(c).length} MCQ सोडवा. 80% किंवा जास्त गुण मिळाले की प्रकरण पक्के झाले.` : `Take the ${quizItems(c).length}-question quiz on this chapter. Score 80% or more to master it.`}</p><div class="reveal"><button class="btn red" data-ctab="quiz">${mr ? "सराव प्रश्न सुरू करा" : "Start the quiz"}</button></div>`, say: mr ? "छान! आता सराव प्रश्न सोडवा." : "Well done. Now take the quiz to test yourself.", end:true});
   return sc;
 }
 function pickVoice(lang){
@@ -1907,20 +3238,49 @@ function stopPlayer(){
   if (P.audio) { try { P.audio.pause(); } catch(e) {} }
 }
 function naturalMr(){ const v = pickVoice("mr"); return v && /^mr/i.test(v.lang) ? v : null; }
-function ytLinks(s, c){
+function ytList(c){ return (typeof YTV !== "undefined" && YTV[c.id]) || []; }
+const ytUrl = v => v.k === "p" ? "https://www.youtube.com/playlist?list=" + v.id : "https://www.youtube.com/watch?v=" + v.id;
+const ytEmbed = v => (v.k === "p" ? "https://www.youtube-nocookie.com/embed/videoseries?list=" + v.id : "https://www.youtube-nocookie.com/embed/" + v.id) + (v.k === "p" ? "&" : "?") + "rel=0&modestbranding=1&playsinline=1";
+const CAN_EMBED = !!window.SSC_WEB;
+function ytSearch(s, c){
   const q = t => "https://www.youtube.com/results?search_query=" + encodeURIComponent(t);
-  return [
-    ["मराठीतून स्पष्टीकरण", q(`इयत्ता 10 वी ${s.mr} ${c.m} मराठी स्पष्टीकरण`)],
-    ["English explanation", q(`Maharashtra board class 10 ${s.name} ${c.t} explanation`)],
-    ["महत्त्वाचे प्रश्न / Board questions", q(`SSC 10th ${s.short} ${c.t} important questions board exam`)],
-    ["उदाहरणे सोडवून / Solved examples", q(`10th ${s.short} ${c.t} practice set solutions Maharashtra board`)]
-  ];
+  return [["मराठीतून आणखी व्हिडिओ", q(`इयत्ता 10 वी ${s.mr} ${c.m} मराठी`)], ["Board questions", q(`SSC 10th ${s.short} ${c.t} important questions board exam`)]];
 }
-function ytCard(s, c){
-  return `<div class="sheet pad yt"><div class="eyebrow">संदर्भ व्हिडिओ (YouTube)</div>
-    <p class="small muted" style="margin:4px 0 10px">या प्रकरणावरील शिक्षकांचे व्हिडिओ YouTube वर नवीन टॅबमध्ये उघडतील. धडा आधी इथे पाहा, मग अधिक समजण्यासाठी व्हिडिओ पाहा.</p>
-    <div class="ytgrid">${ytLinks(s, c).map(([l, u]) => `<a class="ytbtn" href="${u}" target="_blank" rel="noopener"><span class="ytplay" aria-hidden="true">▶</span><span>${esc(l)}</span></a>`).join("")}</div></div>`;
+function ytFrame(v){
+  return `<div class="ytframe"><iframe src="${ytEmbed(v)}" title="${esc(v.t)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`;
 }
+// Main YouTube teacher-video block (embedded on the website, links in the Claude preview)
+function ytCard(s, c, compact){
+  const vs = ytList(c), sel = Math.min((store.ytSel || {})[c.id] || 0, Math.max(0, vs.length - 1)), v = vs[sel];
+  const links = `<div class="ytgrid">${vs.map(x => `<a class="ytbtn" href="${ytUrl(x)}" target="_blank" rel="noopener"><span class="ytplay" aria-hidden="true">▶</span><span>${esc(x.t)}${x.k === "p" ? ' <span class="small muted">(playlist)</span>' : ""}</span></a>`).join("")}${ytSearch(s, c).map(([l, u]) => `<a class="ytbtn" href="${u}" target="_blank" rel="noopener"><span class="ytplay" aria-hidden="true">⌕</span><span>${esc(l)}</span></a>`).join("")}</div>`;
+  if (compact || !v) return `<div class="sheet pad yt"><div class="eyebrow">YouTube स्पष्टीकरण व्हिडिओ</div><div style="margin-top:10px">${links}</div></div>`;
+  return `<div class="sheet pad yt ytmain" id="ytMain"><div class="eyebrow">YouTube शिक्षक व्हिडिओ · स्पष्टीकरण</div>
+    ${CAN_EMBED ? ytFrame(v) : `<a class="ytposter" href="${ytUrl(v)}" target="_blank" rel="noopener"><span class="ytplay big" aria-hidden="true">▶</span><span><b>${esc(v.t)}</b><br><span class="small">YouTube वर पहा</span></span></a>`}
+    ${vs.length > 1 ? `<div class="row ytpick" role="group" aria-label="व्हिडिओ निवडा">${vs.map((x, i) => `<button class="btn${i === sel ? " primary" : ""}" data-ysel="${i}">${i + 1}. ${esc(x.t.length > 42 ? x.t.slice(0, 40) + "…" : x.t)}</button>`).join("")}</div>` : ""}
+    <div class="row" style="justify-content:space-between;margin-top:10px">
+      <span class="small muted">व्हिडिओ YouTube वरील शिक्षकांचे आहेत. ${CAN_EMBED ? "व्हिडिओ सुरू होत नसेल तर 'YouTube वर उघडा' दाबा." : ""}</span>
+      <span class="row">${!store.watched[c.id] ? `<button class="btn" id="ytDone">✓ व्हिडिओ पाहिला</button>` : `<span class="chip ok">व्हिडिओ पाहिला</span>`}<a class="btn" href="${ytUrl(v)}" target="_blank" rel="noopener">YouTube वर उघडा ↗</a></span>
+    </div>
+    <details class="ytmore"><summary class="small">आणखी व्हिडिओ / शोध</summary><div style="margin-top:8px">${links}</div></details></div>`;
+}
+function bindYt(el, s, c, redraw){
+  el.querySelectorAll("[data-ysel]").forEach(b => b.onclick = () => { store.ytSel = store.ytSel || {}; store.ytSel[c.id] = +b.dataset.ysel; save(); redraw(); });
+  const d = el.querySelector("#ytDone"); if (d) d.onclick = () => { store.watched[c.id] = true; save(); redraw(); };
+}
+// Explanation = YouTube video (popup on website, new tab in preview)
+function ytExplainBtn(c){ return ytList(c).length ? `<button class="btn ytx" data-ytx="${c.id}"><span class="ytplay" aria-hidden="true">▶</span> YouTube वर स्पष्टीकरण पहा</button>` : ""; }
+function openYtModal(id){
+  const f = findCh(id); if (!f) return; const vs = ytList(f.c); if (!vs.length) return;
+  const v = vs[Math.min((store.ytSel || {})[id] || 0, vs.length - 1)];
+  if (!CAN_EMBED){ window.open(ytUrl(v), "_blank", "noopener"); return; }
+  const m = document.createElement("div"); m.className = "ytmodal"; m.setAttribute("role", "dialog"); m.setAttribute("aria-label", "YouTube स्पष्टीकरण");
+  m.innerHTML = `<div class="ytbox"><div class="row" style="justify-content:space-between;margin-bottom:8px"><b style="color:#fff">${esc(v.t)}</b><button class="btn" data-ytclose>✕ बंद करा</button></div>${ytFrame(v)}<div class="row" style="margin-top:8px">${vs.map((x, i) => `<button class="btn" data-ymod="${i}">${i + 1}. ${esc(x.t.slice(0, 36))}</button>`).join("")}<a class="btn" href="${ytUrl(v)}" target="_blank" rel="noopener">YouTube वर उघडा ↗</a></div></div>`;
+  document.body.appendChild(m);
+  const close = () => m.remove();
+  m.onclick = e => { if (e.target === m || e.target.closest("[data-ytclose]")) close(); const b = e.target.closest("[data-ymod]"); if (b){ store.ytSel = store.ytSel || {}; store.ytSel[id] = +b.dataset.ymod; save(); close(); openYtModal(id); } };
+  document.addEventListener("keydown", function k(e){ if (e.key === "Escape"){ close(); document.removeEventListener("keydown", k); } });
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-ytx]"); if (b) openYtModal(b.dataset.ytx); });
 function renderVideo(el, s, c, n){
   stopPlayer();
   const scenes = buildScenes(s, c, n);
@@ -1931,7 +3291,10 @@ function renderVideo(el, s, c, n){
   if (S.lang !== "mr" && P.mode === "file") P.mode = canSpeak ? "device" : "off";
   const sel = `style="background:transparent;border:1px solid rgba(255,255,255,.3);border-radius:6px;color:#fff"`;
   el.innerHTML = `
-  <div class="player">
+  ${ytCard(s, c)}
+  <details class="sheet pad revise" id="revBox" ${store.revOpen ? "open" : ""}>
+  <summary><b>झटपट उजळणी:</b> ॲनिमेटेड मुद्दे व आकृती <span class="small muted">(मराठी ऑडिओसह · ऐच्छिक)</span></summary>
+  <div class="player" style="margin-top:12px">
     <div class="stage" id="stage" aria-live="polite"></div>
     <div class="controls">
       <button id="pPrev" aria-label="मागील दृश्य">◀</button>
@@ -1948,8 +3311,10 @@ function renderVideo(el, s, c, n){
     </div>
   </div>
   <p class="small muted" id="voiceNote" style="margin:10px 0 0"></p>
-  ${ytCard(s, c)}`;
+  </details>`;
   showScene(0); voiceNote();
+  bindYt(el, s, c, () => renderVideo(el, s, c, n));
+  $("#revBox").ontoggle = e => { store.revOpen = e.target.open; save(); if (!e.target.open) pause(); };
   $("#pPlay").onclick = () => P.playing ? pause() : play();
   $("#pPrev").onclick = () => jump(P.i - 1);
   $("#pNext").onclick = () => jump(P.i + 1);
@@ -2081,7 +3446,7 @@ function renderNotes(el, s, c){
       </div>
     </div>
   </div>
-  ${ytCard(s, c)}`;
+  ${ytCard(s, c, true)}`;
   el.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => { setLang(b.dataset.lang); renderChapter(); });
   if ($("#markRead")) $("#markRead").onclick = () => { store.read[c.id] = true; save(); renderNotes(el, s, c); };
   if ($("#mrExplain")) $("#mrExplain").onclick = async (e) => {
@@ -2097,14 +3462,15 @@ function renderNotes(el, s, c){
 
 // ---------- quiz ----------
 let Q = null;
-function makeQuiz(items, source, ems){
-  return {source, i:0, score:0, picked:null, wrong:[], items: shuffle(items.map((x, i) => x.concat([(ems || [])[i] || ""]))).map(([q, o, a, e, em]) => {
-    const order = shuffle([0,1,2,3]); return {q, o: order.map(k => o[k]), a: order.indexOf(a), e, em};
+function quizItems(c){ return c.q.concat((typeof X !== "undefined" && X[c.id]) ? X[c.id].m : []); }
+function makeQuiz(items, source){
+  return {source, i:0, score:0, picked:null, wrong:[], items: shuffle(items).map(([q, o, a]) => {
+    const order = shuffle([0,1,2,3]); return {q, o: order.map(k => o[k]), a: order.indexOf(a)};
   })};
 }
-const expl = it => it.em ? `${esc(it.em)}<div class="small muted" style="margin-top:4px">${esc(it.e)}</div>` : esc(it.e);
+const expl = () => { const f = findCh(S.chap); return f ? `<div class="row" style="margin-top:8px">${ytExplainBtn(f.c)}</div>` : ""; };
 function renderQuiz(el, s, c){
-  if (!Q || Q.chId !== c.id){ Q = makeQuiz(c.q, "book", mrOf(c).e); Q.chId = c.id; }
+  if (!Q || Q.chId !== c.id){ Q = makeQuiz(quizItems(c), "book"); Q.chId = c.id; }
   const qz = Q;
   if (qz.i >= qz.items.length){
     const pct = Math.round(qz.score / qz.items.length * 100);
@@ -2114,14 +3480,14 @@ function renderQuiz(el, s, c){
       <div class="eyebrow">${qz.source === "ai" ? "Fresh questions from Claude" : "Chapter quiz"} · result</div>
       <div class="row" style="gap:18px"><span class="score">${qz.score}/${qz.items.length}</span>
         <span>${pct >= 80 ? '<span class="chip ok">Mastered</span> Great work! Move on to the next chapter.' : pct >= 50 ? '<span class="chip warn">Almost there</span> Read the notes once more and retry.' : '<span class="chip bad">Needs revision</span> Watch the lesson again, then retry.'}</span></div>
-      ${qz.wrong.length ? `<div class="eyebrow">Review your mistakes</div>${qz.wrong.map(w => `<div class="explain"><b>${esc(w.q)}</b><br>बरोबर उत्तर: <b>${esc(w.o[w.a])}</b><div class="small" style="margin-top:4px">${expl(w)}</div></div>`).join("")}` : ""}
+      ${qz.wrong.length ? `<div class="eyebrow">Review your mistakes</div>${qz.wrong.map(w => `<div class="explain"><b>${esc(w.q)}</b><br>बरोबर उत्तर: <b>${esc(w.o[w.a])}</b></div>`).join("")}<div class="row" style="margin-top:4px">${ytExplainBtn(c)}<span class="small muted">चुकलेले प्रश्न समजण्यासाठी YouTube व्हिडिओ पहा.</span></div>` : ""}
       <div class="row">
         <button class="btn primary" id="retry">Retry this quiz</button>
         ${AI ? `<button class="btn" id="aiMore">Get 5 fresh questions from Claude</button>` : ""}
       </div>
       <div id="aiMsg" class="small muted"></div>
     </div>`;
-    $("#retry").onclick = () => { Q = makeQuiz(c.q, "book", mrOf(c).e); Q.chId = c.id; renderQuiz(el, s, c); };
+    $("#retry").onclick = () => { Q = makeQuiz(quizItems(c), "book"); Q.chId = c.id; renderQuiz(el, s, c); };
     if ($("#aiMore")) $("#aiMore").onclick = () => aiQuiz(el, s, c);
     return;
   }
@@ -2139,29 +3505,59 @@ function renderQuiz(el, s, c){
     const k = +b.dataset.k; const ok = k === it.a;
     if (ok) qz.score++; else qz.wrong.push(it);
     el.querySelectorAll(".opt").forEach(x => { x.disabled = true; const kk = +x.dataset.k; if (kk === it.a) x.classList.add("right"); else if (kk === k) x.classList.add("wrong"); });
-    $("#exp").innerHTML = `<div class="explain"><b>${ok ? "बरोबर! (Correct)" : "चुकले. (Not quite)"}</b> ${expl(it)}</div><div class="row" style="margin-top:12px"><button class="btn primary" id="nextQ">${qz.i + 1 < qz.items.length ? "Next question" : "See result"}</button></div>`;
+    $("#exp").innerHTML = `<div class="explain"><b>${ok ? "बरोबर! (Correct)" : `चुकले. बरोबर उत्तर: ${esc(it.o[it.a])}`}</b>${expl()}</div><div class="row" style="margin-top:12px"><button class="btn primary" id="nextQ">${qz.i + 1 < qz.items.length ? "Next question" : "See result"}</button></div>`;
     $("#nextQ").onclick = () => { qz.i++; renderQuiz(el, s, c); };
     $("#nextQ").focus();
   });
 }
+// ---------- board-pattern written practice ----------
+function renderBoard(el, s, c){
+  const x = (typeof X !== "undefined" && X[c.id]) || {w: []}, w = x.w;
+  store.bd = store.bd || {}; const done = store.bd[c.id] || [];
+  const tot = w.reduce((a, q) => a + q[2], 0);
+  el.innerHTML = `
+  <div class="note small"><b>बोर्ड पॅटर्न सराव प्रश्न:</b> SSC बोर्डाच्या मागील प्रश्नपत्रिकांतील प्रश्नप्रकार व गुणांच्या पद्धतीनुसार तयार केलेले सराव प्रश्न. हे मागील वर्षांचे मूळ (official) प्रश्न नाहीत. मूळ प्रश्नपत्रिका शाळा / बोर्डाच्या संकेतस्थळावरून मिळवा.</div>
+  <div class="sheet pad" style="margin-top:12px;display:grid;gap:14px">
+    <div class="row" style="justify-content:space-between"><div class="eyebrow">${w.length} प्रश्न · एकूण ${tot} गुण</div><span class="chip ${done.length === w.length && w.length ? "ok" : ""}">${done.length}/${w.length} सोडवले</span></div>
+    ${w.map((q, i) => `<div class="bq">
+      <div class="row" style="gap:6px"><span class="chip">${esc(q[0].replace(/\s*\(.*\)$/, ""))}</span><span class="chip warn">${q[2]} गुण</span></div>
+      <div class="qtext" style="margin:6px 0">${i + 1}. ${esc(q[1])}</div>
+      <div class="row" style="justify-content:space-between">
+        <details><summary class="small">उत्तराचे मुख्य मुद्दे पहा (आधी स्वतः लिहा)</summary><div class="explain small">${esc(q[3])}</div></details>
+        <label class="small"><input type="checkbox" data-bd="${i}" ${done.includes(i) ? "checked" : ""}> सोडवला</label>
+      </div></div>`).join("")}
+    <div class="sheet pad small" style="display:grid;gap:8px;background:var(--amber-soft)">
+      <b>हे प्रश्न कागदावर सोडवा आणि फोटो अपलोड करून गुण व श्रेणी मिळवा.</b>
+      <div class="row">${w.length ? `<button class="btn red" id="bdCheck">उत्तरपत्रिका तपासा (${tot} गुण)</button>` : ""}${ytExplainBtn(c)}</div>
+    </div>
+  </div>`;
+  el.querySelectorAll("[data-bd]").forEach(b => b.onchange = () => {
+    const i = +b.dataset.bd, d = new Set(store.bd[c.id] || []); b.checked ? d.add(i) : d.delete(i); store.bd[c.id] = [...d]; save(); renderBoard(el, s, c);
+  });
+  if ($("#bdCheck")) $("#bdCheck").onclick = () => {
+    CK.subj = s.id; CK.chap = c.id; CK.result = null; CK.total = String(tot);
+    CK.qtext = w.map((q, i) => `Q${i + 1} (${q[0].replace(/\s*\(.*\)$/, "")}). ${q[1]} [${q[2]} mark${q[2] > 1 ? "s" : ""}]`).join("\n");
+    CK.key = w.map((q, i) => `Q${i + 1}: ${q[3]}`).join("\n");
+    S.ctab = "check"; renderChapter();
+  };
+}
 async function aiQuiz(el, s, c){
   const btn = $("#aiMore"), msg = $("#aiMsg"); btn.disabled = true; msg.textContent = "Claude is writing new questions… (10–40 seconds)";
   try {
-    const data = await AI.json(`You are an experienced Maharashtra State Board SSC (Std 10) paper setter. Write 5 NEW multiple-choice questions for the chapter "${c.t}" from ${s.name} (Balbharati textbook). Mix easy, medium and one tricky application question, in the style of SSC board papers. Do not repeat these existing questions: ${c.q.map(x => x[0]).join(" | ")}.
+    const data = await AI.json(`You are an experienced Maharashtra State Board SSC (Std 10) paper setter. Write 5 NEW multiple-choice questions for the chapter "${c.t}" from ${s.name} (Balbharati textbook). Mix easy, medium and one tricky application question, in the style of SSC board papers. Do not repeat these existing questions: ${quizItems(c).map(x => x[0]).join(" | ")}.
 Chapter key points: ${c.k.join(" ")}
 ${c.f.length ? "Formulas: " + c.f.join("; ") : ""}
 Every question must have exactly 4 options and exactly one correct option. Double-check each answer.
-Write the question and options in English (as in the semi-English board paper). Write the explanation "em" in simple Marathi (technical terms may stay in English).
-Reply with only a JSON array like: [{"q":"question text","o":["A","B","C","D"],"a":0,"em":"एका ओळीत मराठी स्पष्टीकरण"}]`);
+Write the question and options in English (as in the semi-English board paper).
+Reply with only a JSON array like: [{"q":"question text","o":["A","B","C","D"],"a":0}]`);
     const items = (Array.isArray(data) ? data : []).filter(x => x && x.q && Array.isArray(x.o) && x.o.length === 4 && Number.isInteger(x.a) && x.a >= 0 && x.a < 4).map(x => [String(x.q), x.o.map(String), x.a, ""]);
-    const ems = data.filter(x => x && x.q && Array.isArray(x.o) && x.o.length === 4 && Number.isInteger(x.a) && x.a >= 0 && x.a < 4).map(x => String(x.em || x.e || ""));
     if (!items.length) throw {code:"invalid_json"};
-    Q = makeQuiz(items, "ai", ems); Q.chId = c.id; renderQuiz(el, s, c);
+    Q = makeQuiz(items, "ai"); Q.chId = c.id; renderQuiz(el, s, c);
   } catch(e) { msg.textContent = aiErr(e); btn.disabled = false; }
 }
 
 // ---------- answer sheet checker ----------
-let CK = {subj:"m1", chap:"", total:"", qtext:"", files:[], busy:false, result:null, ctl:null, inline:false};
+let CK = {subj:"m1", chap:"", total:"", qtext:"", key:"", files:[], busy:false, result:null, ctl:null, inline:false};
 function ckRoot(){ return CK.inline && S.view === "chapter" && $("#panel") ? $("#panel") : app(); }
 function gradeOf(pct){
   if (pct >= 75) return {g:"विशेष प्राविण्य", e:"Distinction", cls:"ok"};
@@ -2224,10 +3620,10 @@ function renderCheck(){
   </div>
   <div id="ckResult" style="margin-top:16px"></div>`;
   drawThumbs(); bindCode(renderCheck);
-  $("#ckSubj").onchange = e => { CK.subj = e.target.value; CK.chap = ""; renderCheck(); };
+  $("#ckSubj").onchange = e => { CK.subj = e.target.value; CK.chap = ""; CK.key = ""; renderCheck(); };
   $("#ckChap").onchange = e => CK.chap = e.target.value;
   $("#ckTotal").oninput = e => CK.total = e.target.value.replace(/[^0-9]/g, "");
-  $("#ckQ").oninput = e => CK.qtext = e.target.value;
+  $("#ckQ").oninput = e => { CK.qtext = e.target.value; CK.key = ""; };
   $("#ckFiles").onchange = e => addFiles(e.target.files);
   $("#ckCam").onchange = e => addFiles(e.target.files);
   const d = $("#drop");
@@ -2257,6 +3653,7 @@ async function runCheck(){
 Subject: ${s.name}. ${ch ? `Chapter: ${ch.t}.` : "Scope: whole paper or mixed chapters."}
 ${CK.total ? `Total marks for this attempt: ${CK.total}.` : "Total marks were not given; use the marks printed on the sheet, or typical SSC marks for each question type."}
 ${CK.qtext.trim() ? `Questions given by the student:\n${CK.qtext.trim()}` : "The questions may be written on the sheet; if not, infer each question from the answer."}
+${CK.key && CK.qtext.trim() ? `Examiner's answer-key points for these questions (use them for marking; accept any correct equivalent wording or method):\n${CK.key}` : ""}
 The attached ${CK.files.length} image(s) are photos of the student's handwritten answer sheet, in page order. Answers may be in English or Marathi.
 Do this:
 1. Read every answer carefully.
