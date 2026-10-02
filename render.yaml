@@ -1,0 +1,23 @@
+# Render Blueprint for SSC Saathi (Std 10 study app) -- branch 'ssc' of thebalajiindustries-tech/site.
+# Separate from the 'ganak' branch and from main; nothing here touches Ganak or other sites.
+# In Render: New -> Blueprint -> repo 'site' -> branch 'ssc'. Static site, free plan.
+# AI grading/doubts are served by the Ganak backend at https://api.vidmahitech.com/ssc (see web/config.js).
+services:
+  # The website (static files: app, audio lessons, icons). Free, no sleep.
+  - type: web
+    name: ssc-saathi
+    runtime: static
+    buildCommand: echo "static site, nothing to build"
+    staticPublishPath: ./web
+    domains:
+      - ssc.vidmahitech.com
+    headers:
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+      - path: /audio/*
+        name: Cache-Control
+        value: public, max-age=2592000
