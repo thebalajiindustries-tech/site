@@ -19,6 +19,7 @@ os.environ["CORS_ORIGINS"] = "https://app.vidmahitech.com"
 os.environ["ANTHROPIC_API_KEY"] = "test-key-not-real"
 os.environ["SSC_ACCESS_CODES"] = "SSC-2027, demo"
 os.environ["SSC_DAILY_LIMIT_PER_CODE"] = "3"
+os.environ["SSC_TEACHER_KEY"] = "teach-123"
 for f in ("/tmp/ganak_control_ssc_test.db",):
     try:
         os.remove(f)
@@ -89,6 +90,28 @@ with TestClient(main.app) as c:
     check(preflight("https://ssc.vidmahitech.com").headers.get("access-control-allow-origin") == "https://ssc.vidmahitech.com", "CORS allows study site")
     check(preflight("https://app.vidmahitech.com").headers.get("access-control-allow-origin") == "https://app.vidmahitech.com", "CORS still allows Ganak app")
     check(preflight("https://evil.example.com").headers.get("access-control-allow-origin") is None, "CORS blocks other sites")
+
+    # --- student login + progress sync + teacher dashboard ---
+    H = {"X-Access-Code": "SSC-2027"}
+    check(c.post("/ssc/login", json={"name": "Asha Patil"}).status_code == 401, "login needs class code")
+    check(c.post("/ssc/login", json={"name": " "}, headers=H).status_code == 400, "login needs a name")
+    r = c.post("/ssc/login", json={"name": "  Asha   Patil "}, headers=H)
+    check(r.status_code == 200 and r.json()["new"] is True and r.json()["name"] == "Asha Patil", "first login creates student")
+    prog = {"quiz": {"a1": 80}, "watched": {"a1": True}, "checks": [{"got": 15, "total": 20}]}
+    check(c.put("/ssc/progress", json={"name": "asha patil", "progress": prog}, headers=H).status_code == 200, "progress saved")
+    r = c.post("/ssc/login", json={"name": "ASHA PATIL"}, headers={"X-Access-Code": "ssc-2027"})
+    check(r.json()["new"] is False and r.json()["progress"]["quiz"]["a1"] == 80, "re-login returns saved progress (name case-insensitive)")
+    r = c.post("/ssc/login", json={"name": "Asha Patil"}, headers={"X-Access-Code": "demo"})
+    check(r.json()["new"] is True, "same name in another class is a different student")
+    big = {"name": "Asha Patil", "progress": {"x": "a" * 70000}}
+    check(c.put("/ssc/progress", json=big, headers=H).status_code == 413, "oversized progress rejected")
+    check(c.get("/ssc/teacher").status_code == 401, "teacher dashboard needs key")
+    check(c.get("/ssc/teacher", headers={"X-Teacher-Key": "wrong"}).status_code == 401, "wrong teacher key rejected")
+    r = c.get("/ssc/teacher", headers={"X-Teacher-Key": "teach-123"})
+    st = r.json()["students"] if r.status_code == 200 else []
+    check(len(st) == 2 and any(x["progress"].get("quiz", {}).get("a1") == 80 for x in st), "teacher sees all students + progress")
+    main.settings.SSC_TEACHER_KEY = ""
+    check(c.get("/ssc/teacher", headers={"X-Teacher-Key": ""}).status_code == 503, "dashboard off when no teacher key set")
 
     main.settings.SSC_ACCESS_CODES = ""
     check(c.post("/ssc/sample", json=body, headers={"X-Access-Code": "demo"}).status_code == 401, "feature off when no codes configured")
