@@ -100,7 +100,15 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <div class="card"><div class="label">Sagar &mdash; withdrawn (Zoho)</div><div class="value c-red" id="sWd">&ndash;</div></div>
 <div class="card"><div class="label">Difference (Ganesh &minus; Sagar)</div><div class="value" id="wdDiff">&ndash;</div><div class="split" id="wdHint"></div></div>
 </div>
-<div class="toolbar"><button class="primary" id="pwLoad">Load withdrawals</button><span class="muted" id="pwMsg"></span></div>
+<div class="toolbar">
+<button class="primary" id="pwLoad">Load withdrawals</button>
+<label style="font-size:12px;color:#6b7280;font-weight:600">From <input type="date" id="pwFrom"></label>
+<label style="font-size:12px;color:#6b7280;font-weight:600">To <input type="date" id="pwTo"></label>
+<button id="pwThisMonth">This month</button>
+<button id="pwThisYear">This year</button>
+<button id="pwClear">All dates</button>
+<span class="muted" id="pwMsg"></span>
+</div>
 <table>
 <thead><tr><th>Date</th><th>Partner</th><th>Kind</th><th>Source</th><th>Description</th><th>From / to</th><th>Amount</th></tr></thead>
 <tbody id="pwBody"><tr><td colspan="7" style="text-align:center;color:#9ca3af">Press "Load withdrawals" to read these from Zoho Books</td></tr></tbody>
@@ -717,17 +725,44 @@ const u = new URL(window.CFG.url);
 for (const k in params) u.searchParams.set(k, params[k]);
 return u;
 }
-async function fetchAll(params, msgEl, label) {
-const rows = [];
-for (let page = 1; page <= 30; page++) {
+const PER_PAGE = 32, CONCURRENCY = 6, CACHE_MS = 15 * 60 * 1000;
+const memCache = new Map();
+function cacheGet(k) {
+const v = memCache.get(k);
+if (v && Date.now() - v.t < CACHE_MS) return v.rows;
+memCache.delete(k);
+return null;
+}
+function cacheSet(k, rows) { memCache.set(k, { t: Date.now(), rows: rows }); }
+async function fetchPage(params, page) {
 const r = await fetch(apiUrl(Object.assign({}, params, { page: page })), { headers: { "x-app-key": window.CFG.key } });
 if (!r.ok && r.status !== 500) throw new Error("Data service returned " + r.status);
 const d = await r.json();
 if (d.error) throw new Error(d.error);
-rows.push.apply(rows, d.rows || []);
-if (msgEl) msgEl.textContent = "Loading " + label + "... " + rows.length + " lines so far";
-if (!d.more) break;
+return d;
 }
+// Page 1 tells us how many pages exist, so the rest are fetched in parallel
+// batches instead of one after another.
+async function fetchAll(params, msgEl, label, force) {
+const ck = JSON.stringify(params);
+if (!force) { const hit = cacheGet(ck); if (hit) { if (msgEl) msgEl.textContent = hit.length + " " + label + " lines (from cache)"; return hit; } }
+const t0 = Date.now();
+if (msgEl) msgEl.textContent = "Loading " + label + "...";
+const first = await fetchPage(params, 1);
+const rows = (first.rows || []).slice();
+const pages = first.more ? Math.max(1, Math.min(40, Math.ceil((first.total || 0) / PER_PAGE))) : 1;
+if (pages > 1) {
+const nums = [];
+for (let p = 2; p <= pages; p++) nums.push(p);
+for (let i = 0; i < nums.length; i += CONCURRENCY) {
+const batch = nums.slice(i, i + CONCURRENCY);
+const res = await Promise.all(batch.map(p => fetchPage(params, p).catch(() => ({ rows: [] }))));
+for (const d of res) rows.push.apply(rows, d.rows || []);
+if (msgEl) msgEl.textContent = "Loading " + label + "... page " + Math.min(pages, i + 1 + batch.length) + " of " + pages + ", " + rows.length + " lines";
+}
+}
+cacheSet(ck, rows);
+if (msgEl) msgEl.dataset.secs = ((Date.now() - t0) / 1000).toFixed(1);
 return rows;
 }
 function monthBounds(m) {
@@ -746,7 +781,7 @@ if (!from || !to) { msg.textContent = "Pick a date first."; return; }
 try {
 dispRows = await fetchAll({ disp: 1, from: from, to: to }, msg, "dispatch");
 renderDispatch(mode, from, to);
-msg.textContent = dispRows.length + " dispatch line" + (dispRows.length === 1 ? "" : "s") + " — " + (mode === "day" ? from : from + " to " + to);
+msg.textContent = dispRows.length + " dispatch line" + (dispRows.length === 1 ? "" : "s") + " — " + (mode === "day" ? from : from + " to " + to) + (msg.dataset.secs ? " (" + msg.dataset.secs + "s)" : "");
 } catch (e) { msg.className = "muted"; msg.textContent = "Could not load dispatch: " + e.message; }
 }
 function renderDispatch(mode, from, to) {
@@ -797,7 +832,7 @@ else h += `<tr class="total-row"><td>TOTAL (${rows.length} lines)</td><td></td><
 $("sBody").innerHTML = h;
 $("sKg").textContent = fmtKg(tkg);
 $("sPc").textContent = num(tpc) + " pieces · " + rows.length + " lines";
-msg.textContent = "Stock in shop: " + fmtKg(tkg) + " across " + rows.length + " part lines.";
+msg.textContent = "Stock in shop: " + fmtKg(tkg) + " across " + rows.length + " part lines." + (msg.dataset.secs ? " (" + msg.dataset.secs + "s)" : "");
 } catch (e) { msg.textContent = "Could not load stock: " + e.message; }
 }
 $("dMode").addEventListener("change", () => {
@@ -805,15 +840,26 @@ const m = $("dMode").value === "month";
 $("dDayBox").style.display = m ? "none" : "";
 $("dMonBox").style.display = m ? "" : "none";
 });
+let pwRows = null;
 async function loadPartnerWithdrawals() {
 const msg = $("pwMsg");
 msg.textContent = "Loading from Zoho Books...";
 try {
+const t0 = Date.now();
 const r = await fetch(apiUrl({ pw: 1 }), { headers: { "x-app-key": window.CFG.key } });
 if (!r.ok && r.status !== 500) throw new Error("Data service returned " + r.status);
 const d = await r.json();
 if (d.error) throw new Error(d.error);
-const rows = d.rows || [];
+pwRows = d.rows || [];
+msg.dataset.secs = ((Date.now() - t0) / 1000).toFixed(1);
+renderWithdrawals();
+} catch (e) { msg.textContent = "Could not load: " + e.message; }
+}
+function renderWithdrawals() {
+const msg = $("pwMsg");
+if (!pwRows) return;
+const from = $("pwFrom").value, to = $("pwTo").value;
+const rows = pwRows.filter(e => (!from || e.date >= from) && (!to || e.date <= to));
 const t = { Ganesh: 0, Sagar: 0 };
 let h = "";
 for (const e of rows) {
@@ -824,7 +870,8 @@ h += `<tr><td>${esc(e.date)}</td><td style="text-align:left">${esc(e.p)}</td>` +
 `<td style="text-align:left">${esc(e.src)}</td><td style="text-align:left">${esc(e.desc)}</td>` +
 `<td style="text-align:left">${esc(e.via)}</td><td><b>${fmt(e.amt)}</b></td></tr>`;
 }
-if (!rows.length) h = `<tr><td colspan="7" style="text-align:center;color:#9ca3af">Nothing found in Zoho Books against the partner accounts</td></tr>`;
+if (!rows.length) h = `<tr><td colspan="7" style="text-align:center;color:#9ca3af">Nothing in this date range</td></tr>`;
+else h += `<tr class="total-row"><td>TOTAL (${rows.length})</td><td></td><td></td><td></td><td></td><td></td><td>${fmt(t.Ganesh + t.Sagar)}</td></tr>`;
 $("pwBody").innerHTML = h;
 $("gWd").textContent = fmt(t.Ganesh);
 $("sWd").textContent = fmt(t.Sagar);
@@ -832,10 +879,20 @@ const diff = t.Ganesh - t.Sagar;
 $("wdDiff").textContent = diff === 0 ? "Equal" : fmt(Math.abs(diff));
 $("wdDiff").className = "value " + (diff === 0 ? "c-green" : "c-amber");
 $("wdHint").textContent = diff === 0 ? "both partners have taken the same" : (diff > 0 ? "Ganesh has taken more" : "Sagar has taken more");
-msg.textContent = rows.length + " entr" + (rows.length === 1 ? "y" : "ies");
-} catch (e) { msg.textContent = "Could not load: " + e.message; }
+const span = (from || to) ? " — " + (from || "start") + " to " + (to || "today") : " — all dates";
+msg.textContent = rows.length + " of " + pwRows.length + " entries" + span + (msg.dataset.secs ? " (" + msg.dataset.secs + "s)" : "");
 }
-$("pwLoad").addEventListener("click", loadPartnerWithdrawals);
+$("pwLoad").addEventListener("click", () => loadPartnerWithdrawals());
+["pwFrom", "pwTo"].forEach(id => $(id).addEventListener("change", renderWithdrawals));
+$("pwClear").addEventListener("click", () => { $("pwFrom").value = ""; $("pwTo").value = ""; renderWithdrawals(); });
+$("pwThisMonth").addEventListener("click", () => {
+const b = monthBounds(new Date().toISOString().slice(0, 7));
+$("pwFrom").value = b[0]; $("pwTo").value = b[1]; renderWithdrawals();
+});
+$("pwThisYear").addEventListener("click", () => {
+const y = new Date().getFullYear();
+$("pwFrom").value = y + "-01-01"; $("pwTo").value = y + "-12-31"; renderWithdrawals();
+});
 $("dLoad").addEventListener("click", loadDispatch);
 $("dStock").addEventListener("click", loadStock);
 $("dDay").value = new Date().toISOString().slice(0, 10);
