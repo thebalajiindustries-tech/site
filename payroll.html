@@ -255,14 +255,14 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 </div>
 <div class="rh"><h1 id="dTitle">Dispatch</h1><div class="sp"></div><button class="exp" data-export="dBody" data-name="dispatch">&#8681; Export CSV</button></div>
 <table>
-<thead id="dHead"></thead>
-<tbody id="dBody"></tbody>
+<thead id="dHead"><tr><th>Invoice</th><th>Inv. date</th><th>PO</th><th>Part</th><th>Name</th><th>Material</th><th>Process</th><th>Qty</th><th>Wt/pc</th><th>Total kg</th><th>Value</th></tr></thead>
+<tbody id="dBody"><tr><td colspan="11" style="text-align:center;color:#9ca3af">Pick a date above and press &ldquo;Load dispatch&rdquo;</td></tr></tbody>
 </table>
 <div class="rh"><h1>Stock in shop &mdash; ordered but not yet dispatched</h1><div class="sp"></div><button class="exp" data-export="sBody" data-name="stock-in-shop">&#8681; Export CSV</button></div>
 <div class="muted" style="margin-bottom:8px">Taken from open, draft and part-invoiced POs in Zoho Books. Pending = ordered quantity minus invoiced quantity. Dispatched means invoiced.</div>
 <table>
 <thead><tr><th>PO</th><th>Date</th><th>Part</th><th>Name</th><th>Material</th><th>Ordered</th><th>Dispatched</th><th>Pending</th><th>Wt/pc</th><th>Pending kg</th></tr></thead>
-<tbody id="sBody"></tbody>
+<tbody id="sBody"><tr><td colspan="10" style="text-align:center;color:#9ca3af">Press &ldquo;Load stock in shop&rdquo; to read this from Zoho Books</td></tr></tbody>
 </table>
 </div>
 <datalist id="empNames"></datalist>
