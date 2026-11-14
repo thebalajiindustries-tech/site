@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Employee Salary &amp; Advance Manager</title>
-<style>:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#f6f7f9;color:#1a1d21;padding:16px;font-size:14px;}h1{font-size:18px;margin-bottom:2px;}.sub{color:#6b7280;font-size:12px;margin-bottom:12px;}.tabs{display:flex;gap:6px;margin-bottom:14px;}.tabs button{border:1px solid #d1d5db;background:#fff;padding:7px 16px;border-radius:8px;font-weight:600;color:#6b7280;}.tabs button.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;flex:1;min-width:128px;}.card .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;}.card .value{font-size:17px;font-weight:700;margin-top:2px;}.c-blue{color:#1d4ed8;}.c-amber{color:#b45309;}.c-green{color:#047857;}.c-red{color:#b91c1c;}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}input,select,button{font:inherit;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;}input:focus,select:focus{outline:2px solid #93c5fd;border-color:#60a5fa;}button{cursor:pointer;}button.primary{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600;}button.primary:disabled{opacity:.5;cursor:default;}#status{font-size:12px;color:#6b7280;margin-bottom:8px;min-height:16px;}#status.err{color:#b91c1c;}#status.ok{color:#047857;}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;}th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #f1f2f4;white-space:nowrap;}th:first-child,td:first-child{text-align:left;}th{background:#f9fafb;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#6b7280;cursor:pointer;user-select:none;}tr.emp:hover{background:#f0f6ff;cursor:pointer;}tr.total-row td{font-weight:700;background:#f9fafb;}.neg{color:#b91c1c;}.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;}.badge.sal{background:#dbeafe;color:#1d4ed8;}.badge.adv{background:#fef3c7;color:#b45309;}fieldset{border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:12px;margin-bottom:14px;}legend{font-weight:600;padding:0 6px;font-size:13px;}.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}.form-row label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:#6b7280;font-weight:600;}.muted{color:#9ca3af;font-size:11px;margin-top:6px;}.view-btn{font-size:11px;padding:3px 10px;border-radius:6px;background:#eef2ff;border-color:#c7d2fe;color:#3730a3;font-weight:600;}.due-in{width:96px;padding:4px 6px;text-align:right;font-size:13px;}.split{font-size:10px;color:#6b7280;font-weight:400;margin-top:1px;}.due-in.set{background:#eff6ff;border-color:#93c5fd;font-weight:600;}#overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;}#overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;}#panel{background:#fff;border-radius:14px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);}#panelHead{padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}#panelHead h2{font-size:16px;flex:1;}#panelStats{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #f1f2f4;}.pstat{background:#f9fafb;border:1px solid #eef0f3;border-radius:8px;padding:6px 12px;font-size:12px;}.pstat b{display:block;font-size:14px;}#panelTools{display:flex;gap:8px;padding:10px 18px;flex-wrap:wrap;align-items:center;}#panelBody{overflow:auto;padding:0 18px 18px;}#panelBody td,#panelBody th{font-size:12.5px;padding:6px 8px;}#panelBody td.wrap{white-space:normal;text-align:left;}.seg{display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;}.seg button{border:0;border-radius:0;padding:5px 12px;font-size:12px;background:#fff;}.seg button.on{background:#1d4ed8;color:#fff;}#closeBtn{background:#f3f4f6;}</style>
+<style>:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#f6f7f9;color:#1a1d21;padding:16px;font-size:14px;}h1{font-size:18px;margin-bottom:2px;}.sub{color:#6b7280;font-size:12px;margin-bottom:12px;}.tabs{display:flex;gap:6px;margin-bottom:14px;}.tabs button{border:1px solid #d1d5db;background:#fff;padding:7px 16px;border-radius:8px;font-weight:600;color:#6b7280;}.tabs button.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;flex:1;min-width:128px;}.card .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;}.card .value{font-size:17px;font-weight:700;margin-top:2px;}.c-blue{color:#1d4ed8;}.c-amber{color:#b45309;}.c-green{color:#047857;}.c-red{color:#b91c1c;}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}input,select,button{font:inherit;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;}input:focus,select:focus{outline:2px solid #93c5fd;border-color:#60a5fa;}button{cursor:pointer;}button.primary{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600;}button.primary:disabled{opacity:.5;cursor:default;}#status{font-size:12px;color:#6b7280;margin-bottom:8px;min-height:16px;}#status.err{color:#b91c1c;}#status.ok{color:#047857;}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;}th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #f1f2f4;white-space:nowrap;}th:first-child,td:first-child{text-align:left;}th{background:#f9fafb;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#6b7280;cursor:pointer;user-select:none;}tr.emp:hover{background:#f0f6ff;cursor:pointer;}tr.total-row td{font-weight:700;background:#f9fafb;}.neg{color:#b91c1c;}.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;}.badge.sal{background:#dbeafe;color:#1d4ed8;}.badge.adv{background:#fef3c7;color:#b45309;}fieldset{border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:12px;margin-bottom:14px;}legend{font-weight:600;padding:0 6px;font-size:13px;}.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}.form-row label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:#6b7280;font-weight:600;}.muted{color:#9ca3af;font-size:11px;margin-top:6px;}.view-btn{font-size:11px;padding:3px 10px;border-radius:6px;background:#eef2ff;border-color:#c7d2fe;color:#3730a3;font-weight:600;}.due-in{width:96px;padding:4px 6px;text-align:right;font-size:13px;}.split{font-size:10px;color:#6b7280;font-weight:400;margin-top:1px;}.due-in.set{background:#eff6ff;border-color:#93c5fd;font-weight:600;}.st{cursor:pointer;font-size:10.5px;padding:3px 10px;border-radius:11px;font-weight:700;border:1px solid;letter-spacing:.02em;}.st.on{background:#dcfce7;color:#166534;border-color:#bbf7d0;}.st.off{background:#f1f5f9;color:#64748b;border-color:#e2e8f0;}tr.inact td{opacity:.62;}#overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;}#overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;}#panel{background:#fff;border-radius:14px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);}#panelHead{padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}#panelHead h2{font-size:16px;flex:1;}#panelStats{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #f1f2f4;}.pstat{background:#f9fafb;border:1px solid #eef0f3;border-radius:8px;padding:6px 12px;font-size:12px;}.pstat b{display:block;font-size:14px;}#panelTools{display:flex;gap:8px;padding:10px 18px;flex-wrap:wrap;align-items:center;}#panelBody{overflow:auto;padding:0 18px 18px;}#panelBody td,#panelBody th{font-size:12.5px;padding:6px 8px;}#panelBody td.wrap{white-space:normal;text-align:left;}.seg{display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;}.seg button{border:0;border-radius:0;padding:5px 12px;font-size:12px;background:#fff;}.seg button.on{background:#1d4ed8;color:#fff;}#closeBtn{background:#f3f4f6;}</style>
 <script src="data.js"></script>
 </head>
 <body>
@@ -14,30 +14,38 @@
 <button id="tabPay" class="on">Monthly Payroll</button>
 <button id="tabOv">All-time Overview</button>
 <button id="tabPart">Partners</button>
-<button id="btnRefresh" title="Fetch the latest data from Zoho Books">&#8635; Refresh</button>
+<button id="tabDisp">Dispatch &amp; Stock</button>
+<button id="btnRefresh" title="Fetch the latest data from Zoho Books">↻ Refresh</button>
 </div>
 <!-- ============ MONTHLY PAYROLL ============ -->
 <div id="payView">
 <div class="toolbar">
-<label style="font-size:12px;color:#6b7280;font-weight:600">Month <input type="month" id="mSel"></label>
-<label style="font-size:12px;color:#6b7280;font-weight:600" title="Payroll cycle runs from this day of the month to the day before it in the next month">Cycle starts on day
+<label style="font-size:12px;color:#6b7280;font-weight:600">Period
+<select id="pMode"><option value="month">Monthly cycle</option><option value="range">Custom dates</option></select>
+</label>
+<label id="mBox" style="font-size:12px;color:#6b7280;font-weight:600">Month <input type="month" id="mSel"></label>
+<label id="cBox" style="font-size:12px;color:#6b7280;font-weight:600" title="Payroll cycle runs from this day of the month to the day before it in the next month">Cycle starts on day
 <input type="number" id="cutDay" min="1" max="28" step="1" style="width:60px">
 </label>
+<label id="fBox" style="font-size:12px;color:#6b7280;font-weight:600;display:none">From <input type="date" id="pFrom"></label>
+<label id="tBox" style="font-size:12px;color:#6b7280;font-weight:600;display:none">To <input type="date" id="pTo"></label>
 <button id="copyPrev" title="Copy salary-due amounts from previous month">Copy dues from previous month</button>
 <label style="font-size:12px;color:#6b7280"><input type="checkbox" id="showAll" style="width:auto"> Show all employees</label>
-<input id="pq" placeholder="Search employee..." style="min-width:160px">
+<label style="font-size:12px;color:#6b7280;font-weight:600">Status <select id="stFilter"><option value="active">Active only</option><option value="all">All</option><option value="inactive">Inactive only</option></select></label>
+<input id="pq" placeholder="Search employee…" style="min-width:160px">
 </div>
 <div class="muted" id="cycleLabel" style="margin:-4px 0 8px"></div>
 <div class="cards">
-<div class="card"><div class="label">Total Salary Due</div><div class="value c-blue" id="kDue">-</div></div>
-<div class="card"><div class="label">Actual Salary Paid</div><div class="value c-green" id="kPaid">-</div><div class="split" id="kPaidSplit"></div></div>
-<div class="card"><div class="label">Advance Deducted</div><div class="value c-red" id="kDed">-</div></div>
-<div class="card"><div class="label">Advance Given (month)</div><div class="value c-amber" id="kAdv">-</div><div class="split" id="kAdvSplit"></div></div>
-<div class="card"><div class="label">Advance Outstanding (after deductions)</div><div class="value c-amber" id="kAdvAll">-</div></div>
+<div class="card"><div class="label">Total Salary Due</div><div class="value c-blue" id="kDue">–</div></div>
+<div class="card"><div class="label">Actual Salary Paid</div><div class="value c-green" id="kPaid">–</div><div class="split" id="kPaidSplit"></div></div>
+<div class="card"><div class="label">Advance Deducted</div><div class="value c-red" id="kDed">–</div></div>
+<div class="card"><div class="label">Advance Given (month)</div><div class="value c-amber" id="kAdv">–</div><div class="split" id="kAdvSplit"></div></div>
+<div class="card"><div class="label">Advance Outstanding (after deductions)</div><div class="value c-amber" id="kAdvAll">–</div></div>
 </div>
 <table>
 <thead><tr>
 <th>Employee</th>
+<th>Status</th>
 <th>Salary Due (editable)</th>
 <th>Paid (Zoho)</th>
 <th>Actual Salary (editable)</th>
@@ -50,18 +58,19 @@
 </table>
 <div class="muted">
 Salary Due = full salary for the month (you set it). Actual Salary = what was really paid (type it, or leave blank to use the Zoho figure).
-Adv. Deducted auto-fills as Due &minus; Actual; edit it if the deduction differs &mdash; the rest shows as "unpaid".
-A payroll month runs from the "cycle starts on day" you set (e.g. 14 Mar &ndash; 13 Apr), not the calendar month.
+Adv. Deducted auto-fills as Due − Actual; edit it if the deduction differs — the rest shows as "unpaid".
+Period = "Monthly cycle" runs from the "cycle starts on day" you set (e.g. 14 Mar – 13 Apr), not the calendar month. Switch Period to "Custom dates" to set any From / To range instead — figures you type are saved against that exact range.
 Advance Outstanding = advance taken (from Zoho) minus all deductions made in this tool across months.
-Nothing negative is written to Zoho Books &mdash; deductions are managed entirely inside this tool and saved on this computer.
+Nothing negative is written to Zoho Books — deductions are managed entirely inside this tool and saved on this computer.
+Click an employee's Active / Inactive badge to change it. Status is set by hand and saved on this computer, not in Zoho Books.
 </div>
 </div>
 <!-- ============ PARTNERS ============ -->
 <div id="partView" style="display:none">
 <div class="cards">
-<div class="card"><div class="label">Ganesh &mdash; Zoho a/c balance</div><div class="value c-blue" id="gBal">-</div></div>
-<div class="card"><div class="label">Sagar &mdash; Zoho a/c balance</div><div class="value c-blue" id="sBal">-</div></div>
-<div class="card"><div class="label">Difference (Ganesh &minus; Sagar)</div><div class="value" id="gsDiff">-</div><div class="split" id="gsHint"></div></div>
+<div class="card"><div class="label">Ganesh — Zoho a/c balance</div><div class="value c-blue" id="gBal">–</div></div>
+<div class="card"><div class="label">Sagar — Zoho a/c balance</div><div class="value c-blue" id="sBal">–</div></div>
+<div class="card"><div class="label">Difference (Ganesh − Sagar)</div><div class="value" id="gsDiff">–</div><div class="split" id="gsHint"></div></div>
 </div>
 <fieldset>
 <legend>Add partner entry (tracked in this tool)</legend>
@@ -87,8 +96,8 @@ Nothing negative is written to Zoho Books &mdash; deductions are managed entirel
 <h1 style="font-size:15px;margin:18px 0 6px">Business expenses paid from partner accounts (from Zoho Books)</h1>
 <div class="muted" style="margin-bottom:8px">Money each partner personally spent for the business (counts as their investment). Loaded live from expenses whose "paid through" is Ganesh or Sagar.</div>
 <div class="cards">
-<div class="card"><div class="label">Ganesh &mdash; spent for business</div><div class="value c-green" id="gSpent">-</div></div>
-<div class="card"><div class="label">Sagar &mdash; spent for business</div><div class="value c-green" id="sSpent">-</div></div>
+<div class="card"><div class="label">Ganesh — spent for business</div><div class="value c-green" id="gSpent">–</div></div>
+<div class="card"><div class="label">Sagar — spent for business</div><div class="value c-green" id="sSpent">–</div></div>
 </div>
 <table>
 <thead><tr><th>Date</th><th>Partner</th><th>Expense head</th><th>Description</th><th>Amount</th></tr></thead>
@@ -98,13 +107,13 @@ Nothing negative is written to Zoho Books &mdash; deductions are managed entirel
 <!-- ============ OVERVIEW ============ -->
 <div id="ovView" style="display:none">
 <div class="cards">
-<div class="card"><div class="label">Total Salary</div><div class="value c-blue" id="cSal">-</div><div class="split" id="cSalSplit"></div></div>
-<div class="card"><div class="label">Total Advance (net)</div><div class="value c-amber" id="cAdv">-</div><div class="split" id="cAdvSplit"></div></div>
-<div class="card"><div class="label">Combined</div><div class="value c-green" id="cTot">-</div></div>
-<div class="card"><div class="label">Employees</div><div class="value" id="cEmp">-</div></div>
+<div class="card"><div class="label">Total Salary</div><div class="value c-blue" id="cSal">–</div><div class="split" id="cSalSplit"></div></div>
+<div class="card"><div class="label">Total Advance (net)</div><div class="value c-amber" id="cAdv">–</div><div class="split" id="cAdvSplit"></div></div>
+<div class="card"><div class="label">Combined</div><div class="value c-green" id="cTot">–</div></div>
+<div class="card"><div class="label">Employees</div><div class="value" id="cEmp">–</div></div>
 </div>
 <div class="toolbar">
-<input id="q" placeholder="Search employee..." style="min-width:180px">
+<input id="q" placeholder="Search employee…" style="min-width:180px">
 <label style="font-size:12px;color:#6b7280">From <input type="date" id="dFrom"></label>
 <label style="font-size:12px;color:#6b7280">To <input type="date" id="dTo"></label>
 <button id="clearF">Clear filters</button>
@@ -118,9 +127,39 @@ Nothing negative is written to Zoho Books &mdash; deductions are managed entirel
 </table>
 <div class="muted">Click a row for full transaction history. Negative advance = repayment/adjustment.</div>
 </div>
+<!-- ============ DISPATCH & STOCK ============ -->
+<div id="dispView" style="display:none">
+<div class="toolbar">
+<label style="font-size:12px;color:#6b7280;font-weight:600">View
+<select id="dMode"><option value="day">Daily</option><option value="month">Monthly</option></select>
+</label>
+<label id="dDayBox" style="font-size:12px;color:#6b7280;font-weight:600">Date <input type="date" id="dDay"></label>
+<label id="dMonBox" style="font-size:12px;color:#6b7280;font-weight:600;display:none">Month <input type="month" id="dMon"></label>
+<button class="primary" id="dLoad">Load dispatch</button>
+<button id="dStock">Load stock in shop</button>
+</div>
+<div class="muted" id="dMsg" style="margin:-4px 0 8px"></div>
+<div class="cards">
+<div class="card"><div class="label">Dispatched weight</div><div class="value c-blue" id="dKg">-</div></div>
+<div class="card"><div class="label">Pieces dispatched</div><div class="value c-green" id="dPc">-</div></div>
+<div class="card"><div class="label">Invoice value</div><div class="value c-amber" id="dVal">-</div></div>
+<div class="card"><div class="label">Stock in shop (pending)</div><div class="value c-red" id="sKg">-</div><div class="split" id="sPc"></div></div>
+</div>
+<h1 style="font-size:15px;margin:4px 0 6px" id="dTitle">Dispatch</h1>
+<table>
+<thead id="dHead"></thead>
+<tbody id="dBody"></tbody>
+</table>
+<h1 style="font-size:15px;margin:18px 0 6px">Stock in shop &mdash; ordered but not yet dispatched</h1>
+<div class="muted" style="margin-bottom:8px">Taken from open, draft and part-invoiced POs in Zoho Books. Pending = ordered quantity minus invoiced quantity. Dispatched means invoiced.</div>
+<table>
+<thead><tr><th>PO</th><th>Date</th><th>Part</th><th>Name</th><th>Material</th><th>Ordered</th><th>Dispatched</th><th>Pending</th><th>Wt/pc</th><th>Pending kg</th></tr></thead>
+<tbody id="sBody"></tbody>
+</table>
+</div>
 <!-- ============ RECORD PAYMENT (both tabs) ============ -->
 <fieldset style="margin-top:14px">
-<legend>Record new payment &mdash; disabled in this shared copy</legend>
+<legend>Record new payment — disabled in this shared copy</legend>
 <div class="form-row">
 <label>Type
 <select id="fType"><option value="salary">Salary</option><option value="advance">Advance</option></select>
@@ -142,7 +181,7 @@ Nothing negative is written to Zoho Books &mdash; deductions are managed entirel
 </div>
 <div class="muted">This shared copy cannot write to Zoho Books. Record actual payments in Zoho Books; the Due / Actual / Deducted boxes and Partner ledger work here and save in your browser.</div>
 </fieldset>
-<div id="status">Loading...</div>
+<div id="status">Loading…</div>
 <!-- Employee detail overlay -->
 <div id="overlay">
 <div id="panel">
@@ -154,7 +193,7 @@ Nothing negative is written to Zoho Books &mdash; deductions are managed entirel
 <button data-t="advance">Advance</button>
 </div>
 <button id="pCsv" class="view-btn">Download CSV</button>
-<button id="closeBtn">&#10005; Close</button>
+<button id="closeBtn">✕ Close</button>
 </div>
 <div id="panelStats"></div>
 <div id="panelTools">
@@ -214,12 +253,18 @@ window.EMB_ROWS = d.rows; window.EMB_PART = d.part; window.EMB_BAL = d.bal; wind
 loadAll();
 if (typeof partLoaded !== "undefined") { partLoaded = false; }
 const when = d.fetched ? new Date(d.fetched).toLocaleString("en-IN") : "just now";
-document.getElementById("status").textContent = "LIVE from Zoho Books — " + (d.rows||[]).length + " entries — fetched " + when + " — signed in as " + window.WHO;
+document.getElementById("status").textContent = "LIVE from Zoho Books \u2014 " + (d.rows||[]).length + " entries \u2014 fetched " + when + " \u2014 signed in as " + window.WHO;
 }
 document.getElementById("pwBtn").addEventListener("click", pwUnlock);
 document.getElementById("pwIn").addEventListener("keydown", e => { if (e.key === "Enter") pwUnlock(); });</script>
 <script>const ORG = "60045370667";
+const SRV = "mcp__ba17faab-6bce-4d35-8d19-8f79d1e56cd3__";
+const ACCT = {
+salary:  { name: "Salaries and Employee Wages", id: "2826739000000000543" },
+advance: { name: "Employee Advance",            id: "2826739000000000570" }
+};
 const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+const MONTH_FULL = ["january","february","march","april","may","june","july","august","september","october","november","december"];
 let rows = [];
 let sortKey = "tot", sortDir = -1;
 let pEmp = null, pType = "all";
@@ -227,35 +272,48 @@ const fmt = n => "₹" + Number(n).toLocaleString("en-IN", {maximumFractionDigit
 function mode(r) {
 const p = (r.paidThrough || "").toLowerCase();
 if (p.includes("petty") || p.includes("cash")) return "cash";
-if (p.includes("balaji")) return "online";
-return "other";
+if (p.includes("balaji")) return "online";           // The Balaji Industries (Axis Bank)
+return "other";                                       // Ganesh / Sagar / etc.
 }
-const splitTxt = s => `\u{1F4B5} ${fmt(s.cash || 0)} · \u{1F3E6} ${fmt(s.online || 0)}` + (s.other ? ` · \u{1F464} ${fmt(s.other)}` : "");
+const splitTxt = s => `💵 ${fmt(s.cash || 0)} · 🏦 ${fmt(s.online || 0)}` + (s.other ? ` · 👤 ${fmt(s.other)}` : "");
 const fmt2 = n => "₹" + Number(n).toLocaleString("en-IN", {maximumFractionDigits: 2});
+const fmtKg = n => Number(n).toLocaleString("en-IN", {maximumFractionDigits: 1}) + " kg";
+const num = n => Number(n).toLocaleString("en-IN");
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+function parse(r) {
+if (r.isError) throw new Error(r.content && r.content[0] ? r.content[0].text : "Tool error");
+return r.structuredContent ?? JSON.parse(r.content[0].text);
+}
 function getCutDay() {
 const v = parseInt(localStorage.getItem("payroll_cut_day") || "14", 10);
 return (v >= 1 && v <= 28) ? v : 14;
 }
-function cycleOf(dateStr) {
+function cycleOf(dateStr) {           // date -> "YYYY-MM" of the cycle it falls in
 const [y, m, d] = dateStr.split("-").map(Number);
 if (d >= getCutDay()) return `${y}-${String(m).padStart(2,"0")}`;
-const p = new Date(y, m - 2, 1);
+const p = new Date(y, m - 2, 1);    // previous month
 return `${p.getFullYear()}-${String(p.getMonth()+1).padStart(2,"0")}`;
 }
-function cycleRange(mKey) {
+function cycleRange(mKey) {           // "YYYY-MM" -> readable "14 Mar 2026 – 13 Apr 2026"
 const [y, m] = mKey.split("-").map(Number);
 const c = getCutDay();
 const s = new Date(y, m - 1, c), e = new Date(y, m, c - 1);
 const f = dt => dt.toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"});
 return f(s) + " – " + f(e);
 }
+function cycleBounds(mKey) {
+const [y, mo] = mKey.split("-").map(Number);
+const c = getCutDay();
+const s = new Date(y, mo - 1, c), e = new Date(y, mo, c - 1);
+const p = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+return [p(s), p(e)];
+}
 function payMonth(r) {
 const d = (r.desc || "").toLowerCase();
-let m = d.match(/\[for (\d{4})-(\d{2})\]/);
+let m = d.match(/\[for (\d{4})-(\d{2})\]/);            // our own tag: [for 2026-03]
 if (m) return m[1] + "-" + m[2];
-m = d.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,\s.]*\s*(\d{4})/);
+m = d.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,\s.]*\s*(\d{4})/); // "Feb, 2026 month salary"
 if (m) {
 const mi = MONTHS.indexOf(m[1]);
 if (mi >= 0) return m[2] + "-" + String(mi + 1).padStart(2, "0");
@@ -270,6 +328,7 @@ rec.name = ((e.n || "").trim() || rec.desc.replace(/\s*\[for \d{4}-\d{2}\]\s*/i,
 rec.month = payMonth(rec);
 return rec;
 });
+
 buildNameList(); render(); renderPayroll();
 }
 function allNames() {
@@ -293,10 +352,42 @@ localStorage.setItem(key, JSON.stringify(d));
 function setDue(m, name, val) { setStore(dueKey(m), name, val); }
 function setActual(m, name, val) { setStore(actKey(m), name, val); }
 function setDed(m, name, val) { setStore(dedKey(m), name, val); }
-function storedMonths() {
+function periodKey() {
+if ($("pMode").value === "range") {
+const f = $("pFrom").value, t = $("pTo").value;
+return (f && t && f <= t) ? "R:" + f + ":" + t : "";
+}
+return $("mSel").value;
+}
+function parseKey(k) {
+if (k.slice(0, 2) === "R:") { const p = k.split(":"); return { range: true, from: p[1], to: p[2] }; }
+return { range: false, month: k };
+}
+function inPeriod(r, k) {
+const p = parseKey(k);
+return p.range ? (r.date >= p.from && r.date <= p.to) : (r.month === k);
+}
+function periodLabel(k) {
+const p = parseKey(k);
+const f = d => new Date(d + "T00:00:00").toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"});
+return p.range ? f(p.from) + " – " + f(p.to) : cycleRange(k);
+}
+function paidForPeriod(name, k) {
+let s = 0;
+for (const r of rows) if (r.type === "salary" && r.name === name && inPeriod(r, k)) s += r.amount;
+return s;
+}
+function empStatus() { try { return JSON.parse(localStorage.getItem("emp_status") || "{}"); } catch { return {}; } }
+function isActive(n) { return empStatus()[n] !== "inactive"; }
+function toggleStatus(n) {
+const s = empStatus();
+if (s[n] === "inactive") delete s[n]; else s[n] = "inactive";
+localStorage.setItem("emp_status", JSON.stringify(s));
+}
+function storedPeriods() {
 const out = new Set();
 for (let i = 0; i < localStorage.length; i++) {
-const m = localStorage.key(i).match(/^payroll_(?:due|actual|ded)_(\d{4}-\d{2})$/);
+const m = localStorage.key(i).match(/^payroll_(?:due|actual|ded)_(.+)$/);
 if (m) out.add(m[1]);
 }
 return [...out];
@@ -308,18 +399,18 @@ for (const r of rows) if (r.type === "salary") {
 }
 return map;
 }
-function dedFor(name, m, paidMap) {
-const stored = getDeds(m)[name];
+function dedFor(name, k) {
+const stored = getDeds(k)[name];
 if (stored !== undefined) return stored;
-const due = getDues(m)[name];
+const due = getDues(k)[name];
 if (due === undefined) return 0;
-const act = getActuals(m)[name];
-const paid = act !== undefined ? act : ((paidMap[name] || {})[m] || 0);
+const act = getActuals(k)[name];
+const paid = act !== undefined ? act : paidForPeriod(name, k);
 return Math.max(0, due - paid);
 }
-function totalDedLocal(name, paidMap) {
+function totalDedLocal(name) {
 let s = 0;
-for (const m of storedMonths()) s += dedFor(name, m, paidMap);
+for (const k of storedPeriods()) s += dedFor(name, k);
 return s;
 }
 function prevMonth(m) {
@@ -328,9 +419,16 @@ const dt = new Date(y, mo - 2, 1);
 return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0");
 }
 function renderPayroll() {
-const m = $("mSel").value;
-if (!m) return;
-$("cycleLabel").textContent = `Payroll cycle for ${m}: ${cycleRange(m)} — entries dated in this window count here (a note naming a month, e.g. "Feb 2026 salary", always wins).`;
+const m = periodKey();
+const rangeMode = $("pMode").value === "range";
+if (!m) {
+$("cycleLabel").textContent = "Pick a start and end date.";
+$("pBody").innerHTML = `<tr><td colspan="9" style="text-align:center;color:#9ca3af">Choose a From and To date above</td></tr>`;
+return;
+}
+$("cycleLabel").textContent = rangeMode
+? `Custom period: ${periodLabel(m)} — every entry dated in this window counts here. Figures you type are saved against this exact date range.`
+: `Payroll cycle for ${m}: ${cycleRange(m)} — entries dated in this window count here (a note naming a month, e.g. "Feb 2026 salary", always wins).`;
 const dues = getDues(m);
 const acts = getActuals(m);
 const q = $("pq").value.trim().toLowerCase();
@@ -338,7 +436,7 @@ const agg = {};
 const advAll = {};
 for (const r of rows) {
 if (r.type === "advance") advAll[r.name] = (advAll[r.name] || 0) + r.amount;
-if (r.month !== m) continue;
+if (!inPeriod(r, m)) continue;
 const a = agg[r.name] || (agg[r.name] = { paid: 0, adv: 0, dedRec: 0, ps: {}, as: {} });
 const md = mode(r);
 if (r.type === "salary") { a.paid += r.amount; a.ps[md] = (a.ps[md] || 0) + r.amount; }
@@ -348,12 +446,14 @@ let names = $("showAll").checked
 ? [...new Set([...allNames(), ...Object.keys(dues), ...Object.keys(acts)])]
 : [...new Set([...Object.keys(agg), ...Object.keys(dues), ...Object.keys(acts)])];
 if (q) names = names.filter(n => n.toLowerCase().includes(q));
+const sf = $("stFilter").value;
+if (sf === "active") names = names.filter(n => isActive(n));
+else if (sf === "inactive") names = names.filter(n => !isActive(n));
 names.sort((a, b) => {
 const ta = (dues[a] || 0) + ((agg[a] || {}).paid || 0), tb = (dues[b] || 0) + ((agg[b] || {}).paid || 0);
 return tb - ta || a.localeCompare(b);
 });
 const deds = getDeds(m);
-const paidMap = zohoPaidMap();
 let tDue = 0, tAct = 0, tDed = 0, tAdv = 0, tAdvAll = 0, tZoho = 0, html = "";
 const tPS = {}, tAS = {};
 for (const n of names) {
@@ -364,25 +464,27 @@ const due = dues[n];
 const act = acts[n];
 const hasDue = due !== undefined;
 const hasAct = act !== undefined;
-const effPaid = hasAct ? act : a.paid;
+const effPaid = hasAct ? act : a.paid;                 // actual salary: manual entry, else Zoho
 const dedStored = deds[n];
 const dedAuto = hasDue ? Math.max(0, due - effPaid) : 0;
 const ded = dedStored !== undefined ? dedStored : dedAuto;
-const unpaid = hasDue ? due - effPaid - ded : 0;
-const outstanding = (advAll[n] || 0) - totalDedLocal(n, paidMap);
+const unpaid = hasDue ? due - effPaid - ded : 0;        // shortfall not covered by deduction
+const outstanding = (advAll[n] || 0) - totalDedLocal(n);
 tDue += due || 0; tZoho += a.paid; tAct += effPaid; tDed += ded;
 tAdv += a.adv; tAdvAll += outstanding;
-html += `<tr class="emp" data-n="${esc(n)}">
+const actv = isActive(n);
+html += `<tr class="emp ${actv ? "" : "inact"}" data-n="${esc(n)}">
 <td>${esc(n)}</td>
+<td><button class="st ${actv ? "on" : "off"}" data-s="${esc(n)}" title="Click to change">${actv ? "Active" : "Inactive"}</button></td>
 <td><input class="due-in ${hasDue ? "set" : ""}" data-k="due" data-n="${esc(n)}" type="number" min="0" step="1" value="${hasDue ? due : ""}" placeholder="set due"></td>
 <td class="c-green">${fmt(a.paid)}${a.paid ? `<div class="split">${splitTxt(a.ps)}</div>` : ""}</td>
 <td><input class="due-in ${hasAct ? "set" : ""}" data-k="act" data-n="${esc(n)}" type="number" min="0" step="1" value="${hasAct ? act : ""}" placeholder="${a.paid ? fmt(a.paid).replace("₹","") : "enter"}"></td>
 <td><input class="due-in ${dedStored !== undefined ? "set" : ""}" data-k="ded" data-n="${esc(n)}" type="number" step="1" value="${ded || ""}" placeholder="0">${unpaid > 0 ? `<div class="split c-red">unpaid ${fmt(unpaid)}</div>` : ""}</td>
 <td class="c-amber">${fmt(a.adv)}${a.adv ? `<div class="split">${splitTxt(a.as)}</div>` : ""}</td>
-<td class="${outstanding < 0 ? "neg" : "c-amber"}">${fmt(outstanding)}${totalDedLocal(n, paidMap) ? `<div class="split">Zoho ${fmt(advAll[n] || 0)} − ded ${fmt(totalDedLocal(n, paidMap))}</div>` : ""}</td>
+<td class="${outstanding < 0 ? "neg" : "c-amber"}">${fmt(outstanding)}${totalDedLocal(n) ? `<div class="split">Zoho ${fmt(advAll[n] || 0)} − ded ${fmt(totalDedLocal(n))}</div>` : ""}</td>
 <td><button class="view-btn" data-n="${esc(n)}">View</button></td></tr>`;
 }
-html += `<tr class="total-row"><td>TOTAL (${names.length})</td><td>${fmt(tDue)}</td>
+html += `<tr class="total-row"><td>TOTAL (${names.length})</td><td></td><td>${fmt(tDue)}</td>
 <td>${fmt(tZoho)}<div class="split">${splitTxt(tPS)}</div></td>
 <td>${fmt(tAct)}</td><td>${fmt(tDed)}</td>
 <td>${fmt(tAdv)}<div class="split">${splitTxt(tAS)}</div></td>
@@ -395,13 +497,15 @@ $("kDed").textContent = fmt(tDed); $("kAdv").textContent = fmt(tAdv); $("kAdvAll
 $("pBody").querySelectorAll("input.due-in").forEach(inp => {
 inp.addEventListener("click", e => e.stopPropagation());
 inp.addEventListener("change", () => {
-const mm = $("mSel").value, n = inp.dataset.n;
+const mm = periodKey(), n = inp.dataset.n;
 if (inp.dataset.k === "due") setDue(mm, n, inp.value);
 else if (inp.dataset.k === "act") setActual(mm, n, inp.value);
 else setDed(mm, n, inp.value);
 renderPayroll();
 });
 });
+$("pBody").querySelectorAll("button.st").forEach(b =>
+b.addEventListener("click", e => { e.stopPropagation(); toggleStatus(b.dataset.s); renderPayroll(); }));
 $("pBody").querySelectorAll("button.view-btn").forEach(b =>
 b.addEventListener("click", e => { e.stopPropagation(); openDetail(b.dataset.n); }));
 $("pBody").querySelectorAll("tr.emp").forEach(tr =>
@@ -409,6 +513,19 @@ tr.addEventListener("click", e => { if (e.target.tagName !== "INPUT" && e.target
 }
 $("mSel").value = cycleOf(new Date().toISOString().slice(0, 10));
 $("cutDay").value = getCutDay();
+(() => { const b = cycleBounds($("mSel").value); $("pFrom").value = b[0]; $("pTo").value = b[1]; })();
+function syncMode() {
+const r = $("pMode").value === "range";
+$("mBox").style.display = r ? "none" : "";
+$("cBox").style.display = r ? "none" : "";
+$("fBox").style.display = r ? "" : "none";
+$("tBox").style.display = r ? "" : "none";
+$("copyPrev").style.display = r ? "none" : "";
+}
+syncMode();
+$("pMode").addEventListener("change", () => { syncMode(); renderPayroll(); });
+$("pFrom").addEventListener("change", renderPayroll);
+$("pTo").addEventListener("change", renderPayroll);
 $("cutDay").addEventListener("change", () => {
 let v = parseInt($("cutDay").value, 10);
 if (!(v >= 1 && v <= 28)) { v = 14; $("cutDay").value = 14; }
@@ -420,6 +537,7 @@ $("status").textContent = `Payroll cycle now runs from day ${v} to day ${v === 1
 $("mSel").addEventListener("change", renderPayroll);
 $("pq").addEventListener("input", renderPayroll);
 $("showAll").addEventListener("change", renderPayroll);
+$("stFilter").addEventListener("change", renderPayroll);
 $("copyPrev").addEventListener("click", () => {
 const m = $("mSel").value, pm = prevMonth(m);
 const prev = getDues(pm), cur = getDues(m);
@@ -494,12 +612,12 @@ $("panelStats").innerHTML = `
 <div class="pstat">Salary <b class="c-blue">${fmt2(sal)}</b></div>
 <div class="pstat">Advance (net) <b class="c-amber">${fmt2(adv)}</b></div>
 <div class="pstat">Total <b class="c-green">${fmt2(sal + adv)}</b></div>
-<div class="pstat">\u{1F4B5} Cash <b>${fmt2(ms.cash || 0)}</b></div>
-<div class="pstat">\u{1F3E6} Online <b>${fmt2(ms.online || 0)}</b></div>
-${ms.other ? `<div class="pstat">\u{1F464} Partner a/c <b>${fmt2(ms.other)}</b></div>` : ""}
+<div class="pstat">💵 Cash <b>${fmt2(ms.cash || 0)}</b></div>
+<div class="pstat">🏦 Online <b>${fmt2(ms.online || 0)}</b></div>
+${ms.other ? `<div class="pstat">👤 Partner a/c <b>${fmt2(ms.other)}</b></div>` : ""}
 <div class="pstat">Entries <b>${all.length}</b></div>
-<div class="pstat">First <b>${dates[0] || "-"}</b></div>
-<div class="pstat">Last <b>${dates[dates.length - 1] || "-"}</b></div>`;
+<div class="pstat">First <b>${dates[0] || "—"}</b></div>
+<div class="pstat">Last <b>${dates[dates.length - 1] || "—"}</b></div>`;
 const items = empItems();
 $("pCount").textContent = `${items.length} transaction${items.length === 1 ? "" : "s"} shown`;
 let run = 0;
@@ -514,9 +632,9 @@ html += `<tr>
 <td style="text-align:left">${it.date}</td>
 <td style="text-align:left">${it.month}</td>
 <td style="text-align:left"><span class="badge ${it.type === "salary" ? "sal" : "adv"}">${it.type}</span></td>
-<td class="wrap">${esc(it.desc || "-")}</td>
-<td style="text-align:left">${esc(it.paidThrough || "-")}</td>
-<td style="text-align:center">${it.receipt ? "\u{1F4CE}" : ""}</td>
+<td class="wrap">${esc(it.desc || "—")}</td>
+<td style="text-align:left">${esc(it.paidThrough || "—")}</td>
+<td style="text-align:center">${it.receipt ? "📎" : ""}</td>
 <td class="${it.amount < 0 ? "neg" : ""}"><b>${fmt2(it.amount)}</b></td>
 <td>${fmt2(runMap.get(it))}</td></tr>`;
 }
@@ -542,6 +660,10 @@ a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(lines.join("\n"));
 a.download = pEmp.replace(/[^\w]+/g, "_") + "_salary_advance.csv";
 a.click();
 });
+const PART = {
+Ganesh: { id: "2826739000000032366" },
+Sagar:  { id: "2826739000000032360" }
+};
 let partLoaded = false;
 function getLedger() { try { return JSON.parse(localStorage.getItem("partner_ledger") || "[]"); } catch { return []; } }
 function saveLedger(l) { localStorage.setItem("partner_ledger", JSON.stringify(l)); }
@@ -555,11 +677,11 @@ html += `<tr>
 <td style="text-align:left">${e.date}</td>
 <td style="text-align:left">${esc(e.partner)}</td>
 <td style="text-align:left"><span class="badge ${e.type === "investment" ? "sal" : "adv"}">${e.type}</span></td>
-<td style="text-align:left;white-space:normal">${esc(e.note || "-")}</td>
+<td style="text-align:left;white-space:normal">${esc(e.note || "—")}</td>
 <td><b>${fmt(e.amount)}</b></td>
 <td><button class="view-btn" data-i="${i}" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b">Delete</button></td></tr>`;
 });
-if (!led.length) html = `<tr><td colspan="6" style="text-align:center;color:#9ca3af">No entries yet - add investments and withdrawals above</td></tr>`;
+if (!led.length) html = `<tr><td colspan="6" style="text-align:center;color:#9ca3af">No entries yet — add investments and withdrawals above</td></tr>`;
 $("ptBody").innerHTML = html;
 $("ptBody").querySelectorAll("button[data-i]").forEach(b => b.addEventListener("click", () => {
 const led2 = getLedger().sort((a, b) => b.date.localeCompare(a.date));
@@ -578,9 +700,9 @@ function loadPartners() {
 const gb = window.EMB_BAL.g, sb = window.EMB_BAL.s;
 $("gBal").textContent = fmt(gb); $("sBal").textContent = fmt(sb);
 const d = gb - sb;
-$("gsDiff").textContent = (d >= 0 ? "+" : "−") + fmt(Math.abs(d));
+$("gsDiff").textContent = (d >= 0 ? "+" : "\u2212") + fmt(Math.abs(d));
 $("gsDiff").className = "value " + (Math.abs(d) < 1 ? "c-green" : "c-red");
-$("gsHint").textContent = (Math.abs(d) < 1 ? "accounts are equal" : (d > 0 ? "Ganesh's account is higher" : "Sagar's account is higher") + " — for 50-50, both should match");
+$("gsHint").textContent = (Math.abs(d) < 1 ? "accounts are equal" : (d > 0 ? "Ganesh's account is higher" : "Sagar's account is higher") + " \u2014 for 50-50, both should match");
 const spent = { Ganesh: 0, Sagar: 0 };
 const zrows = (window.EMB_PART || []).slice();
 for (const z of zrows) spent[z.p] = (spent[z.p] || 0) + z.amt;
@@ -600,8 +722,104 @@ saveLedger(led);
 $("ptAmt").value = ""; $("ptNote").value = "";
 renderLedger();
 });
+function apiUrl(params) {
+const u = new URL(window.CFG.url);
+for (const k in params) u.searchParams.set(k, params[k]);
+return u;
+}
+async function fetchAll(params, msgEl, label) {
+const rows = [];
+for (let page = 1; page <= 30; page++) {
+const r = await fetch(apiUrl(Object.assign({}, params, { page: page })), { headers: { "x-app-key": window.CFG.key } });
+if (!r.ok && r.status !== 500) throw new Error("Data service returned " + r.status);
+const d = await r.json();
+if (d.error) throw new Error(d.error);
+rows.push.apply(rows, d.rows || []);
+if (msgEl) msgEl.textContent = "Loading " + label + "... " + rows.length + " lines so far";
+if (!d.more) break;
+}
+return rows;
+}
+function monthBounds(m) {
+const [y, mo] = m.split("-").map(Number);
+const last = new Date(y, mo, 0).getDate();
+return [m + "-01", m + "-" + String(last).padStart(2, "0")];
+}
+const lineKg = r => (r.wt || 0) * (r.q || 0);
+let dispRows = [];
+async function loadDispatch() {
+const msg = $("dMsg"), mode = $("dMode").value;
+let from, to;
+if (mode === "day") { from = to = $("dDay").value; }
+else { if (!$("dMon").value) { msg.textContent = "Pick a month first."; return; } const b = monthBounds($("dMon").value); from = b[0]; to = b[1]; }
+if (!from || !to) { msg.textContent = "Pick a date first."; return; }
+try {
+dispRows = await fetchAll({ disp: 1, from: from, to: to }, msg, "dispatch");
+renderDispatch(mode, from, to);
+msg.textContent = dispRows.length + " dispatch line" + (dispRows.length === 1 ? "" : "s") + " — " + (mode === "day" ? from : from + " to " + to);
+} catch (e) { msg.className = "muted"; msg.textContent = "Could not load dispatch: " + e.message; }
+}
+function renderDispatch(mode, from, to) {
+let tkg = 0, tpc = 0, tval = 0;
+for (const r of dispRows) { tkg += lineKg(r); tpc += r.q || 0; tval += r.amt || 0; }
+$("dKg").textContent = fmtKg(tkg); $("dPc").textContent = num(tpc); $("dVal").textContent = fmt(tval);
+let h = "";
+if (mode === "day") {
+$("dTitle").textContent = "Dispatch on " + from;
+$("dHead").innerHTML = `<tr><th>Invoice</th><th>PO</th><th>Part</th><th>Name</th><th>Material</th><th>Process</th><th>Qty</th><th>Wt/pc</th><th>Total kg</th><th>Value</th></tr>`;
+const sorted = dispRows.slice().sort((a, b) => String(a.inv).localeCompare(String(b.inv)));
+for (const r of sorted) {
+h += `<tr><td>${esc(r.inv)}</td><td style="text-align:left">${esc(r.po)}</td><td style="text-align:left">${esc(r.pn)}</td><td style="text-align:left">${esc(r.nm)}</td><td style="text-align:left">${esc(r.mat)}</td><td style="text-align:left">${esc(r.pr)}</td><td>${num(r.q)}</td><td>${(r.wt || 0).toFixed(2)}</td><td><b>${fmtKg(lineKg(r))}</b></td><td>${fmt(r.amt)}</td></tr>`;
+}
+if (!dispRows.length) h = `<tr><td colspan="10" style="text-align:center;color:#9ca3af">Nothing dispatched on this date</td></tr>`;
+else h += `<tr class="total-row"><td>TOTAL</td><td></td><td></td><td></td><td></td><td></td><td>${num(tpc)}</td><td></td><td>${fmtKg(tkg)}</td><td>${fmt(tval)}</td></tr>`;
+} else {
+$("dTitle").textContent = "Daily totals — " + from + " to " + to;
+$("dHead").innerHTML = `<tr><th>Date</th><th>Invoices</th><th>Lines</th><th>Pieces</th><th>Total kg</th><th>Value</th></tr>`;
+const byDay = {};
+for (const r of dispRows) {
+const d = byDay[r.date] || (byDay[r.date] = { inv: {}, n: 0, q: 0, kg: 0, amt: 0 });
+d.inv[r.inv] = 1; d.n++; d.q += r.q || 0; d.kg += lineKg(r); d.amt += r.amt || 0;
+}
+for (const d of Object.keys(byDay).sort()) {
+const v = byDay[d];
+h += `<tr><td>${d}</td><td>${Object.keys(v.inv).length}</td><td>${v.n}</td><td>${num(v.q)}</td><td><b>${fmtKg(v.kg)}</b></td><td>${fmt(v.amt)}</td></tr>`;
+}
+if (!dispRows.length) h = `<tr><td colspan="6" style="text-align:center;color:#9ca3af">Nothing dispatched in this month</td></tr>`;
+else h += `<tr class="total-row"><td>TOTAL (${Object.keys(byDay).length} days)</td><td></td><td>${dispRows.length}</td><td>${num(tpc)}</td><td>${fmtKg(tkg)}</td><td>${fmt(tval)}</td></tr>`;
+}
+$("dBody").innerHTML = h;
+}
+async function loadStock() {
+const msg = $("dMsg");
+try {
+const rows = await fetchAll({ pend: 1 }, msg, "stock");
+rows.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+let tkg = 0, tpc = 0, h = "";
+for (const r of rows) {
+const pk = (r.wt || 0) * (r.rem || 0);
+tkg += pk; tpc += r.rem || 0;
+h += `<tr><td>${esc(r.po)}</td><td style="text-align:left">${r.date}</td><td style="text-align:left">${esc(r.pn)}</td><td style="text-align:left">${esc(r.nm)}</td><td style="text-align:left">${esc(r.mat)}</td><td>${num(r.q)}</td><td>${num(r.qi)}</td><td><b>${num(r.rem)}</b></td><td>${(r.wt || 0).toFixed(2)}</td><td><b>${fmtKg(pk)}</b></td></tr>`;
+}
+if (!rows.length) h = `<tr><td colspan="10" style="text-align:center;color:#9ca3af">Nothing pending — everything ordered has been dispatched</td></tr>`;
+else h += `<tr class="total-row"><td>TOTAL (${rows.length} lines)</td><td></td><td></td><td></td><td></td><td></td><td></td><td>${num(tpc)}</td><td></td><td>${fmtKg(tkg)}</td></tr>`;
+$("sBody").innerHTML = h;
+$("sKg").textContent = fmtKg(tkg);
+$("sPc").textContent = num(tpc) + " pieces · " + rows.length + " lines";
+msg.textContent = "Stock in shop: " + fmtKg(tkg) + " across " + rows.length + " part lines.";
+} catch (e) { msg.textContent = "Could not load stock: " + e.message; }
+}
+$("dMode").addEventListener("change", () => {
+const m = $("dMode").value === "month";
+$("dDayBox").style.display = m ? "none" : "";
+$("dMonBox").style.display = m ? "" : "none";
+});
+$("dLoad").addEventListener("click", loadDispatch);
+$("dStock").addEventListener("click", loadStock);
+$("dDay").value = new Date().toISOString().slice(0, 10);
+$("dMon").value = new Date().toISOString().slice(0, 7);
 function showTab(which) {
-const tabs = { pay: ["tabPay", "payView"], ov: ["tabOv", "ovView"], part: ["tabPart", "partView"] };
+const tabs = { pay: ["tabPay", "payView"], ov: ["tabOv", "ovView"], part: ["tabPart", "partView"], disp: ["tabDisp", "dispView"] };
 for (const k in tabs) {
 $(tabs[k][0]).classList.toggle("on", k === which);
 $(tabs[k][1]).style.display = k === which ? "" : "none";
@@ -610,6 +828,7 @@ $(tabs[k][1]).style.display = k === which ? "" : "none";
 $("tabPay").addEventListener("click", () => showTab("pay"));
 $("tabOv").addEventListener("click", () => showTab("ov"));
 $("tabPart").addEventListener("click", () => { showTab("part"); renderLedger(); if (!partLoaded) loadPartners(); });
+$("tabDisp").addEventListener("click", () => showTab("disp"));
 document.querySelectorAll("#ovView thead th[data-k]").forEach(th => th.addEventListener("click", () => {
 const k = th.dataset.k;
 if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = k === "name" ? 1 : -1; }
@@ -620,7 +839,7 @@ $("clearF").addEventListener("click", () => { $("q").value = $("dFrom").value = 
 $("fDate").value = new Date().toISOString().slice(0, 10);
 $("fMonth").value = new Date().toISOString().slice(0, 7);
 $("fSave").addEventListener("click", () => {
-alert("This is a shared read-only copy — it cannot write to Zoho Books.\nRecord actual payments in Zoho Books. The Due / Actual / Deducted boxes and the Partner ledger DO work and are saved in this browser.");
+alert("This is a shared read-only copy \u2014 it cannot write to Zoho Books.\nRecord actual payments in Zoho Books. The Due / Actual / Deducted boxes and the Partner ledger DO work and are saved in this browser.");
 });
 document.getElementById("btnRefresh").addEventListener("click", async () => {
 const s = document.getElementById("status");
