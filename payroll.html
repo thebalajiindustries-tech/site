@@ -11,14 +11,14 @@
 <h1>Employee Salary &amp; Advance Manager</h1>
 <div class="sub">The Balaji Industries &middot; live from Zoho Books</div>
 <div class="tabs">
-<button id="tabPay" class="on">Monthly Payroll</button>
+<button id="tabDisp" class="on">Dispatch &amp; Stock</button>
+<button id="tabPay">Monthly Payroll</button>
 <button id="tabOv">All-time Overview</button>
 <button id="tabPart">Partners</button>
-<button id="tabDisp">Dispatch &amp; Stock</button>
 <button id="btnRefresh" title="Fetch the latest data from Zoho Books">↻ Refresh</button>
 </div>
 <!-- ============ MONTHLY PAYROLL ============ -->
-<div id="payView">
+<div id="payView" style="display:none">
 <div class="toolbar">
 <label style="font-size:12px;color:#6b7280;font-weight:600">Period
 <select id="pMode"><option value="month">Monthly cycle</option><option value="range">Custom dates</option></select>
@@ -93,6 +93,18 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <thead><tr><th>Date</th><th>Partner</th><th>Type</th><th>Note</th><th>Amount</th><th></th></tr></thead>
 <tbody id="ptBody"></tbody>
 </table>
+<h1 style="font-size:15px;margin:18px 0 6px">Partner withdrawals (from Zoho Books)</h1>
+<div class="muted" style="margin-bottom:8px">Money that has actually left the business for a partner &mdash; expenses booked against their account and bank transfers into it. Read live from Zoho Books.</div>
+<div class="cards">
+<div class="card"><div class="label">Ganesh &mdash; withdrawn (Zoho)</div><div class="value c-red" id="gWd">&ndash;</div></div>
+<div class="card"><div class="label">Sagar &mdash; withdrawn (Zoho)</div><div class="value c-red" id="sWd">&ndash;</div></div>
+<div class="card"><div class="label">Difference (Ganesh &minus; Sagar)</div><div class="value" id="wdDiff">&ndash;</div><div class="split" id="wdHint"></div></div>
+</div>
+<div class="toolbar"><button class="primary" id="pwLoad">Load withdrawals</button><span class="muted" id="pwMsg"></span></div>
+<table>
+<thead><tr><th>Date</th><th>Partner</th><th>Kind</th><th>Source</th><th>Description</th><th>From / to</th><th>Amount</th></tr></thead>
+<tbody id="pwBody"><tr><td colspan="7" style="text-align:center;color:#9ca3af">Press "Load withdrawals" to read these from Zoho Books</td></tr></tbody>
+</table>
 <h1 style="font-size:15px;margin:18px 0 6px">Business expenses paid from partner accounts (from Zoho Books)</h1>
 <div class="muted" style="margin-bottom:8px">Money each partner personally spent for the business (counts as their investment). Loaded live from expenses whose "paid through" is Ganesh or Sagar.</div>
 <div class="cards">
@@ -128,7 +140,7 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <div class="muted">Click a row for full transaction history. Negative advance = repayment/adjustment.</div>
 </div>
 <!-- ============ DISPATCH & STOCK ============ -->
-<div id="dispView" style="display:none">
+<div id="dispView">
 <div class="toolbar">
 <label style="font-size:12px;color:#6b7280;font-weight:600">View
 <select id="dMode"><option value="day">Daily</option><option value="month">Monthly</option></select>
@@ -158,30 +170,7 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <tbody id="sBody"></tbody>
 </table>
 </div>
-<!-- ============ RECORD PAYMENT (both tabs) ============ -->
-<fieldset style="margin-top:14px">
-<legend>Record new payment — disabled in this shared copy</legend>
-<div class="form-row">
-<label>Type
-<select id="fType"><option value="salary">Salary</option><option value="advance">Advance</option></select>
-</label>
-<label>Employee
-<input id="fName" list="empNames" placeholder="Employee name" style="min-width:170px">
 <datalist id="empNames"></datalist>
-</label>
-<label>Amount (INR)<input id="fAmt" type="number" min="1" step="0.01" style="width:110px"></label>
-<label>Date<input id="fDate" type="date"></label>
-<label>For month<input id="fMonth" type="month"></label>
-<label>Paid through
-<select id="fPaid">
-<option value="2826739000000054268">The Balaji Industries (Axis Bank)</option>
-<option value="2826739000000000459">Petty Cash</option>
-</select>
-</label>
-<button class="primary" id="fSave">Save</button>
-</div>
-<div class="muted">This shared copy cannot write to Zoho Books. Record actual payments in Zoho Books; the Due / Actual / Deducted boxes and Partner ledger work here and save in your browser.</div>
-</fieldset>
 <div id="status">Loading…</div>
 <!-- Employee detail overlay -->
 <div id="overlay">
@@ -816,6 +805,37 @@ const m = $("dMode").value === "month";
 $("dDayBox").style.display = m ? "none" : "";
 $("dMonBox").style.display = m ? "" : "none";
 });
+async function loadPartnerWithdrawals() {
+const msg = $("pwMsg");
+msg.textContent = "Loading from Zoho Books...";
+try {
+const r = await fetch(apiUrl({ pw: 1 }), { headers: { "x-app-key": window.CFG.key } });
+if (!r.ok && r.status !== 500) throw new Error("Data service returned " + r.status);
+const d = await r.json();
+if (d.error) throw new Error(d.error);
+const rows = d.rows || [];
+const t = { Ganesh: 0, Sagar: 0 };
+let h = "";
+for (const e of rows) {
+const wd = e.kind === "withdrawal";
+if (wd && t[e.p] !== undefined) t[e.p] += e.amt || 0;
+h += `<tr><td>${esc(e.date)}</td><td style="text-align:left">${esc(e.p)}</td>` +
+`<td><span class="${wd ? "c-red" : "c-green"}">${wd ? "Withdrawal" : "Investment"}</span></td>` +
+`<td style="text-align:left">${esc(e.src)}</td><td style="text-align:left">${esc(e.desc)}</td>` +
+`<td style="text-align:left">${esc(e.via)}</td><td><b>${fmt(e.amt)}</b></td></tr>`;
+}
+if (!rows.length) h = `<tr><td colspan="7" style="text-align:center;color:#9ca3af">Nothing found in Zoho Books against the partner accounts</td></tr>`;
+$("pwBody").innerHTML = h;
+$("gWd").textContent = fmt(t.Ganesh);
+$("sWd").textContent = fmt(t.Sagar);
+const diff = t.Ganesh - t.Sagar;
+$("wdDiff").textContent = diff === 0 ? "Equal" : fmt(Math.abs(diff));
+$("wdDiff").className = "value " + (diff === 0 ? "c-green" : "c-amber");
+$("wdHint").textContent = diff === 0 ? "both partners have taken the same" : (diff > 0 ? "Ganesh has taken more" : "Sagar has taken more");
+msg.textContent = rows.length + " entr" + (rows.length === 1 ? "y" : "ies");
+} catch (e) { msg.textContent = "Could not load: " + e.message; }
+}
+$("pwLoad").addEventListener("click", loadPartnerWithdrawals);
 $("dLoad").addEventListener("click", loadDispatch);
 $("dStock").addEventListener("click", loadStock);
 $("dDay").value = new Date().toISOString().slice(0, 10);
@@ -838,11 +858,6 @@ render();
 }));
 ["q", "dFrom", "dTo"].forEach(id => $(id).addEventListener("input", render));
 $("clearF").addEventListener("click", () => { $("q").value = $("dFrom").value = $("dTo").value = ""; render(); });
-$("fDate").value = new Date().toISOString().slice(0, 10);
-$("fMonth").value = new Date().toISOString().slice(0, 7);
-$("fSave").addEventListener("click", () => {
-alert("This is a shared read-only copy \u2014 it cannot write to Zoho Books.\nRecord actual payments in Zoho Books. The Due / Actual / Deducted boxes and the Partner ledger DO work and are saved in this browser.");
-});
 document.getElementById("btnRefresh").addEventListener("click", async () => {
 const s = document.getElementById("status");
 s.className = ""; s.textContent = "Refreshing from Zoho Books...";
