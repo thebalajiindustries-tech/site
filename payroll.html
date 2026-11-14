@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Employee Salary &amp; Advance Manager</title>
 <style>:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#f6f7f9;color:#1a1d21;padding:16px;font-size:14px;}h1{font-size:18px;margin-bottom:2px;}.sub{color:#6b7280;font-size:12px;margin-bottom:12px;}.tabs{display:flex;gap:6px;margin-bottom:14px;}.tabs button{border:1px solid #d1d5db;background:#fff;padding:7px 16px;border-radius:8px;font-weight:600;color:#6b7280;}.tabs button.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;flex:1;min-width:128px;}.card .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;}.card .value{font-size:17px;font-weight:700;margin-top:2px;}.c-blue{color:#1d4ed8;}.c-amber{color:#b45309;}.c-green{color:#047857;}.c-red{color:#b91c1c;}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}input,select,button{font:inherit;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;}input:focus,select:focus{outline:2px solid #93c5fd;border-color:#60a5fa;}button{cursor:pointer;}button.primary{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600;}button.primary:disabled{opacity:.5;cursor:default;}#status{font-size:12px;color:#6b7280;margin-bottom:8px;min-height:16px;}#status.err{color:#b91c1c;}#status.ok{color:#047857;}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;}th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #f1f2f4;white-space:nowrap;}th:first-child,td:first-child{text-align:left;}th{background:#f9fafb;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#6b7280;cursor:pointer;user-select:none;}tr.emp:hover{background:#f0f6ff;cursor:pointer;}tr.total-row td{font-weight:700;background:#f9fafb;}.neg{color:#b91c1c;}.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;}.badge.sal{background:#dbeafe;color:#1d4ed8;}.badge.adv{background:#fef3c7;color:#b45309;}fieldset{border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:12px;margin-bottom:14px;}legend{font-weight:600;padding:0 6px;font-size:13px;}.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}.form-row label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:#6b7280;font-weight:600;}.muted{color:#9ca3af;font-size:11px;margin-top:6px;}.view-btn{font-size:11px;padding:3px 10px;border-radius:6px;background:#eef2ff;border-color:#c7d2fe;color:#3730a3;font-weight:600;}.due-in{width:96px;padding:4px 6px;text-align:right;font-size:13px;}.split{font-size:10px;color:#6b7280;font-weight:400;margin-top:1px;}.due-in.set{background:#eff6ff;border-color:#93c5fd;font-weight:600;}.st{cursor:pointer;font-size:10.5px;padding:3px 10px;border-radius:11px;font-weight:700;border:1px solid;letter-spacing:.02em;}.st.on{background:#dcfce7;color:#166534;border-color:#bbf7d0;}.st.off{background:#f1f5f9;color:#64748b;border-color:#e2e8f0;}tr.inact td{opacity:.62;}#overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;}#overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;}#panel{background:#fff;border-radius:14px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);}#panelHead{padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}#panelHead h2{font-size:16px;flex:1;}#panelStats{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #f1f2f4;}.pstat{background:#f9fafb;border:1px solid #eef0f3;border-radius:8px;padding:6px 12px;font-size:12px;}.pstat b{display:block;font-size:14px;}#panelTools{display:flex;gap:8px;padding:10px 18px;flex-wrap:wrap;align-items:center;}#panelBody{overflow:auto;padding:0 18px 18px;}#panelBody td,#panelBody th{font-size:12.5px;padding:6px 8px;}#panelBody td.wrap{white-space:normal;text-align:left;}.seg{display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;}.seg button{border:0;border-radius:0;padding:5px 12px;font-size:12px;background:#fff;}.seg button.on{background:#1d4ed8;color:#fff;}#closeBtn{background:#f3f4f6;}
+.apphead{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.apphead .sp{flex:1;}
+.logo{width:30px;height:44px;flex:none;}
+.printmeta{display:none;text-align:right;font-size:11px;color:#6b7280;line-height:1.5;}
 thead th{position:sticky;top:0;z-index:2;box-shadow:inset 0 -1px 0 #e5e7eb;}
 tbody tr:nth-child(even){background:#fcfcfd;}
 tbody tr:hover{background:#f5f8ff;}
@@ -24,6 +28,12 @@ table{display:block;overflow-x:auto;}
 }
 @media print{
 .tabs,.toolbar,fieldset,button,#status,.muted{display:none!important;}
+.apphead{border-bottom:2px solid #0a3157;padding-bottom:8px;margin-bottom:12px;}
+.logo{width:36px;height:52px;}
+.printmeta{display:block;}
+.rh{break-after:avoid;}
+thead{display:table-header-group;}
+tr{break-inside:avoid;}
 body{padding:0;background:#fff;font-size:11px;}
 .card{break-inside:avoid;}
 table{border:1px solid #999;}
@@ -33,8 +43,7 @@ tbody tr:nth-child(even){background:#fff;}
 <script src="data.js"></script>
 </head>
 <body>
-<h1>Employee Salary &amp; Advance Manager</h1>
-<div class="sub">The Balaji Industries &middot; live from Zoho Books</div>
+<div class="apphead"><svg class="logo" viewBox="0 0 280 412" role="img" aria-label="The Balaji Industries logo"><defs><linearGradient id="lgA" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4f4f51"/><stop offset="15%" stop-color="#88888b"/><stop offset="33%" stop-color="#cccccf"/><stop offset="50%" stop-color="#939396"/><stop offset="70%" stop-color="#c8c8cb"/><stop offset="100%" stop-color="#5e5e61"/></linearGradient><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8d1a13"/><stop offset="35%" stop-color="#da3a2b"/><stop offset="62%" stop-color="#c22a1e"/><stop offset="100%" stop-color="#8a1710"/></linearGradient><linearGradient id="lgC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a2a2a5"/><stop offset="100%" stop-color="#5c5c5f"/></linearGradient></defs><path fill="url(#lgA)" d="M2,60 L110,60 C112,150 122,232 140,286 C158,232 168,150 170,60 L278,60 C276,150 268,235 254,290 C250,301 244,304 240,297 C214,330 180,344 140,344 C100,344 66,330 40,297 C36,304 30,301 26,290 C12,235 4,150 2,60 Z"/><path fill="url(#lgB)" d="M140,4 C145,90 152,205 154,265 C154,278 148,284 140,284 C132,284 126,278 126,265 C128,205 135,90 140,4 Z"/><circle cx="140" cy="390" r="19" fill="url(#lgC)"/></svg><div><h1>Employee Salary &amp; Advance Manager</h1><div class="sub">The Balaji Industries &middot; live from Zoho Books</div></div><div class="sp"></div><div class="printmeta" id="printMeta"></div></div>
 <div class="tabs">
 <button id="tabDisp" class="on">Dispatch &amp; Stock</button>
 <button id="tabPay">Monthly Payroll</button>
@@ -766,9 +775,13 @@ if (cells.some(c => c !== "")) lines.push(cells.join(","));
 }
 return lines.join("\r\n");
 }
-function downloadCsv(name, csv) {
-const stamp = new Date().toISOString().slice(0, 10);
-const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+function downloadCsv(name, csv, title) {
+const d = new Date();
+const stamp = d.toISOString().slice(0, 10);
+const when = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) +
+" " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+const head = "The Balaji Industries\r\n" + csvCell(title || name) + "\r\nExported," + csvCell(when) + "\r\n\r\n";
+const blob = new Blob(["﻿" + head + csv], { type: "text/csv;charset=utf-8" });
 const a = document.createElement("a");
 a.href = URL.createObjectURL(blob);
 a.download = "balaji-" + name + "-" + stamp + ".csv";
@@ -783,7 +796,8 @@ const table = body && body.closest("table");
 if (!table) return;
 const rows = table.querySelectorAll("tbody tr").length;
 if (!rows || table.querySelector("tbody td[colspan]")) { alert("Nothing to export yet — load the report first."); return; }
-downloadCsv(b.dataset.name || b.dataset.export, tableToCsv(table));
+const rh = b.closest(".rh"), h = rh && rh.querySelector("h1");
+downloadCsv(b.dataset.name || b.dataset.export, tableToCsv(table), h ? h.textContent.trim() : b.dataset.name);
 });
 function apiUrl(params) {
 const u = new URL(window.CFG.url);
@@ -954,7 +968,17 @@ b.disabled = true; b.textContent = "Loading\u2026";
 try { await fn(); } finally { b.disabled = false; b.textContent = old; }
 };
 }
-document.getElementById("btnPrint").addEventListener("click", () => window.print());
+function stampPrintMeta() {
+const d = new Date();
+const date = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+const time = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+const on = document.querySelector(".tabs button.on");
+const view = on ? on.textContent.trim() : "";
+$("printMeta").innerHTML = "<b>The Balaji Industries</b><br>" + esc(view) + "<br>Printed " + esc(date) + " at " + esc(time);
+}
+stampPrintMeta();
+window.addEventListener("beforeprint", stampPrintMeta);
+document.getElementById("btnPrint").addEventListener("click", () => { stampPrintMeta(); window.print(); });
 $("pwLoad").addEventListener("click", busy("pwLoad", loadPartnerWithdrawals));
 ["pwFrom", "pwTo"].forEach(id => $(id).addEventListener("change", renderWithdrawals));
 $("pwClear").addEventListener("click", () => { $("pwFrom").value = ""; $("pwTo").value = ""; renderWithdrawals(); });
