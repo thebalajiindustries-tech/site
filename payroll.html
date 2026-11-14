@@ -139,6 +139,7 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <button id="dStock">Load stock in shop</button>
 </div>
 <div class="muted" id="dMsg" style="margin:-4px 0 8px"></div>
+<div class="muted" style="margin:0 0 8px">Counted on the <b>actual dispatch date</b> &mdash; the <i>Dispatch Date</i> field on the invoice in Zoho Books. Leave that field blank when goods go out the same day as the invoice; fill it in only when they go out later. An invoice date shown in amber below means the two differ.</div>
 <div class="cards">
 <div class="card"><div class="label">Dispatched weight</div><div class="value c-blue" id="dKg">-</div></div>
 <div class="card"><div class="label">Pieces dispatched</div><div class="value c-green" id="dPc">-</div></div>
@@ -765,14 +766,15 @@ for (const r of dispRows) { tkg += lineKg(r); tpc += r.q || 0; tval += r.amt || 
 $("dKg").textContent = fmtKg(tkg); $("dPc").textContent = num(tpc); $("dVal").textContent = fmt(tval);
 let h = "";
 if (mode === "day") {
-$("dTitle").textContent = "Dispatch on " + from;
-$("dHead").innerHTML = `<tr><th>Invoice</th><th>PO</th><th>Part</th><th>Name</th><th>Material</th><th>Process</th><th>Qty</th><th>Wt/pc</th><th>Total kg</th><th>Value</th></tr>`;
+$("dTitle").textContent = "Dispatched on " + from;
+$("dHead").innerHTML = `<tr><th>Invoice</th><th>Inv. date</th><th>PO</th><th>Part</th><th>Name</th><th>Material</th><th>Process</th><th>Qty</th><th>Wt/pc</th><th>Total kg</th><th>Value</th></tr>`;
 const sorted = dispRows.slice().sort((a, b) => String(a.inv).localeCompare(String(b.inv)));
 for (const r of sorted) {
-h += `<tr><td>${esc(r.inv)}</td><td style="text-align:left">${esc(r.po)}</td><td style="text-align:left">${esc(r.pn)}</td><td style="text-align:left">${esc(r.nm)}</td><td style="text-align:left">${esc(r.mat)}</td><td style="text-align:left">${esc(r.pr)}</td><td>${num(r.q)}</td><td>${(r.wt || 0).toFixed(2)}</td><td><b>${fmtKg(lineKg(r))}</b></td><td>${fmt(r.amt)}</td></tr>`;
+const idc = (r.idate && r.idate !== r.date) ? `<td style="color:#b45309">${esc(r.idate)}</td>` : `<td class="muted">${esc(r.idate || r.date)}</td>`;
+h += `<tr><td>${esc(r.inv)}</td>${idc}<td style="text-align:left">${esc(r.po)}</td><td style="text-align:left">${esc(r.pn)}</td><td style="text-align:left">${esc(r.nm)}</td><td style="text-align:left">${esc(r.mat)}</td><td style="text-align:left">${esc(r.pr)}</td><td>${num(r.q)}</td><td>${(r.wt || 0).toFixed(2)}</td><td><b>${fmtKg(lineKg(r))}</b></td><td>${fmt(r.amt)}</td></tr>`;
 }
-if (!dispRows.length) h = `<tr><td colspan="10" style="text-align:center;color:#9ca3af">Nothing dispatched on this date</td></tr>`;
-else h += `<tr class="total-row"><td>TOTAL</td><td></td><td></td><td></td><td></td><td></td><td>${num(tpc)}</td><td></td><td>${fmtKg(tkg)}</td><td>${fmt(tval)}</td></tr>`;
+if (!dispRows.length) h = `<tr><td colspan="11" style="text-align:center;color:#9ca3af">Nothing dispatched on this date</td></tr>`;
+else h += `<tr class="total-row"><td>TOTAL</td><td></td><td></td><td></td><td></td><td></td><td></td><td>${num(tpc)}</td><td></td><td>${fmtKg(tkg)}</td><td>${fmt(tval)}</td></tr>`;
 } else {
 $("dTitle").textContent = "Daily totals — " + from + " to " + to;
 $("dHead").innerHTML = `<tr><th>Date</th><th>Invoices</th><th>Lines</th><th>Pieces</th><th>Total kg</th><th>Value</th></tr>`;
