@@ -5,6 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Employee Salary &amp; Advance Manager</title>
 <style>:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#f6f7f9;color:#1a1d21;padding:16px;font-size:14px;}h1{font-size:18px;margin-bottom:2px;}.sub{color:#6b7280;font-size:12px;margin-bottom:12px;}.tabs{display:flex;gap:6px;margin-bottom:14px;}.tabs button{border:1px solid #d1d5db;background:#fff;padding:7px 16px;border-radius:8px;font-weight:600;color:#6b7280;}.tabs button.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;flex:1;min-width:128px;}.card .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;}.card .value{font-size:17px;font-weight:700;margin-top:2px;}.c-blue{color:#1d4ed8;}.c-amber{color:#b45309;}.c-green{color:#047857;}.c-red{color:#b91c1c;}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}input,select,button{font:inherit;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;}input:focus,select:focus{outline:2px solid #93c5fd;border-color:#60a5fa;}button{cursor:pointer;}button.primary{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600;}button.primary:disabled{opacity:.5;cursor:default;}#status{font-size:12px;color:#6b7280;margin-bottom:8px;min-height:16px;}#status.err{color:#b91c1c;}#status.ok{color:#047857;}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;}th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #f1f2f4;white-space:nowrap;}th:first-child,td:first-child{text-align:left;}th{background:#f9fafb;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#6b7280;cursor:pointer;user-select:none;}tr.emp:hover{background:#f0f6ff;cursor:pointer;}tr.total-row td{font-weight:700;background:#f9fafb;}.neg{color:#b91c1c;}.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;}.badge.sal{background:#dbeafe;color:#1d4ed8;}.badge.adv{background:#fef3c7;color:#b45309;}fieldset{border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:12px;margin-bottom:14px;}legend{font-weight:600;padding:0 6px;font-size:13px;}.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}.form-row label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:#6b7280;font-weight:600;}.muted{color:#9ca3af;font-size:11px;margin-top:6px;}.view-btn{font-size:11px;padding:3px 10px;border-radius:6px;background:#eef2ff;border-color:#c7d2fe;color:#3730a3;font-weight:600;}.due-in{width:96px;padding:4px 6px;text-align:right;font-size:13px;}.split{font-size:10px;color:#6b7280;font-weight:400;margin-top:1px;}.due-in.set{background:#eff6ff;border-color:#93c5fd;font-weight:600;}.st{cursor:pointer;font-size:10.5px;padding:3px 10px;border-radius:11px;font-weight:700;border:1px solid;letter-spacing:.02em;}.st.on{background:#dcfce7;color:#166534;border-color:#bbf7d0;}.st.off{background:#f1f5f9;color:#64748b;border-color:#e2e8f0;}tr.inact td{opacity:.62;}#overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;}#overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;}#panel{background:#fff;border-radius:14px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);}#panelHead{padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}#panelHead h2{font-size:16px;flex:1;}#panelStats{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #f1f2f4;}.pstat{background:#f9fafb;border:1px solid #eef0f3;border-radius:8px;padding:6px 12px;font-size:12px;}.pstat b{display:block;font-size:14px;}#panelTools{display:flex;gap:8px;padding:10px 18px;flex-wrap:wrap;align-items:center;}#panelBody{overflow:auto;padding:0 18px 18px;}#panelBody td,#panelBody th{font-size:12.5px;padding:6px 8px;}#panelBody td.wrap{white-space:normal;text-align:left;}.seg{display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;}.seg button{border:0;border-radius:0;padding:5px 12px;font-size:12px;background:#fff;}.seg button.on{background:#1d4ed8;color:#fff;}#closeBtn{background:#f3f4f6;}
+
+/* ---- app shell (Zoho Books style: fixed left nav, white work area) ---- */
+body{padding:0;background:#eef1f5;}
+.app{display:flex;min-height:100vh;}
+.side{width:226px;flex:none;background:#1b2a3a;color:#c7d2de;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.brand{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
+.brand .logo{width:24px;height:35px;}
+.bn{font-weight:700;color:#fff;font-size:14px;line-height:1.1;}
+.bs{font-size:11px;color:#8fa3b8;letter-spacing:.06em;text-transform:uppercase;}
+.nav{display:flex;flex-direction:column;padding:10px 8px;gap:2px;}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;border-radius:7px;color:#c7d2de;padding:9px 12px;font-size:13.5px;font-weight:500;}
+.nav button:hover{background:rgba(255,255,255,.07);color:#fff;}
+.nav button.on{background:#2563eb;color:#fff;font-weight:600;}
+.nav .ic{width:18px;text-align:center;font-size:13px;opacity:.9;}
+.sidefoot{margin-top:auto;padding:12px 16px;font-size:11px;color:#6f8399;border-top:1px solid rgba(255,255,255,.08);}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{display:flex;align-items:center;gap:10px;background:#fff;border-bottom:1px solid #e2e6eb;padding:12px 20px;position:sticky;top:0;z-index:5;}
+.topbar h1{font-size:17px;margin:0;}
+.topbar .sub{margin:0;}
+.topbar .sp{flex:1;}
+.page{padding:18px 20px 28px;}
+.rh h1{font-size:14px;}
+.card{box-shadow:0 1px 2px rgba(16,24,40,.04);}
+table{box-shadow:0 1px 2px rgba(16,24,40,.04);}
+th,td{padding:9px 12px;}
+thead th{background:#f7f9fb;}
+@media(max-width:820px){
+.app{flex-direction:column;}
+.side{width:auto;height:auto;position:static;flex-direction:row;align-items:center;overflow-x:auto;}
+.brand{border:0;padding:10px 12px;}
+.nav{flex-direction:row;padding:8px;}
+.nav button{white-space:nowrap;}
+.sidefoot{display:none;}
+.topbar{padding:10px 12px;}
+.page{padding:12px;}
+}
+@media print{.side,.topbar button{display:none!important;}.app{display:block;}.page{padding:0;}.topbar{border:0;padding:0;}}
 .apphead{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
 .apphead .sp{flex:1;}
 .logo{width:30px;height:44px;flex:none;}
@@ -43,15 +80,26 @@ tbody tr:nth-child(even){background:#fff;}
 <script src="data.js"></script>
 </head>
 <body>
-<div class="apphead"><svg class="logo" viewBox="0 0 280 412" role="img" aria-label="The Balaji Industries logo"><defs><linearGradient id="lgA" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4f4f51"/><stop offset="15%" stop-color="#88888b"/><stop offset="33%" stop-color="#cccccf"/><stop offset="50%" stop-color="#939396"/><stop offset="70%" stop-color="#c8c8cb"/><stop offset="100%" stop-color="#5e5e61"/></linearGradient><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8d1a13"/><stop offset="35%" stop-color="#da3a2b"/><stop offset="62%" stop-color="#c22a1e"/><stop offset="100%" stop-color="#8a1710"/></linearGradient><linearGradient id="lgC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a2a2a5"/><stop offset="100%" stop-color="#5c5c5f"/></linearGradient></defs><path fill="url(#lgA)" d="M2,60 L110,60 C112,150 122,232 140,286 C158,232 168,150 170,60 L278,60 C276,150 268,235 254,290 C250,301 244,304 240,297 C214,330 180,344 140,344 C100,344 66,330 40,297 C36,304 30,301 26,290 C12,235 4,150 2,60 Z"/><path fill="url(#lgB)" d="M140,4 C145,90 152,205 154,265 C154,278 148,284 140,284 C132,284 126,278 126,265 C128,205 135,90 140,4 Z"/><circle cx="140" cy="390" r="19" fill="url(#lgC)"/></svg><div><h1>Employee Salary &amp; Advance Manager</h1><div class="sub">The Balaji Industries &middot; live from Zoho Books</div></div><div class="sp"></div><div class="printmeta" id="printMeta"></div></div>
-<div class="tabs">
-<button id="tabDisp" class="on">Dispatch &amp; Stock</button>
-<button id="tabPay">Monthly Payroll</button>
-<button id="tabOv">All-time Overview</button>
-<button id="tabPart">Partners</button>
+<div class="app">
+<aside class="side">
+<div class="brand"><svg class="logo" viewBox="0 0 280 412" role="img" aria-label="The Balaji Industries logo"><defs><linearGradient id="lgA" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4f4f51"/><stop offset="15%" stop-color="#88888b"/><stop offset="33%" stop-color="#cccccf"/><stop offset="50%" stop-color="#939396"/><stop offset="70%" stop-color="#c8c8cb"/><stop offset="100%" stop-color="#5e5e61"/></linearGradient><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8d1a13"/><stop offset="35%" stop-color="#da3a2b"/><stop offset="62%" stop-color="#c22a1e"/><stop offset="100%" stop-color="#8a1710"/></linearGradient><linearGradient id="lgC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a2a2a5"/><stop offset="100%" stop-color="#5c5c5f"/></linearGradient></defs><path fill="url(#lgA)" d="M2,60 L110,60 C112,150 122,232 140,286 C158,232 168,150 170,60 L278,60 C276,150 268,235 254,290 C250,301 244,304 240,297 C214,330 180,344 140,344 C100,344 66,330 40,297 C36,304 30,301 26,290 C12,235 4,150 2,60 Z"/><path fill="url(#lgB)" d="M140,4 C145,90 152,205 154,265 C154,278 148,284 140,284 C132,284 126,278 126,265 C128,205 135,90 140,4 Z"/><circle cx="140" cy="390" r="19" fill="url(#lgC)"/></svg><div><div class="bn">The Balaji</div><div class="bs">Industries</div></div></div>
+<nav class="nav">
+<button id="tabDisp" class="on"><span class="ic">&#128230;</span>Dispatch &amp; Stock</button>
+<button id="tabPay"><span class="ic">&#8377;</span>Monthly Payroll</button>
+<button id="tabOv"><span class="ic">&#128202;</span>All-time Overview</button>
+<button id="tabPart"><span class="ic">&#129309;</span>Partners</button>
+</nav>
+<div class="sidefoot">Live from Zoho Books</div>
+</aside>
+<main class="main">
+<header class="topbar">
+<div><h1 id="pageTitle">Dispatch &amp; Stock</h1><div class="sub" id="pageSub">The Balaji Industries</div></div>
+<div class="sp"></div>
+<div class="printmeta" id="printMeta"></div>
 <button id="btnPrint" title="Print or save the current view as PDF">&#128438; Print</button>
-<button id="btnRefresh" title="Fetch the latest data from Zoho Books">↻ Refresh</button>
-</div>
+<button id="btnRefresh" class="primary" title="Fetch the latest data from Zoho Books">&#8635; Refresh</button>
+</header>
+<div class="page">
 <!-- ============ MONTHLY PAYROLL ============ -->
 <div id="payView" style="display:none">
 <div class="toolbar">
@@ -219,6 +267,9 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 </div>
 <datalist id="empNames"></datalist>
 <div id="status">Loading…</div>
+</div>
+</main>
+</div>
 <!-- Employee detail overlay -->
 <div id="overlay">
 <div id="panel">
@@ -972,11 +1023,11 @@ function stampPrintMeta() {
 const d = new Date();
 const date = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 const time = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-const on = document.querySelector(".tabs button.on");
+const on = document.querySelector(".nav button.on");
 const view = on ? on.textContent.trim() : "";
 $("printMeta").innerHTML = "<b>The Balaji Industries</b><br>" + esc(view) + "<br>Printed " + esc(date) + " at " + esc(time);
 }
-stampPrintMeta();
+showTab("disp");
 window.addEventListener("beforeprint", stampPrintMeta);
 document.getElementById("btnPrint").addEventListener("click", () => { stampPrintMeta(); window.print(); });
 $("pwLoad").addEventListener("click", busy("pwLoad", loadPartnerWithdrawals));
@@ -994,12 +1045,22 @@ $("dLoad").addEventListener("click", busy("dLoad", loadDispatch));
 $("dStock").addEventListener("click", busy("dStock", loadStock));
 $("dDay").value = new Date().toISOString().slice(0, 10);
 $("dMon").value = new Date().toISOString().slice(0, 7);
+const TAB_TITLES = { pay: "Monthly Payroll", ov: "All-time Overview", part: "Partners", disp: "Dispatch & Stock" };
+const TAB_SUBS = {
+pay: "Salary due, actual paid and advance recovery, month by month",
+ov: "Every salary and advance entry ever recorded, per employee",
+part: "Partner ledger, withdrawals and business expenses paid personally",
+disp: "What left the works, and what is ordered but still in the shop"
+};
 function showTab(which) {
 const tabs = { pay: ["tabPay", "payView"], ov: ["tabOv", "ovView"], part: ["tabPart", "partView"], disp: ["tabDisp", "dispView"] };
 for (const k in tabs) {
 $(tabs[k][0]).classList.toggle("on", k === which);
 $(tabs[k][1]).style.display = k === which ? "" : "none";
 }
+$("pageTitle").textContent = TAB_TITLES[which] || "";
+$("pageSub").textContent = TAB_SUBS[which] || "";
+stampPrintMeta();
 }
 $("tabPay").addEventListener("click", () => showTab("pay"));
 $("tabOv").addEventListener("click", () => showTab("ov"));

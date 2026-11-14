@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employee Salary &amp; Advance Manager</title>
+<style>:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#f6f7f9;color:#1a1d21;padding:16px;font-size:14px;}h1{font-size:18px;margin-bottom:2px;}.sub{color:#6b7280;font-size:12px;margin-bottom:12px;}.tabs{display:flex;gap:6px;margin-bottom:14px;}.tabs button{border:1px solid #d1d5db;background:#fff;padding:7px 16px;border-radius:8px;font-weight:600;color:#6b7280;}.tabs button.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;flex:1;min-width:128px;}.card .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;}.card .value{font-size:17px;font-weight:700;margin-top:2px;}.c-blue{color:#1d4ed8;}.c-amber{color:#b45309;}.c-green{color:#047857;}.c-red{color:#b91c1c;}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}input,select,button{font:inherit;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;}input:focus,select:focus{outline:2px solid #93c5fd;border-color:#60a5fa;}button{cursor:pointer;}button.primary{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600;}button.primary:disabled{opacity:.5;cursor:default;}#status{font-size:12px;color:#6b7280;margin-bottom:8px;min-height:16px;}#status.err{color:#b91c1c;}#status.ok{color:#047857;}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;}th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #f1f2f4;white-space:nowrap;}th:first-child,td:first-child{text-align:left;}th{background:#f9fafb;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#6b7280;cursor:pointer;user-select:none;}tr.emp:hover{background:#f0f6ff;cursor:pointer;}tr.total-row td{font-weight:700;background:#f9fafb;}.neg{color:#b91c1c;}.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;}.badge.sal{background:#dbeafe;color:#1d4ed8;}.badge.adv{background:#fef3c7;color:#b45309;}fieldset{border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:12px;margin-bottom:14px;}legend{font-weight:600;padding:0 6px;font-size:13px;}.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}.form-row label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:#6b7280;font-weight:600;}.muted{color:#9ca3af;font-size:11px;margin-top:6px;}.view-btn{font-size:11px;padding:3px 10px;border-radius:6px;background:#eef2ff;border-color:#c7d2fe;color:#3730a3;font-weight:600;}.due-in{width:96px;padding:4px 6px;text-align:right;font-size:13px;}.split{font-size:10px;color:#6b7280;font-weight:400;margin-top:1px;}.due-in.set{background:#eff6ff;border-color:#93c5fd;font-weight:600;}.st{cursor:pointer;font-size:10.5px;padding:3px 10px;border-radius:11px;font-weight:700;border:1px solid;letter-spacing:.02em;}.st.on{background:#dcfce7;color:#166534;border-color:#bbf7d0;}.st.off{background:#f1f5f9;color:#64748b;border-color:#e2e8f0;}tr.inact td{opacity:.62;}#overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;}#overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;}#panel{background:#fff;border-radius:14px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);}#panelHead{padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}#panelHead h2{font-size:16px;flex:1;}#panelStats{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #f1f2f4;}.pstat{background:#f9fafb;border:1px solid #eef0f3;border-radius:8px;padding:6px 12px;font-size:12px;}.pstat b{display:block;font-size:14px;}#panelTools{display:flex;gap:8px;padding:10px 18px;flex-wrap:wrap;align-items:center;}#panelBody{overflow:auto;padding:0 18px 18px;}#panelBody td,#panelBody th{font-size:12.5px;padding:6px 8px;}#panelBody td.wrap{white-space:normal;text-align:left;}.seg{display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;}.seg button{border:0;border-radius:0;padding:5px 12px;font-size:12px;background:#fff;}.seg button.on{background:#1d4ed8;color:#fff;}#closeBtn{background:#f3f4f6;}
+
+/* ---- app shell (Zoho Books style: fixed left nav, white work area) ---- */
+body{padding:0;background:#eef1f5;}
+.app{display:flex;min-height:100vh;}
+.side{width:226px;flex:none;background:#1b2a3a;color:#c7d2de;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.brand{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
+.brand .logo{width:24px;height:35px;}
+.bn{font-weight:700;color:#fff;font-size:14px;line-height:1.1;}
+.bs{font-size:11px;color:#8fa3b8;letter-spacing:.06em;text-transform:uppercase;}
+.nav{display:flex;flex-direction:column;padding:10px 8px;gap:2px;}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;border-radius:7px;color:#c7d2de;padding:9px 12px;font-size:13.5px;font-weight:500;}
+.nav button:hover{background:rgba(255,255,255,.07);color:#fff;}
+.nav button.on{background:#2563eb;color:#fff;font-weight:600;}
+.nav .ic{width:18px;text-align:center;font-size:13px;opacity:.9;}
+.sidefoot{margin-top:auto;padding:12px 16px;font-size:11px;color:#6f8399;border-top:1px solid rgba(255,255,255,.08);}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{display:flex;align-items:center;gap:10px;background:#fff;border-bottom:1px solid #e2e6eb;padding:12px 20px;position:sticky;top:0;z-index:5;}
+.topbar h1{font-size:17px;margin:0;}
+.topbar .sub{margin:0;}
+.topbar .sp{flex:1;}
+.page{padding:18px 20px 28px;}
+.rh h1{font-size:14px;}
+.card{box-shadow:0 1px 2px rgba(16,24,40,.04);}
+table{box-shadow:0 1px 2px rgba(16,24,40,.04);}
+th,td{padding:9px 12px;}
+thead th{background:#f7f9fb;}
+@media(max-width:820px){
+.app{flex-direction:column;}
+.side{width:auto;height:auto;position:static;flex-direction:row;align-items:center;overflow-x:auto;}
+.brand{border:0;padding:10px 12px;}
+.nav{flex-direction:row;padding:8px;}
+.nav button{white-space:nowrap;}
+.sidefoot{display:none;}
+.topbar{padding:10px 12px;}
+.page{padding:12px;}
+}
+@media print{.side,.topbar button{display:none!important;}.app{display:block;}.page{padding:0;}.topbar{border:0;padding:0;}}
+.apphead{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.apphead .sp{flex:1;}
+.logo{width:30px;height:44px;flex:none;}
+.printmeta{display:none;text-align:right;font-size:11px;color:#6b7280;line-height:1.5;}
+thead th{position:sticky;top:0;z-index:2;box-shadow:inset 0 -1px 0 #e5e7eb;}
+tbody tr:nth-child(even){background:#fcfcfd;}
+tbody tr:hover{background:#f5f8ff;}
+tbody tr.total-row:hover{background:#f9fafb;}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;}
+.rh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 6px;}
+.rh h1{margin:0;font-size:15px;}
+.rh .sp{flex:1;}
+.exp{font-size:11px;padding:4px 11px;border-radius:6px;background:#f0fdf4;border-color:#bbf7d0;color:#166534;font-weight:600;}
+.exp:hover{background:#dcfce7;}
+.skel{opacity:.55;}
+@media(max-width:820px){
+body{padding:10px;}
+.tabs{overflow-x:auto;}
+.card{min-width:44%;}
+table{display:block;overflow-x:auto;}
+}
+@media print{
+.tabs,.toolbar,fieldset,button,#status,.muted{display:none!important;}
+.apphead{border-bottom:2px solid #0a3157;padding-bottom:8px;margin-bottom:12px;}
+.logo{width:36px;height:52px;}
+.printmeta{display:block;}
+.rh{break-after:avoid;}
+thead{display:table-header-group;}
+tr{break-inside:avoid;}
+body{padding:0;background:#fff;font-size:11px;}
+.card{break-inside:avoid;}
+table{border:1px solid #999;}
+thead th{position:static;background:#eee;}
+tbody tr:nth-child(even){background:#fff;}
+}</style>
+<script src="data.js"></script>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+<div class="brand"><svg class="logo" viewBox="0 0 280 412" role="img" aria-label="The Balaji Industries logo"><defs><linearGradient id="lgA" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4f4f51"/><stop offset="15%" stop-color="#88888b"/><stop offset="33%" stop-color="#cccccf"/><stop offset="50%" stop-color="#939396"/><stop offset="70%" stop-color="#c8c8cb"/><stop offset="100%" stop-color="#5e5e61"/></linearGradient><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8d1a13"/><stop offset="35%" stop-color="#da3a2b"/><stop offset="62%" stop-color="#c22a1e"/><stop offset="100%" stop-color="#8a1710"/></linearGradient><linearGradient id="lgC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a2a2a5"/><stop offset="100%" stop-color="#5c5c5f"/></linearGradient></defs><path fill="url(#lgA)" d="M2,60 L110,60 C112,150 122,232 140,286 C158,232 168,150 170,60 L278,60 C276,150 268,235 254,290 C250,301 244,304 240,297 C214,330 180,344 140,344 C100,344 66,330 40,297 C36,304 30,301 26,290 C12,235 4,150 2,60 Z"/><path fill="url(#lgB)" d="M140,4 C145,90 152,205 154,265 C154,278 148,284 140,284 C132,284 126,278 126,265 C128,205 135,90 140,4 Z"/><circle cx="140" cy="390" r="19" fill="url(#lgC)"/></svg><div><div class="bn">The Balaji</div><div class="bs">Industries</div></div></div>
+<nav class="nav">
+<button id="tabDisp" class="on"><span class="ic">&#128230;</span>Dispatch &amp; Stock</button>
+<button id="tabPay"><span class="ic">&#8377;</span>Monthly Payroll</button>
+<button id="tabOv"><span class="ic">&#128202;</span>All-time Overview</button>
+<button id="tabPart"><span class="ic">&#129309;</span>Partners</button>
+</nav>
+<div class="sidefoot">Live from Zoho Books</div>
+</aside>
+<main class="main">
+<header class="topbar">
+<div><h1 id="pageTitle">Dispatch &amp; Stock</h1><div class="sub" id="pageSub">The Balaji Industries</div></div>
+<div class="sp"></div>
+<div class="printmeta" id="printMeta"></div>
+<button id="btnPrint" title="Print or save the current view as PDF">&#128438; Print</button>
+<button id="btnRefresh" class="primary" title="Fetch the latest data from Zoho Books">&#8635; Refresh</button>
+</header>
+<div class="page">
+<!-- ============ MONTHLY PAYROLL ============ -->
+<div id="payView" style="display:none">
+<div class="toolbar">
+<label style="font-size:12px;color:#6b7280;font-weight:600">Period
+<select id="pMode"><option value="month">Monthly cycle</option><option value="range">Custom dates</option></select>
+</label>
+<label id="mBox" style="font-size:12px;color:#6b7280;font-weight:600">Month <input type="month" id="mSel"></label>
+<label id="cBox" style="font-size:12px;color:#6b7280;font-weight:600" title="Payroll cycle runs from this day of the month to the day before it in the next month">Cycle starts on day
+<input type="number" id="cutDay" min="1" max="28" step="1" style="width:60px">
+</label>
+<label id="fBox" style="font-size:12px;color:#6b7280;font-weight:600;display:none">From <input type="date" id="pFrom"></label>
+<label id="tBox" style="font-size:12px;color:#6b7280;font-weight:600;display:none">To <input type="date" id="pTo"></label>
+<button id="copyPrev" title="Copy salary-due amounts from previous month">Copy dues from previous month</button>
+<label style="font-size:12px;color:#6b7280"><input type="checkbox" id="showAll" style="width:auto"> Show all employees</label>
+<label style="font-size:12px;color:#6b7280;font-weight:600">Status <select id="stFilter"><option value="active">Active only</option><option value="all">All</option><option value="inactive">Inactive only</option></select></label>
+<input id="pq" placeholder="Search employee…" style="min-width:160px">
+</div>
+<div class="muted" id="cycleLabel" style="margin:-4px 0 8px"></div>
+<div class="cards">
+<div class="card"><div class="label">Total Salary Due</div><div class="value c-blue" id="kDue">–</div></div>
+<div class="card"><div class="label">Actual Salary Paid</div><div class="value c-green" id="kPaid">–</div><div class="split" id="kPaidSplit"></div></div>
+<div class="card"><div class="label">Advance Deducted</div><div class="value c-red" id="kDed">–</div></div>
+<div class="card"><div class="label">Advance Given (month)</div><div class="value c-amber" id="kAdv">–</div><div class="split" id="kAdvSplit"></div></div>
+<div class="card"><div class="label">Advance Outstanding (after deductions)</div><div class="value c-amber" id="kAdvAll">–</div></div>
+</div>
+<div class="rh"><h1>Monthly payroll</h1><div class="sp"></div><button class="exp" data-export="pBody" data-name="payroll">&#8681; Export CSV</button></div>
+<table>
+<thead><tr>
+<th>Employee</th>
+<th>Status</th>
+<th>Salary Due (editable)</th>
+<th>Paid (Zoho)</th>
+<th>Actual Salary (editable)</th>
+<th>Adv. Deducted (editable)</th>
+<th>Advance (month)</th>
+<th>Advance Outstanding</th>
+<th></th>
+</tr></thead>
+<tbody id="pBody"></tbody>
+</table>
+<div class="muted">
+Salary Due = full salary for the month (you set it). Actual Salary = what was really paid (type it, or leave blank to use the Zoho figure).
+Adv. Deducted auto-fills as Due − Actual; edit it if the deduction differs — the rest shows as "unpaid".
+Period = "Monthly cycle" runs from the "cycle starts on day" you set (e.g. 14 Mar – 13 Apr), not the calendar month. Switch Period to "Custom dates" to set any From / To range instead — figures you type are saved against that exact range.
+Advance Outstanding = advance taken (from Zoho) minus all deductions made in this tool across months.
+Nothing negative is written to Zoho Books — deductions are managed entirely inside this tool and saved on this computer.
+Click an employee's Active / Inactive badge to change it. Status is set by hand and saved on this computer, not in Zoho Books.
+</div>
+</div>
+<!-- ============ PARTNERS ============ -->
+<div id="partView" style="display:none">
+<div class="cards">
+<div class="card"><div class="label">Ganesh — Zoho a/c balance</div><div class="value c-blue" id="gBal">–</div></div>
+<div class="card"><div class="label">Sagar — Zoho a/c balance</div><div class="value c-blue" id="sBal">–</div></div>
+<div class="card"><div class="label">Difference (Ganesh − Sagar)</div><div class="value" id="gsDiff">–</div><div class="split" id="gsHint"></div></div>
+</div>
+<fieldset>
+<legend>Add partner entry (tracked in this tool)</legend>
+<div class="form-row">
+<label>Partner
+<select id="ptPartner"><option>Ganesh</option><option>Sagar</option></select>
+</label>
+<label>Type
+<select id="ptType"><option value="investment">Investment (money put in)</option><option value="withdrawal">Withdrawal (money taken out)</option></select>
+</label>
+<label>Amount (INR)<input id="ptAmt" type="number" min="1" step="0.01" style="width:120px"></label>
+<label>Date<input id="ptDate" type="date"></label>
+<label>Note<input id="ptNote" placeholder="optional" style="min-width:160px"></label>
+<button class="primary" id="ptAdd">Add</button>
+</div>
+<div class="muted">These entries are saved in this tool only (not written to Zoho Books). Use them to track the 50-50 balance between partners.</div>
+</fieldset>
+<div class="cards" id="ptSummary"></div>
+<div class="rh"><h1>Partner ledger (this tool)</h1><div class="sp"></div><button class="exp" data-export="ptBody" data-name="partner-ledger">&#8681; Export CSV</button></div>
+<table>
+<thead><tr><th>Date</th><th>Partner</th><th>Type</th><th>Note</th><th>Amount</th><th></th></tr></thead>
+<tbody id="ptBody"></tbody>
+</table>
+<h1 style="font-size:15px;margin:18px 0 6px">Partner withdrawals (from Zoho Books)</h1>
+<div class="muted" style="margin-bottom:8px">Money that has actually left the business for a partner &mdash; expenses booked against their account and bank transfers into it. Read live from Zoho Books.</div>
+<div class="cards">
+<div class="card"><div class="label">Ganesh &mdash; withdrawn (Zoho)</div><div class="value c-red" id="gWd">&ndash;</div></div>
+<div class="card"><div class="label">Sagar &mdash; withdrawn (Zoho)</div><div class="value c-red" id="sWd">&ndash;</div></div>
+<div class="card"><div class="label">Difference (Ganesh &minus; Sagar)</div><div class="value" id="wdDiff">&ndash;</div><div class="split" id="wdHint"></div></div>
+</div>
+<div class="toolbar">
+<button class="primary" id="pwLoad">Load withdrawals</button>
+<label style="font-size:12px;color:#6b7280;font-weight:600">From <input type="date" id="pwFrom"></label>
+<label style="font-size:12px;color:#6b7280;font-weight:600">To <input type="date" id="pwTo"></label>
+<button id="pwThisMonth">This month</button>
+<button id="pwThisYear">This year</button>
+<button id="pwClear">All dates</button>
+<button class="exp" data-export="pwBody" data-name="partner-withdrawals">&#8681; Export CSV</button>
+<span class="muted" id="pwMsg"></span>
+</div>
+<table>
+<thead><tr><th>Date</th><th>Partner</th><th>Kind</th><th>Source</th><th>Description</th><th>From / to</th><th>Amount</th></tr></thead>
+<tbody id="pwBody"><tr><td colspan="7" style="text-align:center;color:#9ca3af">Press "Load withdrawals" to read these from Zoho Books</td></tr></tbody>
+</table>
+<div class="rh"><h1>Business expenses paid from partner accounts (from Zoho Books)</h1><div class="sp"></div><button class="exp" data-export="ptZBody" data-name="partner-expenses">&#8681; Export CSV</button></div>
+<div class="muted" style="margin-bottom:8px">Money each partner personally spent for the business (counts as their investment). Loaded live from expenses whose "paid through" is Ganesh or Sagar.</div>
+<div class="cards">
+<div class="card"><div class="label">Ganesh — spent for business</div><div class="value c-green" id="gSpent">–</div></div>
+<div class="card"><div class="label">Sagar — spent for business</div><div class="value c-green" id="sSpent">–</div></div>
+</div>
+<table>
+<thead><tr><th>Date</th><th>Partner</th><th>Expense head</th><th>Description</th><th>Amount</th></tr></thead>
+<tbody id="ptZBody"></tbody>
+</table>
+</div>
+<!-- ============ OVERVIEW ============ -->
+<div id="ovView" style="display:none">
+<div class="cards">
+<div class="card"><div class="label">Total Salary</div><div class="value c-blue" id="cSal">–</div><div class="split" id="cSalSplit"></div></div>
+<div class="card"><div class="label">Total Advance (net)</div><div class="value c-amber" id="cAdv">–</div><div class="split" id="cAdvSplit"></div></div>
+<div class="card"><div class="label">Combined</div><div class="value c-green" id="cTot">–</div></div>
+<div class="card"><div class="label">Employees</div><div class="value" id="cEmp">–</div></div>
+</div>
+<div class="toolbar">
+<input id="q" placeholder="Search employee…" style="min-width:180px">
+<label style="font-size:12px;color:#6b7280">From <input type="date" id="dFrom"></label>
+<label style="font-size:12px;color:#6b7280">To <input type="date" id="dTo"></label>
+<button id="clearF">Clear filters</button>
+<button class="exp" data-export="tbody" data-name="all-time-overview">&#8681; Export CSV</button>
+</div>
+<table>
+<thead><tr>
+<th data-k="name">Employee</th><th data-k="sal">Salary</th><th data-k="adv">Advance</th>
+<th data-k="tot">Total</th><th data-k="n"># Entries</th><th></th>
+</tr></thead>
+<tbody id="tbody"></tbody>
+</table>
+<div class="muted">Click a row for full transaction history. Negative advance = repayment/adjustment.</div>
+</div>
+<!-- ============ DISPATCH & STOCK ============ -->
+<div id="dispView">
+<div class="toolbar">
+<label style="font-size:12px;color:#6b7280;font-weight:600">View
+<select id="dMode"><option value="day">Daily</option><option value="month">Monthly</option></select>
+</label>
+<label id="dDayBox" style="font-size:12px;color:#6b7280;font-weight:600">Date <input type="date" id="dDay"></label>
+<label id="dMonBox" style="font-size:12px;color:#6b7280;font-weight:600;display:none">Month <input type="month" id="dMon"></label>
+<button class="primary" id="dLoad">Load dispatch</button>
+<button id="dStock">Load stock in shop</button>
+</div>
+<div class="muted" id="dMsg" style="margin:-4px 0 8px"></div>
+<div class="muted" style="margin:0 0 8px">Counted on the <b>actual dispatch date</b> &mdash; the <i>Dispatch Date</i> field on the invoice in Zoho Books. Leave that field blank when goods go out the same day as the invoice; fill it in only when they go out later. An invoice date shown in amber below means the two differ.</div>
+<div class="cards">
+<div class="card"><div class="label">Dispatched weight</div><div class="value c-blue" id="dKg">-</div></div>
+<div class="card"><div class="label">Pieces dispatched</div><div class="value c-green" id="dPc">-</div></div>
+<div class="card"><div class="label">Invoice value</div><div class="value c-amber" id="dVal">-</div></div>
+<div class="card"><div class="label">Stock in shop (pending)</div><div class="value c-red" id="sKg">-</div><div class="split" id="sPc"></div></div>
+</div>
+<div class="rh"><h1 id="dTitle">Dispatch</h1><div class="sp"></div><button class="exp" data-export="dBody" data-name="dispatch">&#8681; Export CSV</button></div>
+<table>
+<thead id="dHead"></thead>
+<tbody id="dBody"></tbody>
+</table>
+<div class="rh"><h1>Stock in shop &mdash; ordered but not yet dispatched</h1><div class="sp"></div><button class="exp" data-export="sBody" data-name="stock-in-shop">&#8681; Export CSV</button></div>
+<div class="muted" style="margin-bottom:8px">Taken from open, draft and part-invoiced POs in Zoho Books. Pending = ordered quantity minus invoiced quantity. Dispatched means invoiced.</div>
+<table>
+<thead><tr><th>PO</th><th>Date</th><th>Part</th><th>Name</th><th>Material</th><th>Ordered</th><th>Dispatched</th><th>Pending</th><th>Wt/pc</th><th>Pending kg</th></tr></thead>
+<tbody id="sBody"></tbody>
+</table>
+</div>
+<datalist id="empNames"></datalist>
+<div id="status">Loading…</div>
+</div>
+</main>
+</div>
+<!-- Employee detail overlay -->
+<div id="overlay">
+<div id="panel">
+<div id="panelHead">
+<h2 id="pName">Employee</h2>
+<div class="seg" id="pSeg">
+<button data-t="all" class="on">All</button>
+<button data-t="salary">Salary</button>
+<button data-t="advance">Advance</button>
+</div>
+<button id="pCsv" class="view-btn">Download CSV</button>
+<button id="closeBtn">✕ Close</button>
+</div>
+<div id="panelStats"></div>
+<div id="panelTools">
+<label style="font-size:12px;color:#6b7280">Sort
+<select id="pSort">
+<option value="new">Newest first</option>
+<option value="old">Oldest first</option>
+<option value="big">Largest amount</option>
+</select>
+</label>
+<span class="muted" id="pCount"></span>
+</div>
+<div id="panelBody"></div>
+</div>
+</div>
+<script>
+window.EMB_ROWS=[{t:"salary",n:"Ganesh Todmal",d:"2026-11-01",a:9250,ds:"salary",p:"Petty Cash",r:false},{t:"advance",n:"Sachin Gadekar",d:"2026-11-03",a:3000,ds:"advance",p:"Petty Cash",r:false}];window.EMB_PART=[]; window.EMB_BAL={g:333027,s:374737}; window.CFG={url:"https://example.invalid/",key:"x"};</script>
+<div id="pwGate" hidden  style="position:fixed;inset:0;background:#0f172a;z-index:9999;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif">
+<div style="background:#fff;border-radius:14px;padding:32px;max-width:360px;width:90%;text-align:center">
+<h2 style="margin:0 0 6px;font-size:18px;color:#1a1d21">The Balaji Industries</h2>
+<div style="color:#6b7280;font-size:13px;margin-bottom:18px">Private payroll app. Enter your personal password.</div>
+<input id="pwIn" type="password" placeholder="Password" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;box-sizing:border-box">
+<button id="pwBtn" style="width:100%;margin-top:10px;padding:10px;background:#1d4ed8;color:#fff;border:0;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">Open</button>
+<div id="pwErr" style="color:#b91c1c;font-size:12px;margin-top:8px;min-height:14px"></div>
+</div>
+</div>
+<script>async function pwUnlock() {
+const pw = document.getElementById("pwIn").value, err = document.getElementById("pwErr");
+err.textContent = "Checking...";
+const b = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+try {
+const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+let key = null, who = null;
+for (const u of window.ENC.users) {
+try {
+const kek = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b(u.s), iterations:200000, hash:"SHA-256"}, km, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+const raw = await crypto.subtle.decrypt({name:"AES-GCM", iv:b(u.i)}, kek, b(u.k));
+key = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+who = u.u; break;
+} catch (e) {}
+}
+if (!key) { err.textContent = "Wrong password. Try again."; return; }
+const cfgRaw = await crypto.subtle.decrypt({name:"AES-GCM", iv:b(window.ENC.iv)}, key, b(window.ENC.ct));
+window.CFG = JSON.parse(new TextDecoder().decode(cfgRaw));
+window.WHO = who;
+err.textContent = "Loading live data from Zoho Books...";
+await fetchLive();
+document.getElementById("pwGate").remove();
+} catch (e) { err.textContent = "Could not open: " + e.message; }
+}
+async function fetchLive() {
+const r = await fetch(window.CFG.url, { headers: { "x-app-key": window.CFG.key } });
+if (!r.ok) throw new Error("Data service returned " + r.status);
+const d = await r.json();
+if (d.error) throw new Error(d.error);
+window.EMB_ROWS = d.rows; window.EMB_PART = d.part; window.EMB_BAL = d.bal; window.FETCHED = d.fetched;
+loadAll();
+if (typeof partLoaded !== "undefined") { partLoaded = false; }
+const when = d.fetched ? new Date(d.fetched).toLocaleString("en-IN") : "just now";
+document.getElementById("status").textContent = "LIVE from Zoho Books \u2014 " + (d.rows||[]).length + " entries \u2014 fetched " + when + " \u2014 signed in as " + window.WHO;
+}
+document.getElementById("pwBtn").addEventListener("click", pwUnlock);
+document.getElementById("pwIn").addEventListener("keydown", e => { if (e.key === "Enter") pwUnlock(); });</script>
+<script>const ORG = "60045370667";
+const SRV = "mcp__ba17faab-6bce-4d35-8d19-8f79d1e56cd3__";
+const ACCT = {
+salary:  { name: "Salaries and Employee Wages", id: "2826739000000000543" },
+advance: { name: "Employee Advance",            id: "2826739000000000570" }
+};
+const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+const MONTH_FULL = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+let rows = [];
+let sortKey = "tot", sortDir = -1;
+let pEmp = null, pType = "all";
+const fmt = n => "₹" + Number(n).toLocaleString("en-IN", {maximumFractionDigits: 0});
+function mode(r) {
+const p = (r.paidThrough || "").toLowerCase();
+if (p.includes("petty") || p.includes("cash")) return "cash";
+if (p.includes("balaji")) return "online";           // The Balaji Industries (Axis Bank)
+return "other";                                       // Ganesh / Sagar / etc.
+}
+const splitTxt = s => `💵 ${fmt(s.cash || 0)} · 🏦 ${fmt(s.online || 0)}` + (s.other ? ` · 👤 ${fmt(s.other)}` : "");
+const fmt2 = n => "₹" + Number(n).toLocaleString("en-IN", {maximumFractionDigits: 2});
+const fmtKg = n => Number(n).toLocaleString("en-IN", {maximumFractionDigits: 1}) + " kg";
+const num = n => Number(n).toLocaleString("en-IN");
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+function parse(r) {
+if (r.isError) throw new Error(r.content && r.content[0] ? r.content[0].text : "Tool error");
+return r.structuredContent ?? JSON.parse(r.content[0].text);
+}
+function getCutDay() {
+const v = parseInt(localStorage.getItem("payroll_cut_day") || "14", 10);
+return (v >= 1 && v <= 28) ? v : 14;
+}
+function cycleOf(dateStr) {           // date -> "YYYY-MM" of the cycle it falls in
+const [y, m, d] = dateStr.split("-").map(Number);
+if (d >= getCutDay()) return `${y}-${String(m).padStart(2,"0")}`;
+const p = new Date(y, m - 2, 1);    // previous month
+return `${p.getFullYear()}-${String(p.getMonth()+1).padStart(2,"0")}`;
+}
+function cycleRange(mKey) {           // "YYYY-MM" -> readable "14 Mar 2026 – 13 Apr 2026"
+const [y, m] = mKey.split("-").map(Number);
+const c = getCutDay();
+const s = new Date(y, m - 1, c), e = new Date(y, m, c - 1);
+const f = dt => dt.toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"});
+return f(s) + " – " + f(e);
+}
+function cycleBounds(mKey) {
+const [y, mo] = mKey.split("-").map(Number);
+const c = getCutDay();
+const s = new Date(y, mo - 1, c), e = new Date(y, mo, c - 1);
+const p = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+return [p(s), p(e)];
+}
+function payMonth(r) {
+const d = (r.desc || "").toLowerCase();
+let m = d.match(/\[for (\d{4})-(\d{2})\]/);            // our own tag: [for 2026-03]
+if (m) return m[1] + "-" + m[2];
+m = d.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,\s.]*\s*(\d{4})/); // "Feb, 2026 month salary"
+if (m) {
+const mi = MONTHS.indexOf(m[1]);
+if (mi >= 0) return m[2] + "-" + String(mi + 1).padStart(2, "0");
+}
+return cycleOf(r.date);
+}
+function recomputeMonths() { for (const r of rows) r.month = payMonth(r); }
+function loadAll() {
+rows = (window.EMB_ROWS || []).map(e => {
+const rec = { type: e.t, date: e.d, amount: e.a, desc: e.ds || "", paidThrough: e.p || "", receipt: !!e.r };
+rec.name = ((e.n || "").trim() || rec.desc.replace(/\s*\[for \d{4}-\d{2}\]\s*/i, "").trim() || "(no name)");
+rec.month = payMonth(rec);
+return rec;
+});
+
+buildNameList(); render(); renderPayroll();
+}
+function allNames() {
+return [...new Set(rows.map(r => r.name))].filter(n => n !== "(no name)").sort();
+}
+function buildNameList() {
+$("empNames").innerHTML = allNames().map(n => `<option value="${esc(n)}">`).join("");
+}
+function dueKey(m) { return "payroll_due_" + m; }
+function actKey(m) { return "payroll_actual_" + m; }
+function dedKey(m) { return "payroll_ded_" + m; }
+function getStore(key) { try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch { return {}; } }
+function getDues(m) { return getStore(dueKey(m)); }
+function getActuals(m) { return getStore(actKey(m)); }
+function getDeds(m) { return getStore(dedKey(m)); }
+function setStore(key, name, val) {
+const d = getStore(key);
+if (val === "" || isNaN(val)) delete d[name]; else d[name] = Number(val);
+localStorage.setItem(key, JSON.stringify(d));
+}
+function setDue(m, name, val) { setStore(dueKey(m), name, val); }
+function setActual(m, name, val) { setStore(actKey(m), name, val); }
+function setDed(m, name, val) { setStore(dedKey(m), name, val); }
+function periodKey() {
+if ($("pMode").value === "range") {
+const f = $("pFrom").value, t = $("pTo").value;
+return (f && t && f <= t) ? "R:" + f + ":" + t : "";
+}
+return $("mSel").value;
+}
+function parseKey(k) {
+if (k.slice(0, 2) === "R:") { const p = k.split(":"); return { range: true, from: p[1], to: p[2] }; }
+return { range: false, month: k };
+}
+function inPeriod(r, k) {
+const p = parseKey(k);
+return p.range ? (r.date >= p.from && r.date <= p.to) : (r.month === k);
+}
+function periodLabel(k) {
+const p = parseKey(k);
+const f = d => new Date(d + "T00:00:00").toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"});
+return p.range ? f(p.from) + " – " + f(p.to) : cycleRange(k);
+}
+function paidForPeriod(name, k) {
+let s = 0;
+for (const r of rows) if (r.type === "salary" && r.name === name && inPeriod(r, k)) s += r.amount;
+return s;
+}
+function empStatus() { try { return JSON.parse(localStorage.getItem("emp_status") || "{}"); } catch { return {}; } }
+function isActive(n) { return empStatus()[n] !== "inactive"; }
+function toggleStatus(n) {
+const s = empStatus();
+if (s[n] === "inactive") delete s[n]; else s[n] = "inactive";
+localStorage.setItem("emp_status", JSON.stringify(s));
+}
+function storedPeriods() {
+const out = new Set();
+for (let i = 0; i < localStorage.length; i++) {
+const m = localStorage.key(i).match(/^payroll_(?:due|actual|ded)_(.+)$/);
+if (m) out.add(m[1]);
+}
+return [...out];
+}
+function zohoPaidMap() {
+const map = {};
+for (const r of rows) if (r.type === "salary") {
+(map[r.name] = map[r.name] || {})[r.month] = (map[r.name][r.month] || 0) + r.amount;
+}
+return map;
+}
+function dedFor(name, k) {
+const stored = getDeds(k)[name];
+if (stored !== undefined) return stored;
+const due = getDues(k)[name];
+if (due === undefined) return 0;
+const act = getActuals(k)[name];
+const paid = act !== undefined ? act : paidForPeriod(name, k);
+return Math.max(0, due - paid);
+}
+function totalDedLocal(name) {
+let s = 0;
+for (const k of storedPeriods()) s += dedFor(name, k);
+return s;
+}
+function prevMonth(m) {
+const [y, mo] = m.split("-").map(Number);
+const dt = new Date(y, mo - 2, 1);
+return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0");
+}
+function renderPayroll() {
+const m = periodKey();
+const rangeMode = $("pMode").value === "range";
+if (!m) {
+$("cycleLabel").textContent = "Pick a start and end date.";
+$("pBody").innerHTML = `<tr><td colspan="9" style="text-align:center;color:#9ca3af">Choose a From and To date above</td></tr>`;
+return;
+}
+$("cycleLabel").textContent = rangeMode
+? `Custom period: ${periodLabel(m)} — every entry dated in this window counts here. Figures you type are saved against this exact date range.`
+: `Payroll cycle for ${m}: ${cycleRange(m)} — entries dated in this window count here (a note naming a month, e.g. "Feb 2026 salary", always wins).`;
+const dues = getDues(m);
+const acts = getActuals(m);
+const q = $("pq").value.trim().toLowerCase();
+const agg = {};
+const advAll = {};
+for (const r of rows) {
+if (r.type === "advance") advAll[r.name] = (advAll[r.name] || 0) + r.amount;
+if (!inPeriod(r, m)) continue;
+const a = agg[r.name] || (agg[r.name] = { paid: 0, adv: 0, dedRec: 0, ps: {}, as: {} });
+const md = mode(r);
+if (r.type === "salary") { a.paid += r.amount; a.ps[md] = (a.ps[md] || 0) + r.amount; }
+else { a.adv += r.amount; a.as[md] = (a.as[md] || 0) + r.amount; if (r.amount < 0) a.dedRec += -r.amount; }
+}
+let names = $("showAll").checked
+? [...new Set([...allNames(), ...Object.keys(dues), ...Object.keys(acts)])]
+: [...new Set([...Object.keys(agg), ...Object.keys(dues), ...Object.keys(acts)])];
+if (q) names = names.filter(n => n.toLowerCase().includes(q));
+const sf = $("stFilter").value;
+if (sf === "active") names = names.filter(n => isActive(n));
+else if (sf === "inactive") names = names.filter(n => !isActive(n));
+names.sort((a, b) => {
+const ta = (dues[a] || 0) + ((agg[a] || {}).paid || 0), tb = (dues[b] || 0) + ((agg[b] || {}).paid || 0);
+return tb - ta || a.localeCompare(b);
+});
+const deds = getDeds(m);
+let tDue = 0, tAct = 0, tDed = 0, tAdv = 0, tAdvAll = 0, tZoho = 0, html = "";
+const tPS = {}, tAS = {};
+for (const n of names) {
+const a = agg[n] || { paid: 0, adv: 0, ps: {}, as: {} };
+for (const k in a.ps) tPS[k] = (tPS[k] || 0) + a.ps[k];
+for (const k in a.as) tAS[k] = (tAS[k] || 0) + a.as[k];
+const due = dues[n];
+const act = acts[n];
+const hasDue = due !== undefined;
+const hasAct = act !== undefined;
+const effPaid = hasAct ? act : a.paid;                 // actual salary: manual entry, else Zoho
+const dedStored = deds[n];
+const dedAuto = hasDue ? Math.max(0, due - effPaid) : 0;
+const ded = dedStored !== undefined ? dedStored : dedAuto;
+const unpaid = hasDue ? due - effPaid - ded : 0;        // shortfall not covered by deduction
+const outstanding = (advAll[n] || 0) - totalDedLocal(n);
+tDue += due || 0; tZoho += a.paid; tAct += effPaid; tDed += ded;
+tAdv += a.adv; tAdvAll += outstanding;
+const actv = isActive(n);
+html += `<tr class="emp ${actv ? "" : "inact"}" data-n="${esc(n)}">
+<td>${esc(n)}</td>
+<td><button class="st ${actv ? "on" : "off"}" data-s="${esc(n)}" title="Click to change">${actv ? "Active" : "Inactive"}</button></td>
+<td><input class="due-in ${hasDue ? "set" : ""}" data-k="due" data-n="${esc(n)}" type="number" min="0" step="1" value="${hasDue ? due : ""}" placeholder="set due"></td>
+<td class="c-green">${fmt(a.paid)}${a.paid ? `<div class="split">${splitTxt(a.ps)}</div>` : ""}</td>
+<td><input class="due-in ${hasAct ? "set" : ""}" data-k="act" data-n="${esc(n)}" type="number" min="0" step="1" value="${hasAct ? act : ""}" placeholder="${a.paid ? fmt(a.paid).replace("₹","") : "enter"}"></td>
+<td><input class="due-in ${dedStored !== undefined ? "set" : ""}" data-k="ded" data-n="${esc(n)}" type="number" step="1" value="${ded || ""}" placeholder="0">${unpaid > 0 ? `<div class="split c-red">unpaid ${fmt(unpaid)}</div>` : ""}</td>
+<td class="c-amber">${fmt(a.adv)}${a.adv ? `<div class="split">${splitTxt(a.as)}</div>` : ""}</td>
+<td class="${outstanding < 0 ? "neg" : "c-amber"}">${fmt(outstanding)}${totalDedLocal(n) ? `<div class="split">Zoho ${fmt(advAll[n] || 0)} − ded ${fmt(totalDedLocal(n))}</div>` : ""}</td>
+<td><button class="view-btn" data-n="${esc(n)}">View</button></td></tr>`;
+}
+html += `<tr class="total-row"><td>TOTAL (${names.length})</td><td></td><td>${fmt(tDue)}</td>
+<td>${fmt(tZoho)}<div class="split">${splitTxt(tPS)}</div></td>
+<td>${fmt(tAct)}</td><td>${fmt(tDed)}</td>
+<td>${fmt(tAdv)}<div class="split">${splitTxt(tAS)}</div></td>
+<td>${fmt(tAdvAll)}</td><td></td></tr>`;
+$("pBody").innerHTML = html;
+$("kDue").textContent = fmt(tDue); $("kPaid").textContent = fmt(tAct);
+$("kPaidSplit").innerHTML = splitTxt(tPS);
+$("kAdvSplit").innerHTML = splitTxt(tAS);
+$("kDed").textContent = fmt(tDed); $("kAdv").textContent = fmt(tAdv); $("kAdvAll").textContent = fmt(tAdvAll);
+$("pBody").querySelectorAll("input.due-in").forEach(inp => {
+inp.addEventListener("click", e => e.stopPropagation());
+inp.addEventListener("change", () => {
+const mm = periodKey(), n = inp.dataset.n;
+if (inp.dataset.k === "due") setDue(mm, n, inp.value);
+else if (inp.dataset.k === "act") setActual(mm, n, inp.value);
+else setDed(mm, n, inp.value);
+renderPayroll();
+});
+});
+$("pBody").querySelectorAll("button.st").forEach(b =>
+b.addEventListener("click", e => { e.stopPropagation(); toggleStatus(b.dataset.s); renderPayroll(); }));
+$("pBody").querySelectorAll("button.view-btn").forEach(b =>
+b.addEventListener("click", e => { e.stopPropagation(); openDetail(b.dataset.n); }));
+$("pBody").querySelectorAll("tr.emp").forEach(tr =>
+tr.addEventListener("click", e => { if (e.target.tagName !== "INPUT" && e.target.tagName !== "BUTTON") openDetail(tr.dataset.n); }));
+}
+$("mSel").value = cycleOf(new Date().toISOString().slice(0, 10));
+$("cutDay").value = getCutDay();
+(() => { const b = cycleBounds($("mSel").value); $("pFrom").value = b[0]; $("pTo").value = b[1]; })();
+function syncMode() {
+const r = $("pMode").value === "range";
+$("mBox").style.display = r ? "none" : "";
+$("cBox").style.display = r ? "none" : "";
+$("fBox").style.display = r ? "" : "none";
+$("tBox").style.display = r ? "" : "none";
+$("copyPrev").style.display = r ? "none" : "";
+}
+syncMode();
+$("pMode").addEventListener("change", () => { syncMode(); renderPayroll(); });
+$("pFrom").addEventListener("change", renderPayroll);
+$("pTo").addEventListener("change", renderPayroll);
+$("cutDay").addEventListener("change", () => {
+let v = parseInt($("cutDay").value, 10);
+if (!(v >= 1 && v <= 28)) { v = 14; $("cutDay").value = 14; }
+localStorage.setItem("payroll_cut_day", String(v));
+recomputeMonths(); renderPayroll();
+$("status").className = "ok";
+$("status").textContent = `Payroll cycle now runs from day ${v} to day ${v === 1 ? 31 : v - 1} of the next month.`;
+});
+$("mSel").addEventListener("change", renderPayroll);
+$("pq").addEventListener("input", renderPayroll);
+$("showAll").addEventListener("change", renderPayroll);
+$("stFilter").addEventListener("change", renderPayroll);
+$("copyPrev").addEventListener("click", () => {
+const m = $("mSel").value, pm = prevMonth(m);
+const prev = getDues(pm), cur = getDues(m);
+let n = 0;
+for (const k in prev) if (cur[k] === undefined) { cur[k] = prev[k]; n++; }
+localStorage.setItem(dueKey(m), JSON.stringify(cur));
+renderPayroll();
+$("status").className = "ok";
+$("status").textContent = `Copied ${n} salary-due amounts from ${pm}.`;
+});
+function filtered() {
+const q = $("q").value.trim().toLowerCase();
+const f = $("dFrom").value, t = $("dTo").value;
+return rows.filter(r =>
+(!q || r.name.toLowerCase().includes(q)) &&
+(!f || r.date >= f) && (!t || r.date <= t));
+}
+function render() {
+const agg = {};
+const tSS = {}, tAS2 = {};
+for (const r of filtered()) {
+const a = agg[r.name] || (agg[r.name] = { name: r.name, sal: 0, adv: 0, n: 0, ss: {}, as: {} });
+const md = mode(r);
+if (r.type === "salary") { a.sal += r.amount; a.ss[md] = (a.ss[md] || 0) + r.amount; tSS[md] = (tSS[md] || 0) + r.amount; }
+else { a.adv += r.amount; a.as[md] = (a.as[md] || 0) + r.amount; tAS2[md] = (tAS2[md] || 0) + r.amount; }
+a.n++;
+}
+let list = Object.values(agg);
+for (const a of list) a.tot = a.sal + a.adv;
+list.sort((x, y) => (sortKey === "name" ? x.name.localeCompare(y.name) : x[sortKey] - y[sortKey]) * sortDir);
+let tS = 0, tA = 0, html = "";
+for (const a of list) {
+tS += a.sal; tA += a.adv;
+html += `<tr class="emp" data-n="${esc(a.name)}">
+<td>${esc(a.name)}</td>
+<td>${fmt(a.sal)}${a.sal ? `<div class="split">${splitTxt(a.ss)}</div>` : ""}</td>
+<td class="${a.adv < 0 ? "neg" : ""}">${fmt(a.adv)}${a.adv ? `<div class="split">${splitTxt(a.as)}</div>` : ""}</td>
+<td><b>${fmt(a.tot)}</b></td><td>${a.n}</td>
+<td><button class="view-btn" data-n="${esc(a.name)}">View</button></td></tr>`;
+}
+html += `<tr class="total-row"><td>TOTAL (${list.length} employees)</td>
+<td>${fmt(tS)}<div class="split">${splitTxt(tSS)}</div></td>
+<td>${fmt(tA)}<div class="split">${splitTxt(tAS2)}</div></td>
+<td>${fmt(tS + tA)}</td><td></td><td></td></tr>`;
+$("tbody").innerHTML = html;
+$("cSal").textContent = fmt(tS); $("cAdv").textContent = fmt(tA);
+$("cSalSplit").innerHTML = splitTxt(tSS); $("cAdvSplit").innerHTML = splitTxt(tAS2);
+$("cTot").textContent = fmt(tS + tA); $("cEmp").textContent = list.length;
+$("tbody").querySelectorAll("button.view-btn").forEach(b =>
+b.addEventListener("click", e => { e.stopPropagation(); openDetail(b.dataset.n); }));
+$("tbody").querySelectorAll("tr.emp").forEach(tr =>
+tr.addEventListener("click", e => { if (e.target.tagName !== "BUTTON") openDetail(tr.dataset.n); }));
+}
+function empItems() {
+let items = rows.filter(r => r.name === pEmp);
+if (pType !== "all") items = items.filter(r => r.type === pType);
+const s = $("pSort").value;
+items.sort((a, b) => s === "old" ? a.date.localeCompare(b.date)
+: s === "big" ? b.amount - a.amount
+: b.date.localeCompare(a.date));
+return items;
+}
+function openDetail(name) { pEmp = name; $("pName").textContent = name; renderDetail(); $("overlay").classList.add("open"); }
+function renderDetail() {
+const all = rows.filter(r => r.name === pEmp);
+const sal = all.filter(r => r.type === "salary").reduce((s, r) => s + r.amount, 0);
+const adv = all.filter(r => r.type === "advance").reduce((s, r) => s + r.amount, 0);
+const dates = all.map(r => r.date).sort();
+const ms = {};
+for (const r of all) { const md = mode(r); ms[md] = (ms[md] || 0) + r.amount; }
+$("panelStats").innerHTML = `
+<div class="pstat">Salary <b class="c-blue">${fmt2(sal)}</b></div>
+<div class="pstat">Advance (net) <b class="c-amber">${fmt2(adv)}</b></div>
+<div class="pstat">Total <b class="c-green">${fmt2(sal + adv)}</b></div>
+<div class="pstat">💵 Cash <b>${fmt2(ms.cash || 0)}</b></div>
+<div class="pstat">🏦 Online <b>${fmt2(ms.online || 0)}</b></div>
+${ms.other ? `<div class="pstat">👤 Partner a/c <b>${fmt2(ms.other)}</b></div>` : ""}
+<div class="pstat">Entries <b>${all.length}</b></div>
+<div class="pstat">First <b>${dates[0] || "—"}</b></div>
+<div class="pstat">Last <b>${dates[dates.length - 1] || "—"}</b></div>`;
+const items = empItems();
+$("pCount").textContent = `${items.length} transaction${items.length === 1 ? "" : "s"} shown`;
+let run = 0;
+const chron = items.slice().sort((a, b) => a.date.localeCompare(b.date));
+const runMap = new Map();
+for (const it of chron) { run += it.amount; runMap.set(it, run); }
+let html = `<table><thead><tr>
+<th>Date</th><th>Month</th><th>Type</th><th>Note</th><th>Paid through</th><th>Receipt</th><th>Amount</th><th>Running total</th>
+</tr></thead><tbody>`;
+for (const it of items) {
+html += `<tr>
+<td style="text-align:left">${it.date}</td>
+<td style="text-align:left">${it.month}</td>
+<td style="text-align:left"><span class="badge ${it.type === "salary" ? "sal" : "adv"}">${it.type}</span></td>
+<td class="wrap">${esc(it.desc || "—")}</td>
+<td style="text-align:left">${esc(it.paidThrough || "—")}</td>
+<td style="text-align:center">${it.receipt ? "📎" : ""}</td>
+<td class="${it.amount < 0 ? "neg" : ""}"><b>${fmt2(it.amount)}</b></td>
+<td>${fmt2(runMap.get(it))}</td></tr>`;
+}
+html += `</tbody></table>`;
+$("panelBody").innerHTML = html;
+}
+$("closeBtn").addEventListener("click", () => { $("overlay").classList.remove("open"); pEmp = null; });
+$("overlay").addEventListener("click", e => { if (e.target === $("overlay")) { $("overlay").classList.remove("open"); pEmp = null; } });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { $("overlay").classList.remove("open"); pEmp = null; } });
+$("pSort").addEventListener("change", renderDetail);
+$("pSeg").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+pType = b.dataset.t;
+$("pSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+renderDetail();
+}));
+$("pCsv").addEventListener("click", () => {
+const items = empItems();
+const lines = ["Date,Month,Type,Note,Paid Through,Amount"];
+for (const it of items)
+lines.push([it.date, it.month, it.type, '"' + (it.desc || "").replace(/"/g, '""') + '"', '"' + it.paidThrough + '"', it.amount].join(","));
+const a = document.createElement("a");
+a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(lines.join("\n"));
+a.download = pEmp.replace(/[^\w]+/g, "_") + "_salary_advance.csv";
+a.click();
+});
+const PART = {
+Ganesh: { id: "2826739000000032366" },
+Sagar:  { id: "2826739000000032360" }
+};
+let partLoaded = false;
+function getLedger() { try { return JSON.parse(localStorage.getItem("partner_ledger") || "[]"); } catch { return []; } }
+function saveLedger(l) { localStorage.setItem("partner_ledger", JSON.stringify(l)); }
+function renderLedger() {
+const led = getLedger().sort((a, b) => b.date.localeCompare(a.date));
+const t = { Ganesh: { inv: 0, wd: 0 }, Sagar: { inv: 0, wd: 0 } };
+let html = "";
+led.forEach((e, i) => {
+if (t[e.partner]) t[e.partner][e.type === "investment" ? "inv" : "wd"] += e.amount;
+html += `<tr>
+<td style="text-align:left">${e.date}</td>
+<td style="text-align:left">${esc(e.partner)}</td>
+<td style="text-align:left"><span class="badge ${e.type === "investment" ? "sal" : "adv"}">${e.type}</span></td>
+<td style="text-align:left;white-space:normal">${esc(e.note || "—")}</td>
+<td><b>${fmt(e.amount)}</b></td>
+<td><button class="view-btn" data-i="${i}" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b">Delete</button></td></tr>`;
+});
+if (!led.length) html = `<tr><td colspan="6" style="text-align:center;color:#9ca3af">No entries yet — add investments and withdrawals above</td></tr>`;
+$("ptBody").innerHTML = html;
+$("ptBody").querySelectorAll("button[data-i]").forEach(b => b.addEventListener("click", () => {
+const led2 = getLedger().sort((a, b) => b.date.localeCompare(a.date));
+if (!confirm(`Delete this entry? ${led2[b.dataset.i].partner} ${led2[b.dataset.i].type} ${fmt(led2[b.dataset.i].amount)}`)) return;
+led2.splice(b.dataset.i, 1); saveLedger(led2); renderLedger();
+}));
+const gNet = t.Ganesh.wd - t.Ganesh.inv, sNet = t.Sagar.wd - t.Sagar.inv;
+const d = gNet - sNet;
+$("ptSummary").innerHTML = `
+<div class="card"><div class="label">Ganesh — invested / withdrawn</div><div class="value" style="font-size:14px"><span class="c-green">${fmt(t.Ganesh.inv)}</span> / <span class="c-red">${fmt(t.Ganesh.wd)}</span></div><div class="split">net taken: ${fmt(gNet)}</div></div>
+<div class="card"><div class="label">Sagar — invested / withdrawn</div><div class="value" style="font-size:14px"><span class="c-green">${fmt(t.Sagar.inv)}</span> / <span class="c-red">${fmt(t.Sagar.wd)}</span></div><div class="split">net taken: ${fmt(sNet)}</div></div>
+<div class="card"><div class="label">50-50 check (tool ledger)</div><div class="value ${d === 0 ? "c-green" : "c-red"}" style="font-size:14px">${d === 0 ? "✓ Equal" : (d > 0 ? "Ganesh ahead by " + fmt(d) : "Sagar ahead by " + fmt(-d))}</div>
+<div class="split">${d === 0 ? "both partners are even" : (d > 0 ? "to equalize: Sagar withdraws " + fmt(d) + " more, or Ganesh invests " + fmt(d) : "to equalize: Ganesh withdraws " + fmt(-d) + " more, or Sagar invests " + fmt(-d))}</div></div>`;
+}
+function loadPartners() {
+const gb = window.EMB_BAL.g, sb = window.EMB_BAL.s;
+$("gBal").textContent = fmt(gb); $("sBal").textContent = fmt(sb);
+const d = gb - sb;
+$("gsDiff").textContent = (d >= 0 ? "+" : "\u2212") + fmt(Math.abs(d));
+$("gsDiff").className = "value " + (Math.abs(d) < 1 ? "c-green" : "c-red");
+$("gsHint").textContent = (Math.abs(d) < 1 ? "accounts are equal" : (d > 0 ? "Ganesh's account is higher" : "Sagar's account is higher") + " \u2014 for 50-50, both should match");
+const spent = { Ganesh: 0, Sagar: 0 };
+const zrows = (window.EMB_PART || []).slice();
+for (const z of zrows) spent[z.p] = (spent[z.p] || 0) + z.amt;
+$("gSpent").textContent = fmt(spent.Ganesh); $("sSpent").textContent = fmt(spent.Sagar);
+zrows.sort((a, b) => b.date.localeCompare(a.date));
+$("ptZBody").innerHTML = zrows.length ? zrows.map(z => `<tr><td style="text-align:left">${z.date}</td><td style="text-align:left">${esc(z.p)}</td><td style="text-align:left">${esc(z.head)}</td><td style="text-align:left;white-space:normal">${esc(z.desc)}</td><td><b>${fmt(z.amt)}</b></td></tr>`).join("") : `<tr><td colspan="5" style="text-align:center;color:#9ca3af">No expenses paid through partner accounts</td></tr>`;
+partLoaded = true;
+}
+$("ptDate").value = new Date().toISOString().slice(0, 10);
+$("ptAdd").addEventListener("click", () => {
+const amt = parseFloat($("ptAmt").value);
+if (!amt || amt <= 0) return alert("Enter a valid amount");
+if (!$("ptDate").value) return alert("Pick a date");
+const led = getLedger();
+led.push({ partner: $("ptPartner").value, type: $("ptType").value, amount: amt, date: $("ptDate").value, note: $("ptNote").value.trim() });
+saveLedger(led);
+$("ptAmt").value = ""; $("ptNote").value = "";
+renderLedger();
+});
+// ---- CSV export: works off whatever the table is showing, filters included ----
+function csvCell(v) {
+const s = String(v == null ? "" : v).replace(/ /g, " ").replace(/\s+/g, " ").trim();
+return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function tableToCsv(table) {
+const lines = [];
+for (const tr of table.querySelectorAll("tr")) {
+const cells = [...tr.children].map(td => {
+const inp = td.querySelector("input");
+return csvCell(inp ? inp.value : td.innerText);
+});
+if (cells.some(c => c !== "")) lines.push(cells.join(","));
+}
+return lines.join("\r\n");
+}
+function downloadCsv(name, csv, title) {
+const d = new Date();
+const stamp = d.toISOString().slice(0, 10);
+const when = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) +
+" " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+const head = "The Balaji Industries\r\n" + csvCell(title || name) + "\r\nExported," + csvCell(when) + "\r\n\r\n";
+const blob = new Blob(["﻿" + head + csv], { type: "text/csv;charset=utf-8" });
+const a = document.createElement("a");
+a.href = URL.createObjectURL(blob);
+a.download = "balaji-" + name + "-" + stamp + ".csv";
+document.body.appendChild(a); a.click();
+setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+}
+document.addEventListener("click", e => {
+const b = e.target.closest("[data-export]");
+if (!b) return;
+const body = document.getElementById(b.dataset.export);
+const table = body && body.closest("table");
+if (!table) return;
+const rows = table.querySelectorAll("tbody tr").length;
+if (!rows || table.querySelector("tbody td[colspan]")) { alert("Nothing to export yet — load the report first."); return; }
+const rh = b.closest(".rh"), h = rh && rh.querySelector("h1");
+downloadCsv(b.dataset.name || b.dataset.export, tableToCsv(table), h ? h.textContent.trim() : b.dataset.name);
+});
+function apiUrl(params) {
+const u = new URL(window.CFG.url);
+for (const k in params) u.searchParams.set(k, params[k]);
+return u;
+}
+const PER_PAGE = 32, CONCURRENCY = 6, CACHE_MS = 15 * 60 * 1000;
+const memCache = new Map();
+function cacheGet(k) {
+const v = memCache.get(k);
+if (v && Date.now() - v.t < CACHE_MS) return v.rows;
+memCache.delete(k);
+return null;
+}
+function cacheSet(k, rows) { memCache.set(k, { t: Date.now(), rows: rows }); }
+async function fetchPage(params, page) {
+const r = await fetch(apiUrl(Object.assign({}, params, { page: page })), { headers: { "x-app-key": window.CFG.key } });
+if (!r.ok && r.status !== 500) throw new Error("Data service returned " + r.status);
+const d = await r.json();
+if (d.error) throw new Error(d.error);
+return d;
+}
+// Page 1 tells us how many pages exist, so the rest are fetched in parallel
+// batches instead of one after another.
+async function fetchAll(params, msgEl, label, force) {
+const ck = JSON.stringify(params);
+if (!force) { const hit = cacheGet(ck); if (hit) { if (msgEl) msgEl.textContent = hit.length + " " + label + " lines (from cache)"; return hit; } }
+const t0 = Date.now();
+if (msgEl) msgEl.textContent = "Loading " + label + "...";
+const first = await fetchPage(params, 1);
+const rows = (first.rows || []).slice();
+const pages = first.more ? Math.max(1, Math.min(40, Math.ceil((first.total || 0) / PER_PAGE))) : 1;
+if (pages > 1) {
+const nums = [];
+for (let p = 2; p <= pages; p++) nums.push(p);
+for (let i = 0; i < nums.length; i += CONCURRENCY) {
+const batch = nums.slice(i, i + CONCURRENCY);
+const res = await Promise.all(batch.map(p => fetchPage(params, p).catch(() => ({ rows: [] }))));
+for (const d of res) rows.push.apply(rows, d.rows || []);
+if (msgEl) msgEl.textContent = "Loading " + label + "... page " + Math.min(pages, i + 1 + batch.length) + " of " + pages + ", " + rows.length + " lines";
+}
+}
+cacheSet(ck, rows);
+if (msgEl) msgEl.dataset.secs = ((Date.now() - t0) / 1000).toFixed(1);
+return rows;
+}
+function monthBounds(m) {
+const [y, mo] = m.split("-").map(Number);
+const last = new Date(y, mo, 0).getDate();
+return [m + "-01", m + "-" + String(last).padStart(2, "0")];
+}
+const lineKg = r => (r.wt || 0) * (r.q || 0);
+let dispRows = [];
+async function loadDispatch() {
+const msg = $("dMsg"), mode = $("dMode").value;
+let from, to;
+if (mode === "day") { from = to = $("dDay").value; }
+else { if (!$("dMon").value) { msg.textContent = "Pick a month first."; return; } const b = monthBounds($("dMon").value); from = b[0]; to = b[1]; }
+if (!from || !to) { msg.textContent = "Pick a date first."; return; }
+try {
+dispRows = await fetchAll({ disp: 1, from: from, to: to }, msg, "dispatch");
+renderDispatch(mode, from, to);
+msg.textContent = dispRows.length + " dispatch line" + (dispRows.length === 1 ? "" : "s") + " — " + (mode === "day" ? from : from + " to " + to) + (msg.dataset.secs ? " (" + msg.dataset.secs + "s)" : "");
+} catch (e) { msg.className = "muted"; msg.textContent = "Could not load dispatch: " + e.message; }
+}
+function renderDispatch(mode, from, to) {
+let tkg = 0, tpc = 0, tval = 0;
+for (const r of dispRows) { tkg += lineKg(r); tpc += r.q || 0; tval += r.amt || 0; }
+$("dKg").textContent = fmtKg(tkg); $("dPc").textContent = num(tpc); $("dVal").textContent = fmt(tval);
+let h = "";
+if (mode === "day") {
+$("dTitle").textContent = "Dispatched on " + from;
+$("dHead").innerHTML = `<tr><th>Invoice</th><th>Inv. date</th><th>PO</th><th>Part</th><th>Name</th><th>Material</th><th>Process</th><th>Qty</th><th>Wt/pc</th><th>Total kg</th><th>Value</th></tr>`;
+const sorted = dispRows.slice().sort((a, b) => String(a.inv).localeCompare(String(b.inv)));
+for (const r of sorted) {
+const idc = (r.idate && r.idate !== r.date) ? `<td style="color:#b45309">${esc(r.idate)}</td>` : `<td class="muted">${esc(r.idate || r.date)}</td>`;
+h += `<tr><td>${esc(r.inv)}</td>${idc}<td style="text-align:left">${esc(r.po)}</td><td style="text-align:left">${esc(r.pn)}</td><td style="text-align:left">${esc(r.nm)}</td><td style="text-align:left">${esc(r.mat)}</td><td style="text-align:left">${esc(r.pr)}</td><td>${num(r.q)}</td><td>${(r.wt || 0).toFixed(2)}</td><td><b>${fmtKg(lineKg(r))}</b></td><td>${fmt(r.amt)}</td></tr>`;
+}
+if (!dispRows.length) h = `<tr><td colspan="11" style="text-align:center;color:#9ca3af">Nothing dispatched on this date</td></tr>`;
+else h += `<tr class="total-row"><td>TOTAL</td><td></td><td></td><td></td><td></td><td></td><td></td><td>${num(tpc)}</td><td></td><td>${fmtKg(tkg)}</td><td>${fmt(tval)}</td></tr>`;
+} else {
+$("dTitle").textContent = "Daily totals — " + from + " to " + to;
+$("dHead").innerHTML = `<tr><th>Date</th><th>Invoices</th><th>Lines</th><th>Pieces</th><th>Total kg</th><th>Value</th></tr>`;
+const byDay = {};
+for (const r of dispRows) {
+const d = byDay[r.date] || (byDay[r.date] = { inv: {}, n: 0, q: 0, kg: 0, amt: 0 });
+d.inv[r.inv] = 1; d.n++; d.q += r.q || 0; d.kg += lineKg(r); d.amt += r.amt || 0;
+}
+for (const d of Object.keys(byDay).sort()) {
+const v = byDay[d];
+h += `<tr><td>${d}</td><td>${Object.keys(v.inv).length}</td><td>${v.n}</td><td>${num(v.q)}</td><td><b>${fmtKg(v.kg)}</b></td><td>${fmt(v.amt)}</td></tr>`;
+}
+if (!dispRows.length) h = `<tr><td colspan="6" style="text-align:center;color:#9ca3af">Nothing dispatched in this month</td></tr>`;
+else h += `<tr class="total-row"><td>TOTAL (${Object.keys(byDay).length} days)</td><td></td><td>${dispRows.length}</td><td>${num(tpc)}</td><td>${fmtKg(tkg)}</td><td>${fmt(tval)}</td></tr>`;
+}
+$("dBody").innerHTML = h;
+}
+async function loadStock() {
+const msg = $("dMsg");
+try {
+const rows = await fetchAll({ pend: 1 }, msg, "stock");
+rows.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+let tkg = 0, tpc = 0, h = "";
+for (const r of rows) {
+const pk = (r.wt || 0) * (r.rem || 0);
+tkg += pk; tpc += r.rem || 0;
+h += `<tr><td>${esc(r.po)}</td><td style="text-align:left">${r.date}</td><td style="text-align:left">${esc(r.pn)}</td><td style="text-align:left">${esc(r.nm)}</td><td style="text-align:left">${esc(r.mat)}</td><td>${num(r.q)}</td><td>${num(r.qi)}</td><td><b>${num(r.rem)}</b></td><td>${(r.wt || 0).toFixed(2)}</td><td><b>${fmtKg(pk)}</b></td></tr>`;
+}
+if (!rows.length) h = `<tr><td colspan="10" style="text-align:center;color:#9ca3af">Nothing pending — everything ordered has been dispatched</td></tr>`;
+else h += `<tr class="total-row"><td>TOTAL (${rows.length} lines)</td><td></td><td></td><td></td><td></td><td></td><td></td><td>${num(tpc)}</td><td></td><td>${fmtKg(tkg)}</td></tr>`;
+$("sBody").innerHTML = h;
+$("sKg").textContent = fmtKg(tkg);
+$("sPc").textContent = num(tpc) + " pieces · " + rows.length + " lines";
+msg.textContent = "Stock in shop: " + fmtKg(tkg) + " across " + rows.length + " part lines." + (msg.dataset.secs ? " (" + msg.dataset.secs + "s)" : "");
+} catch (e) { msg.textContent = "Could not load stock: " + e.message; }
+}
+$("dMode").addEventListener("change", () => {
+const m = $("dMode").value === "month";
+$("dDayBox").style.display = m ? "none" : "";
+$("dMonBox").style.display = m ? "" : "none";
+});
+let pwRows = null;
+async function loadPartnerWithdrawals() {
+const msg = $("pwMsg");
+msg.textContent = "Loading from Zoho Books...";
+try {
+const t0 = Date.now();
+const r = await fetch(apiUrl({ pw: 1 }), { headers: { "x-app-key": window.CFG.key } });
+if (!r.ok && r.status !== 500) throw new Error("Data service returned " + r.status);
+const d = await r.json();
+if (d.error) throw new Error(d.error);
+pwRows = d.rows || [];
+msg.dataset.secs = ((Date.now() - t0) / 1000).toFixed(1);
+renderWithdrawals();
+} catch (e) { msg.textContent = "Could not load: " + e.message; }
+}
+function renderWithdrawals() {
+const msg = $("pwMsg");
+if (!pwRows) return;
+const from = $("pwFrom").value, to = $("pwTo").value;
+const rows = pwRows.filter(e => (!from || e.date >= from) && (!to || e.date <= to));
+const t = { Ganesh: 0, Sagar: 0 };
+let h = "";
+for (const e of rows) {
+const wd = e.kind === "withdrawal";
+if (wd && t[e.p] !== undefined) t[e.p] += e.amt || 0;
+h += `<tr><td>${esc(e.date)}</td><td style="text-align:left">${esc(e.p)}</td>` +
+`<td><span class="${wd ? "c-red" : "c-green"}">${wd ? "Withdrawal" : "Investment"}</span></td>` +
+`<td style="text-align:left">${esc(e.src)}</td><td style="text-align:left">${esc(e.desc)}</td>` +
+`<td style="text-align:left">${esc(e.via)}</td><td><b>${fmt(e.amt)}</b></td></tr>`;
+}
+if (!rows.length) h = `<tr><td colspan="7" style="text-align:center;color:#9ca3af">Nothing in this date range</td></tr>`;
+else h += `<tr class="total-row"><td>TOTAL (${rows.length})</td><td></td><td></td><td></td><td></td><td></td><td>${fmt(t.Ganesh + t.Sagar)}</td></tr>`;
+$("pwBody").innerHTML = h;
+$("gWd").textContent = fmt(t.Ganesh);
+$("sWd").textContent = fmt(t.Sagar);
+const diff = t.Ganesh - t.Sagar;
+$("wdDiff").textContent = diff === 0 ? "Equal" : fmt(Math.abs(diff));
+$("wdDiff").className = "value " + (diff === 0 ? "c-green" : "c-amber");
+$("wdHint").textContent = diff === 0 ? "both partners have taken the same" : (diff > 0 ? "Ganesh has taken more" : "Sagar has taken more");
+const span = (from || to) ? " — " + (from || "start") + " to " + (to || "today") : " — all dates";
+msg.textContent = rows.length + " of " + pwRows.length + " entries" + span + (msg.dataset.secs ? " (" + msg.dataset.secs + "s)" : "");
+}
+function busy(btn, fn) {
+return async function () {
+const b = $(btn), old = b.textContent;
+b.disabled = true; b.textContent = "Loading\u2026";
+try { await fn(); } finally { b.disabled = false; b.textContent = old; }
+};
+}
+function stampPrintMeta() {
+const d = new Date();
+const date = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+const time = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+const on = document.querySelector(".nav button.on");
+const view = on ? on.textContent.trim() : "";
+$("printMeta").innerHTML = "<b>The Balaji Industries</b><br>" + esc(view) + "<br>Printed " + esc(date) + " at " + esc(time);
+}
+showTab("disp");
+window.addEventListener("beforeprint", stampPrintMeta);
+document.getElementById("btnPrint").addEventListener("click", () => { stampPrintMeta(); window.print(); });
+$("pwLoad").addEventListener("click", busy("pwLoad", loadPartnerWithdrawals));
+["pwFrom", "pwTo"].forEach(id => $(id).addEventListener("change", renderWithdrawals));
+$("pwClear").addEventListener("click", () => { $("pwFrom").value = ""; $("pwTo").value = ""; renderWithdrawals(); });
+$("pwThisMonth").addEventListener("click", () => {
+const b = monthBounds(new Date().toISOString().slice(0, 7));
+$("pwFrom").value = b[0]; $("pwTo").value = b[1]; renderWithdrawals();
+});
+$("pwThisYear").addEventListener("click", () => {
+const y = new Date().getFullYear();
+$("pwFrom").value = y + "-01-01"; $("pwTo").value = y + "-12-31"; renderWithdrawals();
+});
+$("dLoad").addEventListener("click", busy("dLoad", loadDispatch));
+$("dStock").addEventListener("click", busy("dStock", loadStock));
+$("dDay").value = new Date().toISOString().slice(0, 10);
+$("dMon").value = new Date().toISOString().slice(0, 7);
+const TAB_TITLES = { pay: "Monthly Payroll", ov: "All-time Overview", part: "Partners", disp: "Dispatch & Stock" };
+const TAB_SUBS = {
+pay: "Salary due, actual paid and advance recovery, month by month",
+ov: "Every salary and advance entry ever recorded, per employee",
+part: "Partner ledger, withdrawals and business expenses paid personally",
+disp: "What left the works, and what is ordered but still in the shop"
+};
+function showTab(which) {
+const tabs = { pay: ["tabPay", "payView"], ov: ["tabOv", "ovView"], part: ["tabPart", "partView"], disp: ["tabDisp", "dispView"] };
+for (const k in tabs) {
+$(tabs[k][0]).classList.toggle("on", k === which);
+$(tabs[k][1]).style.display = k === which ? "" : "none";
+}
+$("pageTitle").textContent = TAB_TITLES[which] || "";
+$("pageSub").textContent = TAB_SUBS[which] || "";
+stampPrintMeta();
+}
+$("tabPay").addEventListener("click", () => showTab("pay"));
+$("tabOv").addEventListener("click", () => showTab("ov"));
+$("tabPart").addEventListener("click", () => { showTab("part"); renderLedger(); if (!partLoaded) loadPartners(); });
+$("tabDisp").addEventListener("click", () => showTab("disp"));
+document.querySelectorAll("#ovView thead th[data-k]").forEach(th => th.addEventListener("click", () => {
+const k = th.dataset.k;
+if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = k === "name" ? 1 : -1; }
+render();
+}));
+["q", "dFrom", "dTo"].forEach(id => $(id).addEventListener("input", render));
+$("clearF").addEventListener("click", () => { $("q").value = $("dFrom").value = $("dTo").value = ""; render(); });
+document.getElementById("btnRefresh").addEventListener("click", async () => {
+const s = document.getElementById("status");
+s.className = ""; s.textContent = "Refreshing from Zoho Books...";
+try { await fetchLive(); } catch (e) { s.className = "err"; s.textContent = "Refresh failed: " + e.message; }
+});</script>
+</body>
+</html>
