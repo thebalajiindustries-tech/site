@@ -4,7 +4,32 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Employee Salary &amp; Advance Manager</title>
-<style>:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#f6f7f9;color:#1a1d21;padding:16px;font-size:14px;}h1{font-size:18px;margin-bottom:2px;}.sub{color:#6b7280;font-size:12px;margin-bottom:12px;}.tabs{display:flex;gap:6px;margin-bottom:14px;}.tabs button{border:1px solid #d1d5db;background:#fff;padding:7px 16px;border-radius:8px;font-weight:600;color:#6b7280;}.tabs button.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;flex:1;min-width:128px;}.card .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;}.card .value{font-size:17px;font-weight:700;margin-top:2px;}.c-blue{color:#1d4ed8;}.c-amber{color:#b45309;}.c-green{color:#047857;}.c-red{color:#b91c1c;}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}input,select,button{font:inherit;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;}input:focus,select:focus{outline:2px solid #93c5fd;border-color:#60a5fa;}button{cursor:pointer;}button.primary{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600;}button.primary:disabled{opacity:.5;cursor:default;}#status{font-size:12px;color:#6b7280;margin-bottom:8px;min-height:16px;}#status.err{color:#b91c1c;}#status.ok{color:#047857;}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;}th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #f1f2f4;white-space:nowrap;}th:first-child,td:first-child{text-align:left;}th{background:#f9fafb;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#6b7280;cursor:pointer;user-select:none;}tr.emp:hover{background:#f0f6ff;cursor:pointer;}tr.total-row td{font-weight:700;background:#f9fafb;}.neg{color:#b91c1c;}.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;}.badge.sal{background:#dbeafe;color:#1d4ed8;}.badge.adv{background:#fef3c7;color:#b45309;}fieldset{border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:12px;margin-bottom:14px;}legend{font-weight:600;padding:0 6px;font-size:13px;}.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}.form-row label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:#6b7280;font-weight:600;}.muted{color:#9ca3af;font-size:11px;margin-top:6px;}.view-btn{font-size:11px;padding:3px 10px;border-radius:6px;background:#eef2ff;border-color:#c7d2fe;color:#3730a3;font-weight:600;}.due-in{width:96px;padding:4px 6px;text-align:right;font-size:13px;}.split{font-size:10px;color:#6b7280;font-weight:400;margin-top:1px;}.due-in.set{background:#eff6ff;border-color:#93c5fd;font-weight:600;}.st{cursor:pointer;font-size:10.5px;padding:3px 10px;border-radius:11px;font-weight:700;border:1px solid;letter-spacing:.02em;}.st.on{background:#dcfce7;color:#166534;border-color:#bbf7d0;}.st.off{background:#f1f5f9;color:#64748b;border-color:#e2e8f0;}tr.inact td{opacity:.62;}#overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;}#overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;}#panel{background:#fff;border-radius:14px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);}#panelHead{padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}#panelHead h2{font-size:16px;flex:1;}#panelStats{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #f1f2f4;}.pstat{background:#f9fafb;border:1px solid #eef0f3;border-radius:8px;padding:6px 12px;font-size:12px;}.pstat b{display:block;font-size:14px;}#panelTools{display:flex;gap:8px;padding:10px 18px;flex-wrap:wrap;align-items:center;}#panelBody{overflow:auto;padding:0 18px 18px;}#panelBody td,#panelBody th{font-size:12.5px;padding:6px 8px;}#panelBody td.wrap{white-space:normal;text-align:left;}.seg{display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;}.seg button{border:0;border-radius:0;padding:5px 12px;font-size:12px;background:#fff;}.seg button.on{background:#1d4ed8;color:#fff;}#closeBtn{background:#f3f4f6;}</style>
+<style>:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#f6f7f9;color:#1a1d21;padding:16px;font-size:14px;}h1{font-size:18px;margin-bottom:2px;}.sub{color:#6b7280;font-size:12px;margin-bottom:12px;}.tabs{display:flex;gap:6px;margin-bottom:14px;}.tabs button{border:1px solid #d1d5db;background:#fff;padding:7px 16px;border-radius:8px;font-weight:600;color:#6b7280;}.tabs button.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;flex:1;min-width:128px;}.card .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;}.card .value{font-size:17px;font-weight:700;margin-top:2px;}.c-blue{color:#1d4ed8;}.c-amber{color:#b45309;}.c-green{color:#047857;}.c-red{color:#b91c1c;}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}input,select,button{font:inherit;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;}input:focus,select:focus{outline:2px solid #93c5fd;border-color:#60a5fa;}button{cursor:pointer;}button.primary{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600;}button.primary:disabled{opacity:.5;cursor:default;}#status{font-size:12px;color:#6b7280;margin-bottom:8px;min-height:16px;}#status.err{color:#b91c1c;}#status.ok{color:#047857;}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;}th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #f1f2f4;white-space:nowrap;}th:first-child,td:first-child{text-align:left;}th{background:#f9fafb;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#6b7280;cursor:pointer;user-select:none;}tr.emp:hover{background:#f0f6ff;cursor:pointer;}tr.total-row td{font-weight:700;background:#f9fafb;}.neg{color:#b91c1c;}.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;}.badge.sal{background:#dbeafe;color:#1d4ed8;}.badge.adv{background:#fef3c7;color:#b45309;}fieldset{border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:12px;margin-bottom:14px;}legend{font-weight:600;padding:0 6px;font-size:13px;}.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}.form-row label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:#6b7280;font-weight:600;}.muted{color:#9ca3af;font-size:11px;margin-top:6px;}.view-btn{font-size:11px;padding:3px 10px;border-radius:6px;background:#eef2ff;border-color:#c7d2fe;color:#3730a3;font-weight:600;}.due-in{width:96px;padding:4px 6px;text-align:right;font-size:13px;}.split{font-size:10px;color:#6b7280;font-weight:400;margin-top:1px;}.due-in.set{background:#eff6ff;border-color:#93c5fd;font-weight:600;}.st{cursor:pointer;font-size:10.5px;padding:3px 10px;border-radius:11px;font-weight:700;border:1px solid;letter-spacing:.02em;}.st.on{background:#dcfce7;color:#166534;border-color:#bbf7d0;}.st.off{background:#f1f5f9;color:#64748b;border-color:#e2e8f0;}tr.inact td{opacity:.62;}#overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;}#overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;}#panel{background:#fff;border-radius:14px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25);}#panelHead{padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}#panelHead h2{font-size:16px;flex:1;}#panelStats{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #f1f2f4;}.pstat{background:#f9fafb;border:1px solid #eef0f3;border-radius:8px;padding:6px 12px;font-size:12px;}.pstat b{display:block;font-size:14px;}#panelTools{display:flex;gap:8px;padding:10px 18px;flex-wrap:wrap;align-items:center;}#panelBody{overflow:auto;padding:0 18px 18px;}#panelBody td,#panelBody th{font-size:12.5px;padding:6px 8px;}#panelBody td.wrap{white-space:normal;text-align:left;}.seg{display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;}.seg button{border:0;border-radius:0;padding:5px 12px;font-size:12px;background:#fff;}.seg button.on{background:#1d4ed8;color:#fff;}#closeBtn{background:#f3f4f6;}
+thead th{position:sticky;top:0;z-index:2;box-shadow:inset 0 -1px 0 #e5e7eb;}
+tbody tr:nth-child(even){background:#fcfcfd;}
+tbody tr:hover{background:#f5f8ff;}
+tbody tr.total-row:hover{background:#f9fafb;}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;}
+.rh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 6px;}
+.rh h1{margin:0;font-size:15px;}
+.rh .sp{flex:1;}
+.exp{font-size:11px;padding:4px 11px;border-radius:6px;background:#f0fdf4;border-color:#bbf7d0;color:#166534;font-weight:600;}
+.exp:hover{background:#dcfce7;}
+.skel{opacity:.55;}
+@media(max-width:820px){
+body{padding:10px;}
+.tabs{overflow-x:auto;}
+.card{min-width:44%;}
+table{display:block;overflow-x:auto;}
+}
+@media print{
+.tabs,.toolbar,fieldset,button,#status,.muted{display:none!important;}
+body{padding:0;background:#fff;font-size:11px;}
+.card{break-inside:avoid;}
+table{border:1px solid #999;}
+thead th{position:static;background:#eee;}
+tbody tr:nth-child(even){background:#fff;}
+}</style>
 <script src="data.js"></script>
 </head>
 <body>
@@ -15,6 +40,7 @@
 <button id="tabPay">Monthly Payroll</button>
 <button id="tabOv">All-time Overview</button>
 <button id="tabPart">Partners</button>
+<button id="btnPrint" title="Print or save the current view as PDF">&#128438; Print</button>
 <button id="btnRefresh" title="Fetch the latest data from Zoho Books">↻ Refresh</button>
 </div>
 <!-- ============ MONTHLY PAYROLL ============ -->
@@ -42,6 +68,7 @@
 <div class="card"><div class="label">Advance Given (month)</div><div class="value c-amber" id="kAdv">–</div><div class="split" id="kAdvSplit"></div></div>
 <div class="card"><div class="label">Advance Outstanding (after deductions)</div><div class="value c-amber" id="kAdvAll">–</div></div>
 </div>
+<div class="rh"><h1>Monthly payroll</h1><div class="sp"></div><button class="exp" data-export="pBody" data-name="payroll">&#8681; Export CSV</button></div>
 <table>
 <thead><tr>
 <th>Employee</th>
@@ -89,6 +116,7 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <div class="muted">These entries are saved in this tool only (not written to Zoho Books). Use them to track the 50-50 balance between partners.</div>
 </fieldset>
 <div class="cards" id="ptSummary"></div>
+<div class="rh"><h1>Partner ledger (this tool)</h1><div class="sp"></div><button class="exp" data-export="ptBody" data-name="partner-ledger">&#8681; Export CSV</button></div>
 <table>
 <thead><tr><th>Date</th><th>Partner</th><th>Type</th><th>Note</th><th>Amount</th><th></th></tr></thead>
 <tbody id="ptBody"></tbody>
@@ -107,13 +135,14 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <button id="pwThisMonth">This month</button>
 <button id="pwThisYear">This year</button>
 <button id="pwClear">All dates</button>
+<button class="exp" data-export="pwBody" data-name="partner-withdrawals">&#8681; Export CSV</button>
 <span class="muted" id="pwMsg"></span>
 </div>
 <table>
 <thead><tr><th>Date</th><th>Partner</th><th>Kind</th><th>Source</th><th>Description</th><th>From / to</th><th>Amount</th></tr></thead>
 <tbody id="pwBody"><tr><td colspan="7" style="text-align:center;color:#9ca3af">Press "Load withdrawals" to read these from Zoho Books</td></tr></tbody>
 </table>
-<h1 style="font-size:15px;margin:18px 0 6px">Business expenses paid from partner accounts (from Zoho Books)</h1>
+<div class="rh"><h1>Business expenses paid from partner accounts (from Zoho Books)</h1><div class="sp"></div><button class="exp" data-export="ptZBody" data-name="partner-expenses">&#8681; Export CSV</button></div>
 <div class="muted" style="margin-bottom:8px">Money each partner personally spent for the business (counts as their investment). Loaded live from expenses whose "paid through" is Ganesh or Sagar.</div>
 <div class="cards">
 <div class="card"><div class="label">Ganesh — spent for business</div><div class="value c-green" id="gSpent">–</div></div>
@@ -137,6 +166,7 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <label style="font-size:12px;color:#6b7280">From <input type="date" id="dFrom"></label>
 <label style="font-size:12px;color:#6b7280">To <input type="date" id="dTo"></label>
 <button id="clearF">Clear filters</button>
+<button class="exp" data-export="tbody" data-name="all-time-overview">&#8681; Export CSV</button>
 </div>
 <table>
 <thead><tr>
@@ -166,12 +196,12 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <div class="card"><div class="label">Invoice value</div><div class="value c-amber" id="dVal">-</div></div>
 <div class="card"><div class="label">Stock in shop (pending)</div><div class="value c-red" id="sKg">-</div><div class="split" id="sPc"></div></div>
 </div>
-<h1 style="font-size:15px;margin:4px 0 6px" id="dTitle">Dispatch</h1>
+<div class="rh"><h1 id="dTitle">Dispatch</h1><div class="sp"></div><button class="exp" data-export="dBody" data-name="dispatch">&#8681; Export CSV</button></div>
 <table>
 <thead id="dHead"></thead>
 <tbody id="dBody"></tbody>
 </table>
-<h1 style="font-size:15px;margin:18px 0 6px">Stock in shop &mdash; ordered but not yet dispatched</h1>
+<div class="rh"><h1>Stock in shop &mdash; ordered but not yet dispatched</h1><div class="sp"></div><button class="exp" data-export="sBody" data-name="stock-in-shop">&#8681; Export CSV</button></div>
 <div class="muted" style="margin-bottom:8px">Taken from open, draft and part-invoiced POs in Zoho Books. Pending = ordered quantity minus invoiced quantity. Dispatched means invoiced.</div>
 <table>
 <thead><tr><th>PO</th><th>Date</th><th>Part</th><th>Name</th><th>Material</th><th>Ordered</th><th>Dispatched</th><th>Pending</th><th>Wt/pc</th><th>Pending kg</th></tr></thead>
@@ -720,6 +750,41 @@ saveLedger(led);
 $("ptAmt").value = ""; $("ptNote").value = "";
 renderLedger();
 });
+// ---- CSV export: works off whatever the table is showing, filters included ----
+function csvCell(v) {
+const s = String(v == null ? "" : v).replace(/ /g, " ").replace(/\s+/g, " ").trim();
+return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function tableToCsv(table) {
+const lines = [];
+for (const tr of table.querySelectorAll("tr")) {
+const cells = [...tr.children].map(td => {
+const inp = td.querySelector("input");
+return csvCell(inp ? inp.value : td.innerText);
+});
+if (cells.some(c => c !== "")) lines.push(cells.join(","));
+}
+return lines.join("\r\n");
+}
+function downloadCsv(name, csv) {
+const stamp = new Date().toISOString().slice(0, 10);
+const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+const a = document.createElement("a");
+a.href = URL.createObjectURL(blob);
+a.download = "balaji-" + name + "-" + stamp + ".csv";
+document.body.appendChild(a); a.click();
+setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+}
+document.addEventListener("click", e => {
+const b = e.target.closest("[data-export]");
+if (!b) return;
+const body = document.getElementById(b.dataset.export);
+const table = body && body.closest("table");
+if (!table) return;
+const rows = table.querySelectorAll("tbody tr").length;
+if (!rows || table.querySelector("tbody td[colspan]")) { alert("Nothing to export yet — load the report first."); return; }
+downloadCsv(b.dataset.name || b.dataset.export, tableToCsv(table));
+});
 function apiUrl(params) {
 const u = new URL(window.CFG.url);
 for (const k in params) u.searchParams.set(k, params[k]);
@@ -882,7 +947,15 @@ $("wdHint").textContent = diff === 0 ? "both partners have taken the same" : (di
 const span = (from || to) ? " — " + (from || "start") + " to " + (to || "today") : " — all dates";
 msg.textContent = rows.length + " of " + pwRows.length + " entries" + span + (msg.dataset.secs ? " (" + msg.dataset.secs + "s)" : "");
 }
-$("pwLoad").addEventListener("click", () => loadPartnerWithdrawals());
+function busy(btn, fn) {
+return async function () {
+const b = $(btn), old = b.textContent;
+b.disabled = true; b.textContent = "Loading\u2026";
+try { await fn(); } finally { b.disabled = false; b.textContent = old; }
+};
+}
+document.getElementById("btnPrint").addEventListener("click", () => window.print());
+$("pwLoad").addEventListener("click", busy("pwLoad", loadPartnerWithdrawals));
 ["pwFrom", "pwTo"].forEach(id => $(id).addEventListener("change", renderWithdrawals));
 $("pwClear").addEventListener("click", () => { $("pwFrom").value = ""; $("pwTo").value = ""; renderWithdrawals(); });
 $("pwThisMonth").addEventListener("click", () => {
@@ -893,8 +966,8 @@ $("pwThisYear").addEventListener("click", () => {
 const y = new Date().getFullYear();
 $("pwFrom").value = y + "-01-01"; $("pwTo").value = y + "-12-31"; renderWithdrawals();
 });
-$("dLoad").addEventListener("click", loadDispatch);
-$("dStock").addEventListener("click", loadStock);
+$("dLoad").addEventListener("click", busy("dLoad", loadDispatch));
+$("dStock").addEventListener("click", busy("dStock", loadStock));
 $("dDay").value = new Date().toISOString().slice(0, 10);
 $("dMon").value = new Date().toISOString().slice(0, 7);
 function showTab(which) {
