@@ -812,7 +812,10 @@ renderLedger();
 });
 // ---- CSV export: works off whatever the table is showing, filters included ----
 function csvCell(v) {
-const s = String(v == null ? "" : v).replace(/ /g, " ").replace(/\s+/g, " ").trim();
+let s = String(v == null ? "" : v).replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+// money and weights become plain numbers so a spreadsheet can total them
+const m = s.match(/^(-?)\u20b9?\s?([\d,]+(?:\.\d+)?)(?:\s?kg)?$/);
+if (m && /\d/.test(m[2])) s = m[1] + m[2].replace(/,/g, "");
 return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 function tableToCsv(table) {
@@ -875,7 +878,7 @@ return d;
 // batches instead of one after another.
 async function fetchAll(params, msgEl, label, force) {
 const ck = JSON.stringify(params);
-if (!force) { const hit = cacheGet(ck); if (hit) { if (msgEl) msgEl.textContent = hit.length + " " + label + " lines (from cache)"; return hit; } }
+if (!force) { const hit = cacheGet(ck); if (hit) { if (msgEl) { delete msgEl.dataset.secs; msgEl.textContent = hit.length + " " + label + " lines (from cache)"; } return hit; } }
 const t0 = Date.now();
 if (msgEl) msgEl.textContent = "Loading " + label + "...";
 const first = await fetchPage(params, 1);
@@ -1023,8 +1026,7 @@ function stampPrintMeta() {
 const d = new Date();
 const date = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 const time = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-const on = document.querySelector(".nav button.on");
-const view = on ? on.textContent.trim() : "";
+const view = $("pageTitle").textContent.trim();
 $("printMeta").innerHTML = "<b>The Balaji Industries</b><br>" + esc(view) + "<br>Printed " + esc(date) + " at " + esc(time);
 }
 window.addEventListener("beforeprint", stampPrintMeta);
