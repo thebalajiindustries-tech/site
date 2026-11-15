@@ -90,6 +90,7 @@ tbody tr:nth-child(even){background:#fff;}
 <button id="tabPay"><span class="ic">&#8377;</span>Monthly Payroll</button>
 <button id="tabOv"><span class="ic">&#128202;</span>All-time Overview</button>
 <button id="tabPart"><span class="ic">&#129309;</span>Partners</button>
+<button id="tabAuto"><span class="ic">&#128229;</span>PO Automation</button>
 </nav>
 <div class="sidefoot">Live from Zoho Books</div>
 </aside>
@@ -265,6 +266,32 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <table>
 <thead><tr><th>PO</th><th>Date</th><th>Part</th><th>Name</th><th>Material</th><th>Ordered</th><th>Dispatched</th><th>Pending</th><th>Wt/pc</th><th>Pending kg</th></tr></thead>
 <tbody id="sBody"><tr><td colspan="10" style="text-align:center;color:#9ca3af">Press &ldquo;Load stock in shop&rdquo; to read this from Zoho Books</td></tr></tbody>
+</table>
+</div>
+<!-- ============ PO AUTOMATION ============ -->
+<div id="autoView" style="display:none">
+<div class="muted" style="margin-bottom:10px">Paste the KSB &ldquo;QCP&rdquo; mail (the whole table, headers and all). Nothing is written to Zoho Books &mdash; this reads the mail and shows you what the sales orders would be.</div>
+<div class="toolbar">
+<button class="primary" id="aParse">Read the mail</button>
+<button id="aSample">Load an example</button>
+<button id="aClear">Clear</button>
+<span class="muted" id="aMsg"></span>
+</div>
+<textarea id="aIn" rows="7" placeholder="Paste the mail here…" style="width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff"></textarea>
+<div class="cards" style="margin-top:12px">
+<div class="card"><div class="label">Lines read</div><div class="value c-blue" id="aLines">&ndash;</div></div>
+<div class="card"><div class="label">Sales orders</div><div class="value c-green" id="aPos">&ndash;</div></div>
+<div class="card"><div class="label">Total weight</div><div class="value c-amber" id="aKg">&ndash;</div></div>
+<div class="card"><div class="label">Order value</div><div class="value" id="aVal">&ndash;</div></div>
+</div>
+<div id="aNotes" class="muted" style="margin:0 0 10px"></div>
+<div class="rh"><h1>Sales orders to create</h1><div class="sp"></div>
+<button class="exp" data-export="aBody" data-title="Sales orders from PO mail" data-name="po-sales-orders">&#8681; Export CSV</button>
+<button class="pdf" data-pdf="aBody" data-title="Sales orders from PO mail" data-name="po-sales-orders">&#128438; PDF</button>
+</div>
+<table>
+<thead><tr><th>PO number</th><th>Part</th><th>Name</th><th>Pattern</th><th>Material</th><th>Process</th><th>Qty</th><th>Wt/pc</th><th>Total kg</th><th>Rate</th><th>Delivery</th><th>Prod. order</th></tr></thead>
+<tbody id="aBody"><tr><td colspan="12" style="text-align:center;color:#9ca3af">Paste a mail above and press &ldquo;Read the mail&rdquo;</td></tr></tbody>
 </table>
 </div>
 <datalist id="empNames"></datalist>
@@ -1099,15 +1126,16 @@ $("dLoad").addEventListener("click", busy("dLoad", loadDispatch));
 $("dStock").addEventListener("click", busy("dStock", loadStock));
 $("dDay").value = new Date().toISOString().slice(0, 10);
 $("dMon").value = new Date().toISOString().slice(0, 7);
-const TAB_TITLES = { pay: "Monthly Payroll", ov: "All-time Overview", part: "Partners", disp: "Dispatch & Stock" };
+const TAB_TITLES = { pay: "Monthly Payroll", ov: "All-time Overview", part: "Partners", disp: "Dispatch & Stock", auto: "PO Automation" };
 const TAB_SUBS = {
 pay: "Salary due, actual paid and advance recovery, month by month",
 ov: "Every salary and advance entry ever recorded, per employee",
 part: "Partner ledger, withdrawals and business expenses paid personally",
-disp: "What left the works, and what is ordered but still in the shop"
+disp: "What left the works, and what is ordered but still in the shop",
+auto: "Turn the KSB PO mail into sales order lines, ready to check"
 };
 function showTab(which) {
-const tabs = { pay: ["tabPay", "payView"], ov: ["tabOv", "ovView"], part: ["tabPart", "partView"], disp: ["tabDisp", "dispView"] };
+const tabs = { pay: ["tabPay", "payView"], ov: ["tabOv", "ovView"], part: ["tabPart", "partView"], disp: ["tabDisp", "dispView"], auto: ["tabAuto", "autoView"] };
 for (const k in tabs) {
 $(tabs[k][0]).classList.toggle("on", k === which);
 $(tabs[k][1]).style.display = k === which ? "" : "none";
@@ -1120,6 +1148,86 @@ $("tabPay").addEventListener("click", () => showTab("pay"));
 $("tabOv").addEventListener("click", () => showTab("ov"));
 $("tabPart").addEventListener("click", () => { showTab("part"); renderLedger(); if (!partLoaded) loadPartners(); });
 $("tabDisp").addEventListener("click", () => showTab("disp"));
+$("tabAuto").addEventListener("click", () => showTab("auto"));
+// ---------- PO mail -> sales order lines ----------
+const QCP_FIELDS = 12;
+function splitDesc(desc) {
+const p = String(desc || "").split("-");
+if (p.length < 4) return { name: "", pattern: "", material: "", process: "" };
+return { name: p[1] || "", pattern: p.slice(2, -2).join("-"), material: p[p.length - 2] || "", process: p[p.length - 1] || "" };
+}
+function parseQcp(text) {
+const lines = String(text || "").split(/\r?\n/).map(x => x.replace(/ /g, " ").trim()).filter(x => x !== "");
+const rows = [], notes = [];
+let start = lines.findIndex(l => /^remark$/i.test(l));
+if (start < 0) { const i = lines.findIndex(l => /^PO\s*Qty$/i.test(l)); start = i < 0 ? -1 : i + 10; }
+if (start < 0) return { rows: rows, notes: ["Could not find the table — paste the whole mail including the header row."] };
+let docDate = "";
+const dl = lines.slice(0, start).find(l => /\d{2}\.\d{2}\.\d{4}/.test(l));
+if (dl) docDate = (dl.match(/\d{2}\.\d{2}\.\d{4}/) || [""])[0];
+for (let i = start + 1; i + QCP_FIELDS <= lines.length + 1; i += QCP_FIELDS) {
+const f = lines.slice(i, i + QCP_FIELDS);
+if (f.length < QCP_FIELDS) break;
+const part = f[0], desc = f[1], qty = f[2], wtpc = f[3], totwt = f[4], del = f[5], rate = f[6], prod = f[7], po = f[8];
+// the mail is a reply chain; earlier days sit quoted below, so stop at the first block that is not a row
+const ok = /^\d{10}$/.test(po) && /^\d{1,4}$/.test(qty) && /^\d{2}\.\d{2}\.\d{4}$/.test(del) && /^[\d.]+$/.test(wtpc);
+if (!ok) { notes.push("Stopped where the table ends (next block began “" + String(f[0]).slice(0, 30) + "”)."); break; }
+const d = splitDesc(desc);
+rows.push({ part: part, desc: desc, qty: +qty, wtpc: +wtpc, totwt: +totwt, del: del.split(".").reverse().join("-"),
+rate: +rate, prod: prod, po: po, otype: f[9], insp: f[10], remark: f[11],
+name: d.name, pattern: d.pattern, material: d.material, process: d.process });
+}
+// sanity checks the owner would otherwise do by eye
+for (const r of rows) {
+const expect = Math.round(r.wtpc * r.qty * 100) / 100;
+if (Math.abs(expect - r.totwt) > 0.5) notes.push("Part " + r.part + ": total weight " + r.totwt + " kg does not match " + r.qty + " × " + r.wtpc + " kg (" + expect + ").");
+if (!r.material || !r.process) notes.push("Part " + r.part + ": could not read material or process from “" + r.desc + "”.");
+}
+return { rows: rows, notes: notes, docDate: docDate };
+}
+let autoRows = [];
+function renderAuto(res) {
+autoRows = res.rows;
+const pos = {}; let kg = 0, val = 0;
+for (const r of res.rows) { pos[r.po] = 1; kg += r.totwt; val += r.rate; }
+const nPo = Object.keys(pos).length;
+$("aLines").textContent = num(res.rows.length);
+$("aPos").textContent = num(nPo);
+$("aKg").textContent = fmtKg(kg);
+$("aVal").textContent = fmt(val);
+let h = "", lastPo = "";
+const sorted = res.rows.slice().sort((a, b) => a.po.localeCompare(b.po));
+for (const r of sorted) {
+const first = r.po !== lastPo; lastPo = r.po;
+h += "<tr>" + (first ? "<td><b>" + esc(r.po) + "</b></td>" : "<td class=\"muted\">″</td>") +
+"<td style=\"text-align:left\">" + esc(r.part) + "</td><td style=\"text-align:left\">" + esc(r.name) + "</td>" +
+"<td style=\"text-align:left\">" + esc(r.pattern) + "</td><td style=\"text-align:left\">" + esc(r.material) + "</td>" +
+"<td style=\"text-align:left\">" + esc(r.process) + "</td><td>" + num(r.qty) + "</td><td>" + r.wtpc.toFixed(2) + "</td>" +
+"<td><b>" + fmtKg(r.totwt) + "</b></td><td>" + fmt(r.rate) + "</td><td>" + esc(r.del) + "</td><td>" + esc(r.prod) + "</td></tr>";
+}
+if (!res.rows.length) h = "<tr><td colspan=\"12\" style=\"text-align:center;color:#9ca3af\">No order lines found in that text</td></tr>";
+else h += "<tr class=\"total-row\"><td>TOTAL (" + nPo + " orders)</td><td></td><td></td><td></td><td></td><td></td><td>" +
+num(res.rows.reduce((a, r) => a + r.qty, 0)) + "</td><td></td><td>" + fmtKg(kg) + "</td><td>" + fmt(val) + "</td><td></td><td></td></tr>";
+$("aBody").innerHTML = h;
+const notes = res.notes.filter(n => !/^Stopped where/.test(n));
+$("aNotes").innerHTML = notes.length
+? "<b style=\"color:#b45309\">Check these before creating:</b><br>" + notes.map(esc).join("<br>")
+: (res.rows.length ? "No problems found — weights, dates and PO numbers all read cleanly." : "");
+$("aMsg").textContent = res.rows.length
+? res.rows.length + " line" + (res.rows.length === 1 ? "" : "s") + " across " + nPo + " sales order" + (nPo === 1 ? "" : "s") + (res.docDate ? " — mail dated " + res.docDate : "")
+: "Nothing recognised in that text.";
+}
+$("aParse").addEventListener("click", () => { try { renderAuto(parseQcp($("aIn").value)); } catch (e) { $("aMsg").textContent = "Could not read that: " + e.message; } });
+$("aClear").addEventListener("click", () => { $("aIn").value = ""; $("aMsg").textContent = ""; $("aNotes").textContent = "";
+$("aBody").innerHTML = "<tr><td colspan=\"12\" style=\"text-align:center;color:#9ca3af\">Paste a mail above and press “Read the mail”</td></tr>";
+["aLines","aPos","aKg","aVal"].forEach(id => $(id).textContent = "–"); autoRows = []; });
+$("aSample").addEventListener("click", () => {
+$("aIn").value = ["Material","06.11.2026 THE BALAJI INT.","PO Qty","WT/PC","Total Wt","DEL. DATE","RATE","PROD. ORD","PO NO","Order Type","INSPECTION PLAN","remark",
+"1155924","1155924-IMP-UG1256993-1B-UPG/ACID","1","48.6","48.6","12.11.2026","1642.68","1210231796","4508298808","Domestic","2419ZN83","As class III + LP",
+"1230435","1230435-CC-UG1288115-1B-UPG/ACID","1","32.2","32.2","12.11.2026","1088.36","1210295345","4508298808","Domestic","2419ZN83","As class III + LP",
+"1184203","1184203-VOL-UG1114571-WCB-UPG","2","35","70","12.11.2026","1067.5","1210295406","4508298812","Domestic","2414ZN83","As class III + LP"].join("\n");
+renderAuto(parseQcp($("aIn").value));
+});
 showTab("disp");
 document.querySelectorAll("#ovView thead th[data-k]").forEach(th => th.addEventListener("click", () => {
 const k = th.dataset.k;
