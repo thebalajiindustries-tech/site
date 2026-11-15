@@ -1264,19 +1264,27 @@ $("aMsg").textContent = m.rows.length + " lines from " + esc(m.subject) + " — 
 async function checkZoho() {
 const msg = $("aMsg");
 if (!autoRows.length) { msg.textContent = "Read a mail first."; return; }
-msg.textContent = "Checking against Zoho Books…";
+msg.textContent = "Checking against Zoho Books\u2026";
 try {
-const rows = await fetchAll({ pend: 1 }, null, "orders");
-zohoPos = new Set(rows.map(r => String(r.po)));
-const mailPos = [...new Set(autoRows.map(r => r.po))];
-const have = mailPos.filter(p => zohoPos.has(p));
-const missing = mailPos.filter(p => !zohoPos.has(p));
+const r = await fetch(apiUrl({ sonums: 1 }), { headers: { "x-app-key": window.CFG.key } });
+if (!r.ok && r.status !== 500) throw new Error("Data service returned " + r.status);
+const d = await r.json();
+if (d.error) throw new Error(d.error);
+const rows = d.rows || [];
+zohoPos = new Set(rows.map(x => String(x.n)));
+const dates = rows.map(x => x.d).filter(Boolean).sort();
+const oldest = dates[0] || "";
+const mailPos = [...new Set(autoRows.map(r2 => r2.po))];
+const have = mailPos.filter(p2 => zohoPos.has(p2));
+const missing = mailPos.filter(p2 => !zohoPos.has(p2));
+const stale = autoRows.filter(r2 => oldest && r2.del < oldest).length;
 renderAuto({ rows: autoRows, notes: [], docDate: "" });
-$("aNotes").innerHTML = '<b>Checked against Zoho Books.</b><br>' +
-have.length + " of " + mailPos.length + " PO numbers already have a sales order. " +
-(missing.length ? '<b style="color:#b45309">' + missing.length + " still to create: " + missing.map(esc).join(", ") + "</b>" : "Nothing missing.") +
-'<br><span class="muted">Compared against open, draft and part-invoiced sales orders. A PO that is fully invoiced and closed will show as “to create”.</span>';
-msg.textContent = mailPos.length + " PO numbers checked — " + missing.length + " missing from Zoho";
+$("aNotes").innerHTML = "<b>Checked against " + num(rows.length) + " sales orders in Zoho Books";
+$("aNotes").innerHTML += oldest ? " (back to " + esc(oldest) + ").</b><br>" : ".</b><br>";
+$("aNotes").innerHTML += have.length + " of " + mailPos.length + " PO numbers are already there. " +
+(missing.length ? "<b style=\"color:#b45309\">" + missing.length + " still to create: " + missing.map(esc).join(", ") + "</b>" : "Nothing missing.");
+if (stale) $("aNotes").innerHTML += "<br><span class=\"muted\">This mail is older than the checked window, so \u201cto create\u201d here may just mean the order is too old to appear.</span>";
+msg.textContent = mailPos.length + " PO numbers checked \u2014 " + missing.length + " missing from Zoho";
 } catch (e) { msg.textContent = "Could not check: " + e.message; }
 }
 $("aFetch").addEventListener("click", busy("aFetch", fetchMails));
