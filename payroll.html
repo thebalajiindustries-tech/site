@@ -127,7 +127,7 @@ tbody tr:nth-child(even){background:#fff;}
 <div class="card"><div class="label">Advance Given (month)</div><div class="value c-amber" id="kAdv">–</div><div class="split" id="kAdvSplit"></div></div>
 <div class="card"><div class="label">Advance Outstanding (after deductions)</div><div class="value c-amber" id="kAdvAll">–</div></div>
 </div>
-<div class="rh"><h1>Monthly payroll</h1><div class="sp"></div><button class="exp" data-export="pBody" data-name="payroll">&#8681; Export CSV</button><button class="pdf" data-pdf="pBody" data-name="payroll">&#128438; PDF</button></div>
+<div class="rh"><h1>Monthly payroll</h1><div class="sp"></div><button class="exp" data-export="pBody" data-title="Monthly Payroll" data-name="payroll">&#8681; Export CSV</button><button class="pdf" data-pdf="pBody" data-title="Monthly Payroll" data-name="payroll">&#128438; PDF</button></div>
 <table>
 <thead><tr>
 <th>Employee</th>
@@ -175,7 +175,7 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <div class="muted">These entries are saved in this tool only (not written to Zoho Books). Use them to track the 50-50 balance between partners.</div>
 </fieldset>
 <div class="cards" id="ptSummary"></div>
-<div class="rh"><h1>Partner ledger (this tool)</h1><div class="sp"></div><button class="exp" data-export="ptBody" data-name="partner-ledger">&#8681; Export CSV</button><button class="pdf" data-pdf="ptBody" data-name="partner-ledger">&#128438; PDF</button></div>
+<div class="rh"><h1>Partner ledger (this tool)</h1><div class="sp"></div><button class="exp" data-export="ptBody" data-title="Partner ledger" data-name="partner-ledger">&#8681; Export CSV</button><button class="pdf" data-pdf="ptBody" data-title="Partner ledger" data-name="partner-ledger">&#128438; PDF</button></div>
 <table>
 <thead><tr><th>Date</th><th>Partner</th><th>Type</th><th>Note</th><th>Amount</th><th></th></tr></thead>
 <tbody id="ptBody"></tbody>
@@ -194,14 +194,14 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <button id="pwThisMonth">This month</button>
 <button id="pwThisYear">This year</button>
 <button id="pwClear">All dates</button>
-<button class="exp" data-export="pwBody" data-name="partner-withdrawals">&#8681; Export CSV</button><button class="pdf" data-pdf="pwBody" data-name="partner-withdrawals">&#128438; PDF</button>
+<button class="exp" data-export="pwBody" data-title="Partner withdrawals" data-name="partner-withdrawals">&#8681; Export CSV</button><button class="pdf" data-pdf="pwBody" data-title="Partner withdrawals" data-name="partner-withdrawals">&#128438; PDF</button>
 <span class="muted" id="pwMsg"></span>
 </div>
 <table>
 <thead><tr><th>Date</th><th>Partner</th><th>Kind</th><th>Source</th><th>Description</th><th>From / to</th><th>Amount</th></tr></thead>
 <tbody id="pwBody"><tr><td colspan="7" style="text-align:center;color:#9ca3af">Press "Load withdrawals" to read these from Zoho Books</td></tr></tbody>
 </table>
-<div class="rh"><h1>Business expenses paid from partner accounts (from Zoho Books)</h1><div class="sp"></div><button class="exp" data-export="ptZBody" data-name="partner-expenses">&#8681; Export CSV</button><button class="pdf" data-pdf="ptZBody" data-name="partner-expenses">&#128438; PDF</button></div>
+<div class="rh"><h1>Business expenses paid from partner accounts (from Zoho Books)</h1><div class="sp"></div><button class="exp" data-export="ptZBody" data-title="Business expenses paid from partner accounts" data-name="partner-expenses">&#8681; Export CSV</button><button class="pdf" data-pdf="ptZBody" data-title="Business expenses paid from partner accounts" data-name="partner-expenses">&#128438; PDF</button></div>
 <div class="muted" style="margin-bottom:8px">Money each partner personally spent for the business (counts as their investment). Loaded live from expenses whose "paid through" is Ganesh or Sagar.</div>
 <div class="cards">
 <div class="card"><div class="label">Ganesh — spent for business</div><div class="value c-green" id="gSpent">–</div></div>
@@ -225,7 +225,7 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <label style="font-size:12px;color:#6b7280">From <input type="date" id="dFrom"></label>
 <label style="font-size:12px;color:#6b7280">To <input type="date" id="dTo"></label>
 <button id="clearF">Clear filters</button>
-<button class="exp" data-export="tbody" data-name="all-time-overview">&#8681; Export CSV</button><button class="pdf" data-pdf="tbody" data-name="all-time-overview">&#128438; PDF</button>
+<button class="exp" data-export="tbody" data-title="All-time Overview" data-name="all-time-overview">&#8681; Export CSV</button><button class="pdf" data-pdf="tbody" data-title="All-time Overview" data-name="all-time-overview">&#128438; PDF</button>
 </div>
 <table>
 <thead><tr>
@@ -255,12 +255,12 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <div class="card"><div class="label">Invoice value</div><div class="value c-amber" id="dVal">-</div></div>
 <div class="card"><div class="label">Stock in shop (pending)</div><div class="value c-red" id="sKg">-</div><div class="split" id="sPc"></div></div>
 </div>
-<div class="rh"><h1 id="dTitle">Dispatch</h1><div class="sp"></div><button class="exp" data-export="dBody" data-name="dispatch">&#8681; Export CSV</button><button class="pdf" data-pdf="dBody" data-name="dispatch">&#128438; PDF</button></div>
+<div class="rh"><h1 id="dTitle">Dispatch</h1><div class="sp"></div><button class="exp" data-export="dBody" data-title="Dispatch" data-name="dispatch">&#8681; Export CSV</button><button class="pdf" data-pdf="dBody" data-title="Dispatch" data-name="dispatch">&#128438; PDF</button></div>
 <table>
 <thead id="dHead"><tr><th>Invoice</th><th>Inv. date</th><th>PO</th><th>Part</th><th>Name</th><th>Material</th><th>Process</th><th>Qty</th><th>Wt/pc</th><th>Total kg</th><th>Value</th></tr></thead>
 <tbody id="dBody"><tr><td colspan="11" style="text-align:center;color:#9ca3af">Pick a date above and press &ldquo;Load dispatch&rdquo;</td></tr></tbody>
 </table>
-<div class="rh"><h1>Stock in shop &mdash; ordered but not yet dispatched</h1><div class="sp"></div><button class="exp" data-export="sBody" data-name="stock-in-shop">&#8681; Export CSV</button><button class="pdf" data-pdf="sBody" data-name="stock-in-shop">&#128438; PDF</button></div>
+<div class="rh"><h1>Stock in shop &mdash; ordered but not yet dispatched</h1><div class="sp"></div><button class="exp" data-export="sBody" data-title="Stock in shop — ordered but not yet dispatched" data-name="stock-in-shop">&#8681; Export CSV</button><button class="pdf" data-pdf="sBody" data-title="Stock in shop — ordered but not yet dispatched" data-name="stock-in-shop">&#128438; PDF</button></div>
 <div class="muted" style="margin-bottom:8px">Taken from open, draft and part-invoiced POs in Zoho Books. Pending = ordered quantity minus invoiced quantity. Dispatched means invoiced.</div>
 <table>
 <thead><tr><th>PO</th><th>Date</th><th>Part</th><th>Name</th><th>Material</th><th>Ordered</th><th>Dispatched</th><th>Pending</th><th>Wt/pc</th><th>Pending kg</th></tr></thead>
@@ -857,7 +857,7 @@ const when = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", yea
 " at " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 const logo = document.querySelector(".logo").outerHTML;
 const cols = clone.querySelectorAll("thead th").length;
-const css = "@page{size:A4 " + (cols > 7 ? "landscape" : "portrait") + ";margin:12mm}" +
+const css = "@page{size:A4 " + (cols >= 7 ? "landscape" : "portrait") + ";margin:12mm}" +
 "*{box-sizing:border-box;margin:0;padding:0}" +
 "body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1d21;font-size:11px}" +
 ".h{display:flex;align-items:center;gap:10px;border-bottom:2px solid #0a3157;padding-bottom:8px;margin-bottom:12px}" +
@@ -893,7 +893,7 @@ if (!table || !table.querySelectorAll("tbody tr").length || table.querySelector(
 alert("Nothing to export yet \u2014 load the report first."); return;
 }
 const rh = pb.closest(".rh"), h = rh && rh.querySelector("h1");
-printReport(pb.dataset.pdf, h ? h.textContent.trim() : (pb.dataset.name || "Report"));
+printReport(pb.dataset.pdf, (h && h.textContent.trim()) || pb.dataset.title || pb.dataset.name || "Report");
 return;
 }
 const b = e.target.closest("[data-export]");
@@ -904,7 +904,7 @@ if (!table) return;
 const rows = table.querySelectorAll("tbody tr").length;
 if (!rows || table.querySelector("tbody td[colspan]")) { alert("Nothing to export yet — load the report first."); return; }
 const rh = b.closest(".rh"), h = rh && rh.querySelector("h1");
-downloadCsv(b.dataset.name || b.dataset.export, tableToCsv(table), h ? h.textContent.trim() : b.dataset.name);
+downloadCsv(b.dataset.name || b.dataset.export, tableToCsv(table), (h && h.textContent.trim()) || b.dataset.title || b.dataset.name);
 });
 function apiUrl(params) {
 const u = new URL(window.CFG.url);
