@@ -1161,33 +1161,42 @@ if (p.length < 4) return { name: "", pattern: "", material: "", process: "" };
 return { name: p[1] || "", pattern: p.slice(2, -2).join("-"), material: p[p.length - 2] || "", process: p[p.length - 1] || "" };
 }
 function parseQcp(text) {
-const lines = String(text || "").split(/\r?\n/).map(x => x.replace(/ /g, " ").trim()).filter(x => x !== "");
-const rows = [], notes = [];
-let start = lines.findIndex(l => /^remark$/i.test(l));
-if (start < 0) { const i = lines.findIndex(l => /^PO\s*Qty$/i.test(l)); start = i < 0 ? -1 : i + 10; }
-if (start < 0) return { rows: rows, notes: ["Could not find the table — paste the whole mail including the header row."] };
-let docDate = "";
-const dl = lines.slice(0, start).find(l => /\d{2}\.\d{2}\.\d{4}/.test(l));
-if (dl) docDate = (dl.match(/\d{2}\.\d{2}\.\d{4}/) || [""])[0];
-for (let i = start + 1; i + QCP_FIELDS <= lines.length + 1; i += QCP_FIELDS) {
-const f = lines.slice(i, i + QCP_FIELDS);
+// A mail usually carries several day-tables, and the quoted reply chain below
+// repeats earlier days. Read every table above the first "From:" line.
+const all = String(text || "").split(/\r?\n/).map(x => x.replace(/ /g, " ").trim());
+let stop = all.findIndex(l => /^From:\s/i.test(l));
+if (stop < 0) stop = all.length;
+const lines = all.slice(0, stop).filter(x => x !== "");
+const rows = [], notes = [], dates = [];
+let i = 0, docDate = "";
+while (i < lines.length) {
+const dm = lines[i].match(/^(\d{2}\.\d{2}\.\d{4})\s+THE BALAJI/i);
+if (dm) docDate = dm[1];
+if (/^remark$/i.test(lines[i])) {
+let k = i + 1, n = 0;
+while (k + QCP_FIELDS <= lines.length + 1) {
+const f = lines.slice(k, k + QCP_FIELDS);
 if (f.length < QCP_FIELDS) break;
-const part = f[0], desc = f[1], qty = f[2], wtpc = f[3], totwt = f[4], del = f[5], rate = f[6], prod = f[7], po = f[8];
-// the mail is a reply chain; earlier days sit quoted below, so stop at the first block that is not a row
-const ok = /^\d{10}$/.test(po) && /^\d{1,4}$/.test(qty) && /^\d{2}\.\d{2}\.\d{4}$/.test(del) && /^[\d.]+$/.test(wtpc);
-if (!ok) { notes.push("Stopped where the table ends (next block began “" + String(f[0]).slice(0, 30) + "”)."); break; }
-const d = splitDesc(desc);
-rows.push({ part: part, desc: desc, qty: +qty, wtpc: +wtpc, totwt: +totwt, del: del.split(".").reverse().join("-"),
-rate: +rate, prod: prod, po: po, otype: f[9], insp: f[10], remark: f[11],
+const ok = /^\d{10}$/.test(f[8]) && /^\d{1,4}$/.test(f[2]) && /^\d{2}\.\d{2}\.\d{4}$/.test(f[5]) && /^[\d.]+$/.test(f[3]);
+if (!ok) break;
+const d = splitDesc(f[1]);
+rows.push({ part: f[0], desc: f[1], qty: +f[2], wtpc: +f[3], totwt: +f[4], del: f[5].split(".").reverse().join("-"),
+rate: +f[6], prod: f[7], po: f[8], otype: f[9], insp: f[10], remark: f[11], mailDate: docDate,
 name: d.name, pattern: d.pattern, material: d.material, process: d.process });
+k += QCP_FIELDS; n++;
 }
-// sanity checks the owner would otherwise do by eye
+if (n) dates.push(docDate + " (" + n + ")");
+i = k; continue;
+}
+i++;
+}
+if (!rows.length) notes.push("Could not find a table — paste the whole mail including the header row ending in “remark”.");
 for (const r of rows) {
 const expect = Math.round(r.wtpc * r.qty * 100) / 100;
 if (Math.abs(expect - r.totwt) > 0.5) notes.push("Part " + r.part + ": total weight " + r.totwt + " kg does not match " + r.qty + " × " + r.wtpc + " kg (" + expect + ").");
 if (!r.material || !r.process) notes.push("Part " + r.part + ": could not read material or process from “" + r.desc + "”.");
 }
-return { rows: rows, notes: notes, docDate: docDate };
+return { rows: rows, notes: notes, docDate: dates.join(", ") };
 }
 let autoRows = [], zohoPos = null;
 function poStatusCell(po) {
