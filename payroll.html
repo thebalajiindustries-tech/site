@@ -1027,7 +1027,6 @@ const on = document.querySelector(".nav button.on");
 const view = on ? on.textContent.trim() : "";
 $("printMeta").innerHTML = "<b>The Balaji Industries</b><br>" + esc(view) + "<br>Printed " + esc(date) + " at " + esc(time);
 }
-showTab("disp");
 window.addEventListener("beforeprint", stampPrintMeta);
 document.getElementById("btnPrint").addEventListener("click", () => { stampPrintMeta(); window.print(); });
 $("pwLoad").addEventListener("click", busy("pwLoad", loadPartnerWithdrawals));
@@ -1066,6 +1065,7 @@ $("tabPay").addEventListener("click", () => showTab("pay"));
 $("tabOv").addEventListener("click", () => showTab("ov"));
 $("tabPart").addEventListener("click", () => { showTab("part"); renderLedger(); if (!partLoaded) loadPartners(); });
 $("tabDisp").addEventListener("click", () => showTab("disp"));
+showTab("disp");
 document.querySelectorAll("#ovView thead th[data-k]").forEach(th => th.addEventListener("click", () => {
 const k = th.dataset.k;
 if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = k === "name" ? 1 : -1; }
