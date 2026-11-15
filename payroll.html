@@ -272,7 +272,10 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <div id="autoView" style="display:none">
 <div class="muted" style="margin-bottom:10px">Paste the KSB &ldquo;QCP&rdquo; mail (the whole table, headers and all). Nothing is written to Zoho Books &mdash; this reads the mail and shows you what the sales orders would be.</div>
 <div class="toolbar">
-<button class="primary" id="aParse">Read the mail</button>
+<button class="primary" id="aFetch">&#128229; Fetch from mail</button>
+<select id="aMail" style="display:none;max-width:320px"></select>
+<button id="aParse">Read the pasted mail</button>
+<button id="aCheck">Check against Zoho</button>
 <button id="aSample">Load an example</button>
 <button id="aClear">Clear</button>
 <span class="muted" id="aMsg"></span>
@@ -290,8 +293,8 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <button class="pdf" data-pdf="aBody" data-title="Sales orders from PO mail" data-name="po-sales-orders">&#128438; PDF</button>
 </div>
 <table>
-<thead><tr><th>PO number</th><th>Part</th><th>Name</th><th>Pattern</th><th>Material</th><th>Process</th><th>Qty</th><th>Wt/pc</th><th>Total kg</th><th>Rate</th><th>Delivery</th><th>Prod. order</th></tr></thead>
-<tbody id="aBody"><tr><td colspan="12" style="text-align:center;color:#9ca3af">Paste a mail above and press &ldquo;Read the mail&rdquo;</td></tr></tbody>
+<thead><tr><th>In Zoho?</th><th>PO number</th><th>Part</th><th>Name</th><th>Pattern</th><th>Material</th><th>Process</th><th>Qty</th><th>Wt/pc</th><th>Total kg</th><th>Rate</th><th>Delivery</th><th>Prod. order</th></tr></thead>
+<tbody id="aBody"><tr><td colspan="13" style="text-align:center;color:#9ca3af">Press &ldquo;Fetch from mail&rdquo;, or paste a mail above</td></tr></tbody>
 </table>
 </div>
 <datalist id="empNames"></datalist>
@@ -1185,7 +1188,13 @@ if (!r.material || !r.process) notes.push("Part " + r.part + ": could not read m
 }
 return { rows: rows, notes: notes, docDate: docDate };
 }
-let autoRows = [];
+let autoRows = [], zohoPos = null;
+function poStatusCell(po) {
+if (!zohoPos) return '<td class="muted">not checked</td>';
+return zohoPos.has(po)
+? '<td><span class="st on" style="cursor:default">In Zoho</span></td>'
+: '<td><span class="st off" style="cursor:default;background:#fef3c7;color:#92400e;border-color:#fde68a">To create</span></td>';
+}
 function renderAuto(res) {
 autoRows = res.rows;
 const pos = {}; let kg = 0, val = 0;
@@ -1195,33 +1204,91 @@ $("aLines").textContent = num(res.rows.length);
 $("aPos").textContent = num(nPo);
 $("aKg").textContent = fmtKg(kg);
 $("aVal").textContent = fmt(val);
+// a line repeated inside the same mail is almost always a mistake worth seeing
+const seen = {}, dupes = {};
+for (const r of res.rows) {
+const k = r.po + "|" + r.part + "|" + r.prod;
+if (seen[k]) dupes[k] = (dupes[k] || 1) + 1; else seen[k] = 1;
+}
 let h = "", lastPo = "";
-const sorted = res.rows.slice().sort((a, b) => a.po.localeCompare(b.po));
+const sorted = res.rows.slice().sort((a, b) => a.po.localeCompare(b.po) || a.part.localeCompare(b.part));
 for (const r of sorted) {
 const first = r.po !== lastPo; lastPo = r.po;
-h += "<tr>" + (first ? "<td><b>" + esc(r.po) + "</b></td>" : "<td class=\"muted\">″</td>") +
-"<td style=\"text-align:left\">" + esc(r.part) + "</td><td style=\"text-align:left\">" + esc(r.name) + "</td>" +
-"<td style=\"text-align:left\">" + esc(r.pattern) + "</td><td style=\"text-align:left\">" + esc(r.material) + "</td>" +
-"<td style=\"text-align:left\">" + esc(r.process) + "</td><td>" + num(r.qty) + "</td><td>" + r.wtpc.toFixed(2) + "</td>" +
-"<td><b>" + fmtKg(r.totwt) + "</b></td><td>" + fmt(r.rate) + "</td><td>" + esc(r.del) + "</td><td>" + esc(r.prod) + "</td></tr>";
+const dup = dupes[r.po + "|" + r.part + "|" + r.prod];
+h += "<tr>" + (first ? poStatusCell(r.po) : '<td></td>') +
+(first ? "<td><b>" + esc(r.po) + "</b></td>" : '<td class="muted">″</td>') +
+'<td style="text-align:left">' + esc(r.part) + (dup ? ' <span class="badge adv">repeated ×' + dup + '</span>' : '') + '</td>' +
+'<td style="text-align:left">' + esc(r.name) + '</td><td style="text-align:left">' + esc(r.pattern) + '</td>' +
+'<td style="text-align:left">' + esc(r.material) + '</td><td style="text-align:left">' + esc(r.process) + '</td>' +
+"<td>" + num(r.qty) + "</td><td>" + r.wtpc.toFixed(2) + "</td><td><b>" + fmtKg(r.totwt) + "</b></td>" +
+"<td>" + fmt(r.rate) + "</td><td>" + esc(r.del) + "</td><td>" + esc(r.prod) + "</td></tr>";
 }
-if (!res.rows.length) h = "<tr><td colspan=\"12\" style=\"text-align:center;color:#9ca3af\">No order lines found in that text</td></tr>";
-else h += "<tr class=\"total-row\"><td>TOTAL (" + nPo + " orders)</td><td></td><td></td><td></td><td></td><td></td><td>" +
+if (!res.rows.length) h = '<tr><td colspan="13" style="text-align:center;color:#9ca3af">No order lines found</td></tr>';
+else h += '<tr class="total-row"><td></td><td>TOTAL (' + nPo + " orders)</td><td></td><td></td><td></td><td></td><td></td><td>" +
 num(res.rows.reduce((a, r) => a + r.qty, 0)) + "</td><td></td><td>" + fmtKg(kg) + "</td><td>" + fmt(val) + "</td><td></td><td></td></tr>";
 $("aBody").innerHTML = h;
 const notes = res.notes.filter(n => !/^Stopped where/.test(n));
+for (const k in dupes) notes.push("Line repeated " + dupes[k] + " times in this mail: PO " + k.split("|")[0] + ", part " + k.split("|")[1] + " — check it is really two orders.");
 $("aNotes").innerHTML = notes.length
-? "<b style=\"color:#b45309\">Check these before creating:</b><br>" + notes.map(esc).join("<br>")
-: (res.rows.length ? "No problems found — weights, dates and PO numbers all read cleanly." : "");
+? '<b style="color:#b45309">Check these before creating:</b><br>' + notes.map(esc).join("<br>")
+: (res.rows.length ? "Weights, dates and PO numbers all read cleanly." : "");
 $("aMsg").textContent = res.rows.length
 ? res.rows.length + " line" + (res.rows.length === 1 ? "" : "s") + " across " + nPo + " sales order" + (nPo === 1 ? "" : "s") + (res.docDate ? " — mail dated " + res.docDate : "")
 : "Nothing recognised in that text.";
 }
-$("aParse").addEventListener("click", () => { try { renderAuto(parseQcp($("aIn").value)); } catch (e) { $("aMsg").textContent = "Could not read that: " + e.message; } });
-$("aClear").addEventListener("click", () => { $("aIn").value = ""; $("aMsg").textContent = ""; $("aNotes").textContent = "";
-$("aBody").innerHTML = "<tr><td colspan=\"12\" style=\"text-align:center;color:#9ca3af\">Paste a mail above and press “Read the mail”</td></tr>";
+// --- fetch the parsed mails staged beside the app ---
+let mailFile = null;
+async function fetchMails() {
+const msg = $("aMsg");
+msg.textContent = "Fetching mail…";
+try {
+const r = await fetch("po-inbox.json?t=" + Date.now());
+if (!r.ok) throw new Error("no mail file on the server (" + r.status + ")");
+mailFile = await r.json();
+const sel = $("aMail");
+sel.innerHTML = mailFile.mails.map((m, i) =>
+'<option value="' + i + '">' + esc(m.docDate || m.received) + " — " + esc(m.subject) + " (" + m.lines + " lines)</option>").join("");
+sel.style.display = "";
+if (!mailFile.mails.length) { msg.textContent = "No PO mails found in the mailbox."; return; }
+showMail(0);
+} catch (e) { msg.textContent = "Could not fetch mail: " + e.message; }
+}
+function showMail(i) {
+const m = mailFile.mails[i];
+$("aIn").value = "(read from " + m.subject + ", received " + m.received + ")";
+renderAuto({ rows: m.rows, notes: [], docDate: m.docDate });
+$("aMsg").textContent = m.rows.length + " lines from " + esc(m.subject) + " — received " + m.received +
+(mailFile.generated ? " — mail read " + mailFile.generated.slice(0, 10) : "");
+}
+// --- reconcile against the sales orders already in Zoho ---
+async function checkZoho() {
+const msg = $("aMsg");
+if (!autoRows.length) { msg.textContent = "Read a mail first."; return; }
+msg.textContent = "Checking against Zoho Books…";
+try {
+const rows = await fetchAll({ pend: 1 }, null, "orders");
+zohoPos = new Set(rows.map(r => String(r.po)));
+const mailPos = [...new Set(autoRows.map(r => r.po))];
+const have = mailPos.filter(p => zohoPos.has(p));
+const missing = mailPos.filter(p => !zohoPos.has(p));
+renderAuto({ rows: autoRows, notes: [], docDate: "" });
+$("aNotes").innerHTML = '<b>Checked against Zoho Books.</b><br>' +
+have.length + " of " + mailPos.length + " PO numbers already have a sales order. " +
+(missing.length ? '<b style="color:#b45309">' + missing.length + " still to create: " + missing.map(esc).join(", ") + "</b>" : "Nothing missing.") +
+'<br><span class="muted">Compared against open, draft and part-invoiced sales orders. A PO that is fully invoiced and closed will show as “to create”.</span>';
+msg.textContent = mailPos.length + " PO numbers checked — " + missing.length + " missing from Zoho";
+} catch (e) { msg.textContent = "Could not check: " + e.message; }
+}
+$("aFetch").addEventListener("click", busy("aFetch", fetchMails));
+$("aMail").addEventListener("change", e => showMail(+e.target.value));
+$("aCheck").addEventListener("click", busy("aCheck", checkZoho));
+$("aParse").addEventListener("click", () => { zohoPos = null; try { renderAuto(parseQcp($("aIn").value)); } catch (e) { $("aMsg").textContent = "Could not read that: " + e.message; } });
+$("aClear").addEventListener("click", () => { $("aIn").value = ""; $("aMsg").textContent = ""; $("aNotes").textContent = ""; zohoPos = null;
+$("aMail").style.display = "none";
+$("aBody").innerHTML = '<tr><td colspan="13" style="text-align:center;color:#9ca3af">Press “Fetch from mail”, or paste a mail above</td></tr>';
 ["aLines","aPos","aKg","aVal"].forEach(id => $(id).textContent = "–"); autoRows = []; });
 $("aSample").addEventListener("click", () => {
+zohoPos = null;
 $("aIn").value = ["Material","06.11.2026 THE BALAJI INT.","PO Qty","WT/PC","Total Wt","DEL. DATE","RATE","PROD. ORD","PO NO","Order Type","INSPECTION PLAN","remark",
 "1155924","1155924-IMP-UG1256993-1B-UPG/ACID","1","48.6","48.6","12.11.2026","1642.68","1210231796","4508298808","Domestic","2419ZN83","As class III + LP",
 "1230435","1230435-CC-UG1288115-1B-UPG/ACID","1","32.2","32.2","12.11.2026","1088.36","1210295345","4508298808","Domestic","2419ZN83","As class III + LP",
