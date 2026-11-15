@@ -276,6 +276,7 @@ Click an employee's Active / Inactive badge to change it. Status is set by hand 
 <select id="aMail" style="display:none;max-width:320px"></select>
 <button id="aParse">Read the pasted mail</button>
 <button id="aCheck">Check against Zoho</button>
+<button class="primary" id="aCreate" disabled title="Run the Zoho check first">Create missing in Zoho</button>
 <button id="aSample">Load an example</button>
 <button id="aClear">Clear</button>
 <span class="muted" id="aMsg"></span>
@@ -1285,8 +1286,42 @@ $("aNotes").innerHTML += have.length + " of " + mailPos.length + " PO numbers ar
 (missing.length ? "<b style=\"color:#b45309\">" + missing.length + " still to create: " + missing.map(esc).join(", ") + "</b>" : "Nothing missing.");
 if (stale) $("aNotes").innerHTML += "<br><span class=\"muted\">This mail is older than the checked window, so \u201cto create\u201d here may just mean the order is too old to appear.</span>";
 msg.textContent = mailPos.length + " PO numbers checked \u2014 " + missing.length + " missing from Zoho";
+$("aCreate").disabled = !missing.length;
+$("aCreate").title = missing.length ? "Create " + missing.length + " missing sales order(s)" : "Nothing missing";
 } catch (e) { msg.textContent = "Could not check: " + e.message; }
 }
+// create only what the Zoho check proved is missing, and only on an explicit yes
+async function createMissing() {
+const msg = $("aMsg");
+if (!zohoPos) { msg.textContent = "Run “Check against Zoho” first."; return; }
+const groups = {};
+for (const r of autoRows) {
+if (zohoPos.has(r.po)) continue;
+(groups[r.po] = groups[r.po] || []).push(r);
+}
+const pos = Object.keys(groups);
+if (!pos.length) { msg.textContent = "Nothing missing — every PO is already in Zoho."; return; }
+const lines = pos.reduce((a, p) => a + groups[p].length, 0);
+if (!confirm("Create " + pos.length + " sales order" + (pos.length === 1 ? "" : "s") + " in Zoho Books, with " + lines + " line" + (lines === 1 ? "" : "s") + " in total?\n\n" + pos.join(", ") + "\n\nAny part number that does not exist yet will be created as a new item.")) return;
+const done = [], failed = [];
+for (let i = 0; i < pos.length; i++) {
+const po = pos[i], g = groups[po];
+msg.textContent = "Creating " + (i + 1) + " of " + pos.length + " — PO " + po + "…";
+try {
+const r = await fetch(window.CFG.url, { method: "POST",
+headers: { "x-app-key": window.CFG.key, "content-type": "application/json" },
+body: JSON.stringify({ po: po, date: g[0].del, del: g[0].del, lines: g }) });
+const d = await r.json();
+if (d.error) throw new Error(d.error);
+done.push(po + (d.newItems && d.newItems.length ? " (+" + d.newItems.length + " new item" + (d.newItems.length === 1 ? "" : "s") + ")" : ""));
+} catch (e) { failed.push(po + ": " + e.message); }
+}
+$("aNotes").innerHTML = (done.length ? '<b class="c-green">Created ' + done.length + ":</b> " + done.map(esc).join(", ") : "") +
+(failed.length ? '<br><b style="color:#b91c1c">Failed ' + failed.length + ":</b> " + failed.map(esc).join("<br>") : "");
+msg.textContent = done.length + " created, " + failed.length + " failed";
+await checkZoho();
+}
+$("aCreate").addEventListener("click", busy("aCreate", createMissing));
 $("aFetch").addEventListener("click", busy("aFetch", fetchMails));
 $("aMail").addEventListener("change", e => showMail(+e.target.value));
 $("aCheck").addEventListener("click", busy("aCheck", checkZoho));
